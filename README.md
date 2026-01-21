@@ -105,25 +105,33 @@ git commit -m "Added login screen logic"
 git push -u origin feature/my-new-feature
 
 ```
-🔄 **The Git Workflow (Simple / Fast), just develop branch**
+## 🔄 **The Git Workflow (Simple / Fast), just develop branch**
 We work directly on the develop branch. Communication is key: If you are editing a file, tell the team so nobody else touches it!
 
 1. Start of work session Always pull the latest code before you type a single character.
 
-PowerShell
+```powershell
 git checkout develop
 git pull origin develop
+
+```
 2. Save your work
 
-PowerShell
+```powershell
 git add .
 git commit -m "Added the login button"
+
+```
+
 3. Upload to Team Do not push immediately. Pull one last time to make sure you didn't miss anything.
 
-PowerShell
+```powershell
 git pull origin develop   # Fix any red text conflicts here if they appear
 git push origin develop
 ⚠️ The Golden Rule: If the build breaks (Red Jenkins light), the person who broke it must fix it immediately. Do not go to sleep leaving develop broken!
+
+```
+
 ---
 
 ## 🏗️ The Build Pipeline (Jenkins)
