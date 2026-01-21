@@ -73,7 +73,9 @@ dotnet run
 
 ---
 
-## 🔄 The Git Workflow (How to Save)
+**2 Options here, please discuss in pairings or main group, to figure out best workflow**
+
+## 🔄 The Git Workflow (How to Save) A New Branch, A New Feature
 
 **1. Start a New Task**
 Always create a new branch for every feature (e.g., adding login, fixing bugs).
@@ -103,7 +105,25 @@ git commit -m "Added login screen logic"
 git push -u origin feature/my-new-feature
 
 ```
+🔄 **The Git Workflow (Simple / Fast), just develop branch**
+We work directly on the develop branch. Communication is key: If you are editing a file, tell the team so nobody else touches it!
 
+1. Start of work session Always pull the latest code before you type a single character.
+
+PowerShell
+git checkout develop
+git pull origin develop
+2. Save your work
+
+PowerShell
+git add .
+git commit -m "Added the login button"
+3. Upload to Team Do not push immediately. Pull one last time to make sure you didn't miss anything.
+
+PowerShell
+git pull origin develop   # Fix any red text conflicts here if they appear
+git push origin develop
+⚠️ The Golden Rule: If the build breaks (Red Jenkins light), the person who broke it must fix it immediately. Do not go to sleep leaving develop broken!
 ---
 
 ## 🏗️ The Build Pipeline (Jenkins)
