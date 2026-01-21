@@ -11,7 +11,7 @@ pipeline {
         }
         stage('Build') {
             steps {
-                sh 'dotnet build src/Pocketree.sln'
+                sh 'dotnet build Pocketree.sln'
             }
         }
     }
