@@ -9,12 +9,14 @@ This repository contains the full stack for the Pocketree application:
 ## 🚀 Quick Start (Day-to-Day)
 
 **1. Wake up the Infrastructure**
-Before opening any code, start your local containers (Database & Jenkins).
+Run this in your terminal at the root of the project:
 
 ```powershell
-docker start pocketree-db pocketree-jenkins
+docker-compose up -d
 
 ```
+
+* *Note:* This automatically starts the Database (Port 3307) and Jenkins (Port 8080).
 
 **2. Verify they are running**
 
@@ -23,8 +25,7 @@ docker ps
 
 ```
 
-* *Check:* Ensure `pocketree-db` is up.
-* *Check:* Ensure `pocketree-jenkins` is up at `http://localhost:8080`.
+* *Check:* Ensure `pocketree-db` and `pocketree-jenkins` are in the list.
 
 ---
 
@@ -32,11 +33,11 @@ docker ps
 
 **1. Open the Project**
 
-* Open **VS Code**.
-* **File > Open Folder** > Select `Pocketree-Repo`.
+* Open **VS Code** (or Visual Studio).
+* **File > Open Folder** > Select `Pocketree` (or your repo folder).
 
 **2. Run the API**
-Open the integrated terminal in VS Code (`Ctrl + ~`) and run:
+Open the integrated terminal (`Ctrl + ~`) and run:
 
 ```powershell
 cd src/Pocketree.Api
@@ -60,7 +61,7 @@ dotnet run
 **1. Open the Project**
 
 * Open **Android Studio**.
-* **File > Open** > Select `Pocketree-Repo/android-app`.
+* **File > Open** > Select `Pocketree/android-app`.
 * *(Make sure to select the `android-app` subfolder, not the root repo!)*
 
 
@@ -137,12 +138,19 @@ Once you push code to GitHub, you can trigger the automated build.
 ### **Repo Structure**
 
 ```text
-Pocketree-Repo/
-├── src/                    # .NET Backend
-│   ├── Pocketree.Api/
-│   └── Pocketree.Shared/
-├── android-app/            # Android Frontend
-├── Jenkinsfile             # Automation Script
-└── README.md               # This file
+
+Pocketree/
+├── src/                      # .NET Backend Code
+│   ├── Pocketree.Api/        # API Project & Dockerfile
+│   ├── Pocketree.Api.Tests   # API Tests
+│   └── Pocketree.Shared/     # Shared Libraries
+├── android-app/              # Android Frontend Code
+├── .dockerignore             # Filters files to speed up Docker builds
+├── .gitignore                # Tells Git to ignore junk files (bin, obj)
+├── docker-compose.yml        # Orchestrates Database + Jenkins + API
+├── init.sql                  # Database Setup Script (Creates 'Fruits' table)
+├── Jenkinsfile               # CI/CD Pipeline Definitions
+├── Pocketree.sln             # Visual Studio Solution File
+└── README.md                 # This guide
 
 ```
