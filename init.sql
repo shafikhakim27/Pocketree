@@ -1,0 +1,10 @@
+CREATE DATABASE IF NOT EXISTS pocketree;
+USE pocketree;
+
+CREATE TABLE IF NOT EXISTS Fruits (
+    Id INT AUTO_INCREMENT PRIMARY KEY,
+    Name VARCHAR(100) NOT NULL,
+    Price DECIMAL(10, 2) NOT NULL
+);
+
+INSERT INTO Fruits (Name, Price) VALUES ('Apple', 1.20), ('Banana', 0.80);

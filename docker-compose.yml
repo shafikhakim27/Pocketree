@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  pocketree-api:
+    build:
+      context: .
+      dockerfile: src/Pocketree.Api/Dockerfile
+    ports:
+      - "5000:8080"
+    depends_on:
+      - pocketree-db
+
+  pocketree-db:
+    image: mysql:8.0
+    container_name: pocketree-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: pocketree
+    ports:
+      - "3307:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  jenkins:
+    image: jenkins/jenkins:lts-jdk17
+    container_name: pocketree-jenkins
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+
+volumes:
+  db_data:
+  jenkins_home:
