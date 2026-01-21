@@ -14,5 +14,11 @@ pipeline {
                 sh 'dotnet build Pocketree.sln'
             }
         }
+        stage('Test') {
+            steps {
+                // This runs the tests and produces a report
+                sh 'dotnet test Pocketree.sln --no-build --logger "trx;LogFileName=test_results.xml"'
+            }
+        }
     }
 }
