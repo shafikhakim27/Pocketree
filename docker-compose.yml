@@ -31,7 +31,9 @@ services:
       - pocketree-net
 
   jenkins:
-    image: jenkins/jenkins:lts-jdk17
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins   # use custom Jenkins image
     container_name: pocketree-jenkins
     restart: always
     ports:
