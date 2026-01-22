@@ -6,33 +6,46 @@ services:
       context: .
       dockerfile: src/Pocketree.Api/Dockerfile
     ports:
-      - "5000:8080"
+      - "5000:5000"   # match host and container port for clarity
+    environment:
+      ConnectionStrings__Default: Server=pocketree-db;Database=pocketree;User=root;Password=${DB_PASSWORD:-password}
     depends_on:
       - pocketree-db
+    networks:
+      - pocketree-net
+    restart: always   # ensure API restarts if it crashes
 
   pocketree-db:
     image: mysql:8.0
     container_name: pocketree-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
       MYSQL_DATABASE: pocketree
     ports:
       - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro   # mount as read-only
+    networks:
+      - pocketree-net
 
   jenkins:
     image: jenkins/jenkins:lts-jdk17
     container_name: pocketree-jenkins
+    restart: always
     ports:
       - "8080:8080"
       - "50000:50000"
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - pocketree-net
 
 volumes:
   db_data:
   jenkins_home:
+
+networks:
+  pocketree-net:

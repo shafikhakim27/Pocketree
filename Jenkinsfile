@@ -1,77 +1,84 @@
 pipeline {
-    agent none 
+    agent none
 
     stages {
-        parallel {
-            
-            // --- STAGE 1: BACKEND ---
-            stage('Backend Build & Security') {
-                agent {
-                    docker { image 'mcr.microsoft.com/dotnet/sdk:8.0' }
+        stage('Parallel Build & Checks') {
+            parallel {
+                stage('Backend Build & Security') {
+                    agent { docker { image 'mcr.microsoft.com/dotnet/sdk:8.0' } }
+                    steps {
+                        sh 'dotnet build Pocketree.sln'
+                        sh 'dotnet test Pocketree.sln --no-build --logger "trx;LogFileName=TestResults.xml"'
+                    }
                 }
-                steps {
-                    sh 'chmod -R 777 .'
-                    
-                    // 1. Check for security vulnerabilities
-                    sh 'dotnet list Pocketree.sln package --vulnerable --include-transitive'
-                    
-                    // 2. Build & Test
+
+                stage('Android Build & Lint') {
+                    agent {
+                        docker {
+                            image 'mobiledevops/android-sdk-image:latest'
+                            args '-u root'
+                        }
+                    }
+                    steps {
+                        dir('android-app/android-app') {
+                            sh './gradlew testDebugUnitTest'
+                            sh './gradlew lintDebug'
+                            sh './gradlew assembleDebug'
+                        }
+                    }
+                }
+
+                stage('Database Check') {
+                    agent { docker { image 'mysql:8.0' } }
+                    steps {
+                        sleep 10
+                        sh 'mysql -h pocketree-db -u root -ppassword < init.sql'
+                    }
+                }
+            }
+        }
+
+        stage('SonarQube Analysis') {
+            agent { docker { image 'mcr.microsoft.com/dotnet/sdk:8.0' } }
+            steps {
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh 'dotnet sonarscanner begin /k:"Pocketree" /d:sonar.login=$SONARQUBE_TOKEN'
                     sh 'dotnet build Pocketree.sln'
-                    // Run tests and save results to a file named 'TestResults.xml'
-                    sh 'dotnet test Pocketree.sln --no-build --logger "trx;LogFileName=TestResults.xml"'
+                    sh 'dotnet sonarscanner end /d:sonar.login=$SONARQUBE_TOKEN'
                 }
             }
+        }
 
-            // --- STAGE 2: ANDROID ---
-            stage('Android Build & Lint') {
-                agent {
-                    docker { 
-                        image 'mobiledevops/android-sdk-image:latest' 
-                        args '-u root' 
-                    }
-                }
-                steps {
-                    dir('android-app/android-app') {
-                        sh 'chmod +x gradlew'
-                        
-                        // 1. Run Logic Tests
-                        sh './gradlew testDebugUnitTest'
-                        
-                        // 2. Run Lint (Code Quality Check)
-                        sh './gradlew lintDebug'
-                        
-                        // 3. Build the actual APK for download
-                        sh './gradlew assembleDebug'
+        stage('Docker Build & Push') {
+            agent { label 'docker' }
+            steps {
+                script {
+                    def appImage = docker.build("pocketree-api:${env.BUILD_ID}", "src/Pocketree.Api")
+                    docker.withRegistry("https://<ACR_NAME>.azurecr.io", "acr-credentials") {
+                        appImage.push()
                     }
                 }
             }
+        }
 
-            // --- STAGE 3: DATABASE ---
-            stage('Database Check') {
-                agent {
-                    docker { 
-                        image 'mysql:8.0' 
-                        args '-e MYSQL_ROOT_PASSWORD=testpass' 
-                    }
-                }
-                steps {
-                    sleep 10
-                    sh 'mysql -h 127.0.0.1 -u root -ptestpass < init.sql'
+        stage('Deploy to AKS') {
+            agent { docker { image 'bitnami/kubectl:latest' } }
+            steps {
+                withCredentials([azureServicePrincipal('azure-sp')]) {
+                    sh '''
+                        az login --service-principal -u $APP_ID -p $APP_SECRET --tenant $TENANT_ID
+                        az aks get-credentials --resource-group <RG_NAME> --name <AKS_NAME>
+                        kubectl apply -f k8s/deployment.yaml
+                    '''
                 }
             }
         }
     }
 
-    // --- NEW SECTION: POST ACTIONS ---
     post {
         always {
-            // 1. Save Backend Test Results (Charts!)
             mstest testResultsFile: '**/TestResults.xml', keepLongStdio: true
-            
-            // 2. Save Android APK (So you can download it)
             archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
-            
-            // 3. Save Android Lint Report (Quality Report)
             archiveArtifacts artifacts: '**/lint-results-debug.xml', allowEmptyArchive: true
         }
     }
