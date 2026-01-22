@@ -2,24 +2,26 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/nav_graph"
-    app:startDestination="@id/gameFragment">
+    app:startDestination="@id/homeFragment">
 
     <fragment
-        android:id="@+id/gameFragment"
-        android:name="com.pocketree.app.GameFragment"
-        android:label="fragment_game">
-        <action
-            android:id="@+id/action_gameFragment_to_redeemFragment"
-            app:destination="@id/redeemFragment"/>
-    </fragment>
+        android:id="@+id/homeFragment"
+        android:name="com.pocketree.app.HomeFragment"
+        android:label="Home"/>
+
+    <fragment
+        android:id="@+id/taskFragment"
+        android:name="com.pocketree.app.TaskFragment"
+        android:label="Tasks"/>
 
     <fragment
         android:id="@+id/redeemFragment"
         android:name="com.pocketree.app.RedeemFragment"
-        android:label="fragment_redeem">
-        <action
-            android:id="@+id/action_redeemFragment_to_gameFragment"
-            app:destination="@id/redeemFragment"/>
-    </fragment>
+        android:label="Redeem"/>
+
+    <fragment
+        android:id="@+id/settingsFragment"
+        android:name="com.pocketree.app.SettingsFragment"
+        android:label="Settings"/>
 
 </navigation>

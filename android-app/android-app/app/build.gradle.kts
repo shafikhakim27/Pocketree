@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+
+    id("androidx.navigation.safeargs.kotlin")
 }
 
 android {
@@ -48,7 +50,11 @@ dependencies {
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
     implementation("androidx.navigation:navigation-fragment-ktx:2.8.3")
+    implementation("androidx.navigation:navigation-ui-ktx:2.8.5")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation("com.google.code.gson:gson:2.10.1")
 }
