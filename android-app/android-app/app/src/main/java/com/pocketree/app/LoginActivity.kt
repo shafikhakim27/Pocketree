@@ -46,6 +46,11 @@ class LoginActivity: AppCompatActivity() {
                 sendLoginRequest(username, password)
             }
         }
+
+        binding.createAccountButton.setOnClickListener {
+            val intent = Intent(this, CreateUserActivity::class.java)
+            startActivity(intent)
+        }
     }
 
     private fun hashPassword(password: String): String {
@@ -62,7 +67,7 @@ class LoginActivity: AppCompatActivity() {
         // create request body
         val formBody= FormBody.Builder()
             .add("username", user)
-            .add("password", hashedPassword)
+            .add("passwordHash", hashedPassword)
             .build()
 
         // build the request

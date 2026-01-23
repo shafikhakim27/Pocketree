@@ -5,19 +5,22 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import com.pocketree.app.databinding.FragmentRedeemBinding
+import com.pocketree.app.Task
+import com.pocketree.app.databinding.FragmentTaskBinding
 
-class RedeemFragment: Fragment() {
-    private var _binding: FragmentRedeemBinding? = null
+class TaskFragment: Fragment() {
+    private var _binding: FragmentTaskBinding? = null
     private val binding get() = _binding!!
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        _binding = FragmentRedeemBinding.inflate(inflater, container, false)
+        _binding = FragmentTaskBinding.inflate(inflater, container, false)
         return binding.root
     }
+
+
 
     override fun onDestroyView(){
         super.onDestroyView()
