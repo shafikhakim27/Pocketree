@@ -9,11 +9,14 @@ services:
       - "5000:5000"   # match host and container port for clarity
     environment:
       ConnectionStrings__Default: Server=pocketree-db;Database=pocketree;User=root;Password=${DB_PASSWORD:-password}
+      # Tell the API where to find the Python Service
+      ML_SERVICE_URL: http://ml-service:8000
     depends_on:
       - pocketree-db
+      - ml-service    # Wait for Python to start
     networks:
       - pocketree-net
-    restart: always   # ensure API restarts if it crashes
+    restart: always
 
   pocketree-db:
     image: mysql:8.0
@@ -26,14 +29,26 @@ services:
       - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro   # mount as read-only
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - pocketree-net
+
+  # --- NEW PYTHON ML SERVICE ---
+  ml-service:
+    build:
+      context: ml-service  # Look inside the new folder
+      dockerfile: Dockerfile
+    container_name: pocketree-ml
+    restart: always
+    ports:
+      - "8001:8000"  # Map laptop port 8001 -> Container port 8000
     networks:
       - pocketree-net
 
   jenkins:
     build:
       context: .
-      dockerfile: Dockerfile.jenkins   # use custom Jenkins image
+      dockerfile: Dockerfile.jenkins
     container_name: pocketree-jenkins
     restart: always
     ports:
@@ -51,4 +66,4 @@ volumes:
 
 networks:
   pocketree-net:
-    name: fixed-pocketree-network  # <--- Forces a constant name
+    name: fixed-pocketree-network
