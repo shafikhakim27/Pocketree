@@ -51,3 +51,4 @@ volumes:
 
 networks:
   pocketree-net:
+    name: fixed-pocketree-network  # <--- Forces a constant name

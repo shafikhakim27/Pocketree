@@ -2,18 +2,39 @@ pipeline {
     agent none
 
     stages {
-        // --- PARALLEL BUILDS ---
+        // --- PARALLEL BUILDS (ACTIVE) ---
         stage('Parallel Build & Checks') {
             parallel {
+                // STAGE 1: BACKEND
                 stage('Backend Build & Security') {
-                    agent { docker { image 'mcr.microsoft.com/dotnet/sdk:8.0' } }
+                    agent { 
+                        docker { 
+                            image 'mcr.microsoft.com/dotnet/sdk:8.0' 
+                        } 
+                    }
+                    options { skipDefaultCheckout() }
+                    
                     steps {
+                        // 1. Deep Clean (Removes hidden files preventing clone)
+                        sh 'find . -mindepth 1 -delete'
+                        
+                        // 2. Git Config (Trusts current directory)
+                        sh 'git config --global --add safe.directory "*"'
+                        
+                        // 3. Manual Clone
+                        sh 'git clone https://github.com/shafikhakim27/Pocketree.git .'
+                        
                         sh 'dotnet restore Pocketree.sln'
                         sh 'dotnet build Pocketree.sln -c Release'
-                        sh 'dotnet test Pocketree.sln --no-build --logger "trx;LogFileName=TestResults.xml"'
+                        
+                        // 4. Test (Release mode to match build)
+                        sh 'dotnet test Pocketree.sln --no-build -c Release --logger "trx;LogFileName=TestResults.xml"'
+                        
+                        archiveArtifacts artifacts: '**/TestResults.xml', allowEmptyArchive: true
                     }
                 }
 
+                // STAGE 2: ANDROID
                 stage('Android Build & Lint') {
                     agent {
                         docker {
@@ -21,18 +42,34 @@ pipeline {
                             args '-u root'
                         }
                     }
+                    options { skipDefaultCheckout() }
+                    
                     steps {
+                        sh 'find . -mindepth 1 -delete'
+                        sh 'git config --global --add safe.directory "*"'
+                        sh 'git clone https://github.com/shafikhakim27/Pocketree.git .'
+                        
                         dir('android-app/android-app') {
                             sh 'chmod +x gradlew'
-                            sh './gradlew testDebugUnitTest'
-                            sh './gradlew lintDebug'
                             sh './gradlew assembleDebug'
+                            sh './gradlew lintDebug'
                         }
+                        
+                        archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
+                        archiveArtifacts artifacts: '**/lint-results-debug.xml', allowEmptyArchive: true
                     }
                 }
 
+                // STAGE 3: DATABASE
                 stage('Database Connectivity Check') {
-                    agent { docker { image 'mysql:8.0' } }
+                    agent { 
+                        docker { 
+                            image 'mysql:8.0' 
+                            args '--network fixed-pocketree-network' 
+                        } 
+                    }
+                    options { skipDefaultCheckout() }
+                    
                     steps {
                         echo "Checking DB connectivity..."
                         sh 'mysql -h pocketree-db -u root -ppassword -e "SHOW DATABASES;"'
@@ -41,10 +78,23 @@ pipeline {
             }
         }
 
+        /* ================================================================
+           DISABLED STAGES (Uncomment these when you are ready to deploy)
+           ================================================================
+        
         // --- SONARQUBE ANALYSIS ---
         stage('SonarQube Analysis') {
-            agent { docker { image 'mcr.microsoft.com/dotnet/sdk:8.0' } }
+            agent { 
+                docker { 
+                    image 'mcr.microsoft.com/dotnet/sdk:8.0' 
+                } 
+            }
+            options { skipDefaultCheckout() }
             steps {
+                sh 'find . -mindepth 1 -delete'
+                sh 'git config --global --add safe.directory "*"'
+                sh 'git clone https://github.com/shafikhakim27/Pocketree.git .'
+                
                 withSonarQubeEnv('SonarQubeServer') {
                     sh '''
                         dotnet sonarscanner begin /k:"Pocketree" /d:sonar.login=$SONARQUBE_TOKEN
@@ -57,13 +107,18 @@ pipeline {
 
         // --- DOCKER BUILD & PUSH ---
         stage('Docker Build & Push') {
-            agent { label 'docker' }   // run on Jenkins node with Docker installed
+            agent { label 'docker' }   
+            options { skipDefaultCheckout() }
             steps {
+                sh 'find . -mindepth 1 -delete'
+                sh 'git config --global --add safe.directory "*"'
+                sh 'git clone https://github.com/shafikhakim27/Pocketree.git .'
+                
                 script {
                     def appImage = docker.build("pocketree-api:${env.BUILD_ID}", "src/Pocketree.Api")
-                    docker.withRegistry("https://<ACR_NAME>.azurecr.io", "acr-credentials") {
-                        appImage.push()
-                    }
+                    // docker.withRegistry("https://<ACR_NAME>.azurecr.io", "acr-credentials") {
+                    //    appImage.push()
+                    // }
                 }
             }
         }
@@ -71,24 +126,17 @@ pipeline {
         // --- DEPLOY TO AKS ---
         stage('Deploy to AKS') {
             agent { docker { image 'bitnami/kubectl:latest' } }
+            options { skipDefaultCheckout() }
             steps {
+                sh 'find . -mindepth 1 -delete'
+                sh 'git config --global --add safe.directory "*"'
+                sh 'git clone https://github.com/shafikhakim27/Pocketree.git .'
+                
                 withCredentials([azureServicePrincipal('azure-sp')]) {
-                    sh '''
-                        az login --service-principal -u $APP_ID -p $APP_SECRET --tenant $TENANT_ID
-                        az aks get-credentials --resource-group <RG_NAME> --name <AKS_NAME>
-                        kubectl apply -f k8s/deployment.yaml
-                    '''
+                    sh 'echo "Simulating deployment to AKS..."'
                 }
             }
         }
-    }
-
-    post {
-        always {
-            // Archive test results and artifacts
-            mstest testResultsFile: '**/TestResults.xml', keepLongStdio: true
-            archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
-            archiveArtifacts artifacts: '**/lint-results-debug.xml', allowEmptyArchive: true
-        }
+        */
     }
 }

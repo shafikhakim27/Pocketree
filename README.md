@@ -1,184 +1,132 @@
-# 🌳 Pocketree - DevSecOps Monorepo
-
-This repository contains the full stack for the Pocketree application:
-
-* **Backend:** ASP.NET Core Web API (connected to MySQL).
-* **Frontend:** Android (Kotlin).
-* **Infrastructure:** Dockerized Database & Jenkins Pipeline.
-
-## 🚀 Quick Start (Day-to-Day)
-
-**1. Wake up the Infrastructure**
-Run this in your terminal at the root of the project:
-
-```powershell
-docker-compose up -d
-
-```
-
-* *Note:* This automatically starts the Database (Port 3307) and Jenkins (Port 8080).
-
-**2. Verify they are running**
-
-```powershell
-docker ps
-
-```
-
-* *Check:* Ensure `pocketree-db` and `pocketree-jenkins` are in the list.
-
+# 🌳 Pocketree
+Welcome to **Pocketree**, a full-stack sustainability application designed to track and encourage eco-friendly habits. 
+This repository operates as a **Monorepo**, containing the Backend API, Android Mobile App, and the complete DevSecOps infrastructure (Docker & Jenkins).
+## 🏗️ Architecture & Tech Stack
+* **Backend:** ASP.NET Core Web API 8.0 (C#)
+* **Frontend:** Native Android (Kotlin/Jetpack Compose)
+* **Database:** MySQL 8.0 (Containerized)
+* **Infrastructure:** Docker & Docker Compose
+* **CI/CD:** Jenkins (Pipeline as Code)
 ---
-
-## 💻 How to Edit the Backend (.NET)
-
-**1. Open the Project**
-
-* Open **VS Code** (or Visual Studio).
-* **File > Open Folder** > Select `Pocketree` (or your repo folder).
-
-**2. Run the API**
-Open the integrated terminal (`Ctrl + ~`) and run:
-
-```powershell
-cd src/Pocketree.Api
-dotnet run
-
-```
-
-* **API URL:** `http://localhost:5000` (or the port shown in terminal).
-* **Swagger Docs:** `http://localhost:5000/swagger`
-
-**⚠️ Database Note:**
-
-* Your machine connects via **Port 3307** (managed by your local `User Secrets`).
-* The code in GitHub defaults to **Port 3306** (for teammates/Jenkins).
-* *Do not change `appsettings.json` port numbers!*
-
+## 💻 Prerequisites (Required Software)
+Before you start, ensure you have the following installed on your machine:
+1.  **Git** - [Download](https://git-scm.com/downloads)
+2.  **Docker Desktop** (Must be running) - [Download](https://www.docker.com/products/docker-desktop/)
+3.  **Visual Studio Code** (For Backend & DevOps) - [Download](https://code.visualstudio.com/)
+    * *Extension Recommended:* C# Dev Kit
+4.  **.NET 8.0 SDK** - [Download](https://dotnet.microsoft.com/en-us/download/dotnet/8.0)
+5.  **Android Studio** (For Frontend) - [Download](https://developer.android.com/studio)
 ---
-
-## 📱 How to Edit the Frontend (Android)
-
-**1. Open the Project**
-
-* Open **Android Studio**.
-* **File > Open** > Select `Pocketree/android-app`.
-* *(Make sure to select the `android-app` subfolder, not the root repo!)*
-
-
-
-**2. Run the App**
-
-* Connect your phone or start an Emulator.
-* Click the green **Run (▶)** button in the top toolbar.
-
----
-
-**2 Options here, please discuss in pairings or main group, to figure out best workflow**
-
-## 🔄 The Git Workflow (How to Save) A New Branch, A New Feature
-
-**1. Start a New Task**
-Always create a new branch for every feature (e.g., adding login, fixing bugs).
-
-```powershell
-# Make sure you are on develop first
-git checkout develop
-git pull origin develop
-
-# Create your feature branch
-git checkout -b feature/my-new-feature
-
+## 📂 Repository Structure
 ```
-
-**2. Save Your Work**
-When you are done editing:
-
-```powershell
-git add .
-git commit -m "Added login screen logic"
-
-```
-
-**3. Push to GitHub**
-
-```powershell
-git push -u origin feature/my-new-feature
-
-```
-## 🔄 **The Git Workflow (Simple / Fast), just develop branch**
-We work directly on the develop branch. Communication is key: If you are editing a file, tell the team so nobody else touches it!
-
-1. Start of work session Always pull the latest code before you type a single character.
-
-```powershell
-git checkout develop
-git pull origin develop
-
-```
-2. Save your work
-
-```powershell
-git add .
-git commit -m "Added the login button"
-
-```
-
-3. Upload to Team Do not push immediately. Pull one last time to make sure you didn't miss anything.
-
-```powershell
-git pull origin develop   # Fix any red text conflicts here if they appear
-git push origin develop
-⚠️ The Golden Rule: If the build breaks (Red Jenkins light), the person who broke it must fix it immediately. Do not go to sleep leaving develop broken!
-
-```
-
----
-
-## 🏗️ The Build Pipeline (Jenkins)
-
-Once you push code to GitHub, you can trigger the automated build.
-
-1. **Open Jenkins:** [http://localhost:8080](https://www.google.com/search?q=http://localhost:8080)
-2. **Go to Project:** `Pocketree-Pipeline`
-3. **Click:** `Build Now` (Left menu).
-4. **Check Status:** Click the blinking ball or "Console Output" to see the build/test results.
-
----
-
-## 🛠️ Troubleshooting
-
-**"Port already in use" Error:**
-
-* Check if you have another MySQL instance running.
-* Run `docker ps` to see if `pocketree-db` is already using port 3307.
-
-**"Jenkins build failed"**
-
-* Check the console logs.
-* Ensure your `Jenkinsfile` points to the correct branch (`*/main` or `*/develop`).
-
-**"Android Studio can't find files"**
-
-* Ensure you opened the `android-app` folder specifically, let Gradle sync finish (watch the bottom bar).
-
----
-
-### **Repo Structure**
-
-```text
-
 Pocketree/
-├── src/                      # .NET Backend Code
-│   ├── Pocketree.Api/        # API Project & Dockerfile
-│   ├── Pocketree.Api.Tests   # API Tests
-│   └── Pocketree.Shared/     # Shared Libraries
-├── android-app/              # Android Frontend Code
-├── .dockerignore             # Filters files to speed up Docker builds
-├── .gitignore                # Tells Git to ignore junk files (bin, obj)
-├── docker-compose.yml        # Orchestrates Database + Jenkins + API
-├── init.sql                  # Database Setup Script (Creates 'Fruits' table)
-├── Jenkinsfile               # CI/CD Pipeline Definitions
+├── .github/                  # GitHub specific settings
+├── android-app/              # 📱 Android Source Code (Kotlin)
+├── src/                      # ⚙️ Backend Source Code (.NET)
+│   ├── Pocketree.Api/        # The Main API Project
+│   ├── Pocketree.Shared/     # Shared Libraries
+│   └── Pocketree.Api.Tests/  # Unit Tests
+├── init/                     # 🗄️ SQL Scripts for DB Initialization
+├── docker-compose.yml        # Orchestrates the Container Infrastructure
+├── Dockerfile.jenkins        # Custom Jenkins Image Configuration
+├── Jenkinsfile               # The CI/CD Pipeline Script
 ├── Pocketree.sln             # Visual Studio Solution File
-└── README.md                 # This guide
-
+└── README.md                 # This Documentation
 ```
+---
+## 🔄 Git Workflow (How We Collaborate)
+### **1. Start a New Task**
+```bash
+# Update your local code first
+git checkout develop
+git pull origin develop
+```
+### **2. Save/Share Your Work**
+```bash
+git add .
+git commit -m "Added login button and styled the header"
+git push origin develop
+```
+### I will manage the commits from develop, to later merge into main when ready for production/deployment.
+## 🚀 Step 1: Clone & Setup
+1.  **Clone the Repository**
+    Open your terminal/command prompt:
+    ```bash
+    git clone https://github.com/shafikhakim27/Pocketree.git
+    cd Pocketree
+    ```
+2.  **Wake up the Infrastructure**
+    We use Docker to spin up the Database and Jenkins automatically.
+    ```bash
+    docker-compose up -d
+    ```
+    * *This starts MySQL (Port 3307) and Jenkins (Port 8080).*
+3.  **Verify Status**
+    Run:
+    ```bash
+    docker ps
+    ```
+    * Ensure `pocketree-db` and `jenkins` are listed as "Up". (Docker Desktop)
+---
+## ⚙️ Step 2: Backend Development (.NET)
+1.  Open the **root** `Pocketree` folder in VS Code.
+2.  Open the integrated terminal (`Ctrl + ~`).
+3.  Navigate to the API folder and run the app:
+    ```bash
+    cd src/Pocketree.Api
+    dotnet run
+    ```
+4.  **Access the API:**
+    * **Swagger Docs:** [http://localhost:5000/swagger](http://localhost:5000/swagger)
+    * **API Root:** [http://localhost:5000](http://localhost:5000)
+> **Important Database Note:**
+> * **Local Development:** Your machine connects via **Port 3307**.
+> * **Docker/Production:** The internal code uses **Port 3306**.
+> * *Do not modify the connection strings in `appsettings.json` unless you know exactly what you are doing!*
+---
+## 📱 Step 3: Frontend Development (Android)
+1.  Open **Android Studio**.
+2.  Select **File > Open**.
+3.  **Crucial:** Navigate to the `Pocketree/android-app` subfolder and select that. (Do not open the root repo folder in Android Studio).
+4.  Wait for the Gradle Sync to finish (bottom bar).
+5.  Select your emulator or physical device and click the **Green Run Arrow (▶)**.
+---
+## 🛠️ Step 4: CI/CD Pipeline (Jenkins)
+### We use Jenkins to automatically Build, Test, and Scan our code. 
+### Since Jenkins runs inside Docker, every team member must set it up once on their own machine.
+### **1. Access & Unlock Jenkins**
+1.  Open [http://localhost:8080](http://localhost:8080) in your browser.
+2.  It will ask for an **Administrator Password**.
+3.  Open your terminal and run this command to reveal it:
+    ```bash
+    docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+    ```
+    *(If that fails, use `docker ps` to check your container name).*
+4.  Copy the password and paste it into Jenkins.
+### **2. Install Plugins**
+1.  Select **"Install suggested plugins"** and wait for it to finish.
+2.  Create your Admin User account (e.g., `admin` / `password`).
+3.  Once logged in, go to **Dashboard > Manage Jenkins > Plugins > Available Plugins**.
+4.  Search for and install these specific plugins:
+    * `Docker Pipeline` (the most important)
+    * `Android Lint` (if available, otherwise standard warnings) 
+    * `MSTest` (for .NET test results)
+5.  **Restart Jenkins** (tick the box "Restart Jenkins when installation is complete").
+### **3. Create the Pipeline Job**
+1.  On the Dashboard, click **+ New Item**.
+2.  **Item Name:** `Pocketree-Pipeline`
+3.  Select **Pipeline** and click **OK**.
+4.  Scroll down to the **Pipeline** section:
+    * **Definition:** `Pipeline script from SCM`
+    * **SCM:** `Git`
+    * **Repository URL:** `https://github.com/shafikhakim27/Pocketree.git`
+    * **Branch Specifier:** `*/develop` 
+    * **Script Path:** `Jenkinsfile` (Ensure it matches the file name in your repo)
+5.  Click **Save**.
+### **4. Run a Build**
+1.  Click **Build Now** on the left menu.
+2.  Wait for the build to appear in the **Build History** (bottom left).
+3.  Click the **Blue Ball** (Success) or **Red Ball** (Fail) to see details.
+4.  **View Logs:** Click the Build Number (#1) > **Console Output**.
+### If Build fails, highlight, send me the error logs.
+---
