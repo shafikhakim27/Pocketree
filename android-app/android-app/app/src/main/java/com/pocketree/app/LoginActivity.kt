@@ -62,7 +62,7 @@ class LoginActivity: AppCompatActivity() {
 
     private fun sendLoginRequest(user:String, password:String) {
         // hash the password before sending to backend for verification against database
-        val hashedPassword = hashPassword(password)
+        val hashedPassword = hashPassword(password) // remove
 
         // create request body
         val formBody= FormBody.Builder()

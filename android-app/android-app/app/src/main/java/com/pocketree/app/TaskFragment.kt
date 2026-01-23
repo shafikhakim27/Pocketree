@@ -20,10 +20,12 @@ class TaskFragment: Fragment() {
         return binding.root
     }
 
-
-
     override fun onDestroyView(){
         super.onDestroyView()
         _binding = null
     }
+
+    // tasks alr in .NET
+    // completion - pass id and task for persistence
+    // submit task api - for photo verification (send photo to .NET)
 }
