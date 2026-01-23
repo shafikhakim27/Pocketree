@@ -65,7 +65,7 @@ pipeline {
                     agent { 
                         docker { 
                             image 'mysql:8.0' 
-                            args '--network pocketree_pocketree-net' 
+                            args '--network fixed-pocketree-network' 
                         } 
                     }
                     options { skipDefaultCheckout() }
