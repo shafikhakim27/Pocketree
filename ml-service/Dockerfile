@@ -1,10 +1,6 @@
-FROM python:3.8-slim
-
+# ... (python setup)
 WORKDIR /app
-
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000"]
+COPY requirements.txt .    # It finds it because it's right next to the Dockerfile
+RUN pip install -r requirements.txt
+COPY . .                   # It copies only the python code, nothing else
+# ... (cmd)
