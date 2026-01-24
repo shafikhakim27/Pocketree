@@ -2,10 +2,11 @@ pipeline {
     agent none
 
     stages {
+        // --- PARALLEL BUILDS (ACTIVE) ---
         stage('Parallel Build & Checks') {
             parallel {
                 
-                // --- 1. BACKEND (.NET) ---
+                // STAGE 1: BACKEND (.NET)
                 stage('Backend Build & Security') {
                     agent { 
                         docker { 
@@ -19,18 +20,18 @@ pipeline {
                         sh 'git config --global --add safe.directory "*"'
                         sh 'git clone https://github.com/shafikhakim27/Pocketree.git .'
                         
-                        // 1. Restore & Build (Uses Pocketree.sln because you renamed the file)
+                        // 1. Restore & Build
                         sh 'dotnet restore Pocketree.sln'
                         sh 'dotnet build Pocketree.sln -c Release'
                         
-                        // 2. Test (Uses ADProject path because the FOLDER is still named ADProject)
-                        sh 'dotnet test tests/ADProject.Tests/ADProject.Tests.csproj --no-build -c Release --logger "trx;LogFileName=TestResults.xml"'
+                        // 2. FIXED: Point to the CORRECT location shown in your logs (Source 3)
+                        sh 'dotnet test src/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj --no-build -c Release --logger "trx;LogFileName=TestResults.xml"'
                         
                         archiveArtifacts artifacts: '**/TestResults.xml', allowEmptyArchive: true
                     }
                 }
 
-                // --- 2. ANDROID (Kotlin) ---
+                // STAGE 2: ANDROID (Kotlin)
                 stage('Android Build & Lint') {
                     agent {
                         docker {
@@ -56,30 +57,36 @@ pipeline {
                     }
                 }
 
-                // --- 3. ML SERVICE (Python) ---
+                // STAGE 3: ML SERVICE (Python 3.8)
                 stage('ML Service Build & Test') {
                     agent { 
                         docker { 
                             image 'python:3.8-slim'
+                            // Run as root to install git
                             args '-u root:root'
                         } 
                     }
                     options { skipDefaultCheckout() }
                     
                     steps {
+                        // 1. Install Git
                         sh 'apt-get update && apt-get install -y git'
+
                         sh 'find . -mindepth 1 -delete'
                         sh 'git config --global --add safe.directory "*"'
                         sh 'git clone https://github.com/shafikhakim27/Pocketree.git .'
                         
+                        // 2. FIXED: Go inside the folder where requirements.txt actually exists
                         dir('ml-service') {
                             sh 'pip install -r requirements.txt'
+                            
+                            // Smoke Test
                             sh 'python -c "import fastapi; print(\'FastAPI imported successfully\')"'
                         }
                     }
                 }
 
-                // --- 4. DATABASE CHECK ---
+                // STAGE 4: DATABASE CHECK
                 stage('Database Connectivity Check') {
                     agent { 
                         docker { 
@@ -102,8 +109,9 @@ pipeline {
             agent any
             steps {
                 script {
-                    // FIX: Point to the ADProject folder for the Dockerfile
-                    sh 'docker build -t pocketree-api -f src/ADProject.Api/Dockerfile .'
+                    // Note: Ensure this path matches where your Dockerfile is. 
+                    // Based on logs, it is likely in src/Pocketree.Api/Dockerfile
+                    sh 'docker build -t pocketree-api -f src/Pocketree.Api/Dockerfile .'
                 }
             }
         }
