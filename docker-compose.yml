@@ -51,6 +51,13 @@ services:
     restart: always
     ports:
       - "${ML_PORT:-8001}:8000"
+    environment:
+      - DB_HOST=pocketree-db
+      - DB_PORT=3306
+      - DB_NAME=pocketree
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - BACKEND_API_URL=http://pocketree-api:8080
     networks:
       - pocketree-net
 
