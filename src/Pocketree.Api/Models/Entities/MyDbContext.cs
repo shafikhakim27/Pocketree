@@ -6,17 +6,16 @@ namespace ADproject.Models.Entities
 {
     public class MyDbContext : DbContext
     {
-        public MyDbContext() { }
-        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        // 1. THIS CONSTRUCTOR IS CRITICAL
+        // It accepts the "Retry Logic" and "Connection String" from Program.cs
+        public MyDbContext(DbContextOptions<MyDbContext> options) : base(options)
         {
-            optionsBuilder.UseMySql(
-            // provides database connection-string
-            "server=localhost;user=root;password=password;database=pocketree_db;",
-            new MySqlServerVersion(new Version(8, 0, 43))
-            );
-            optionsBuilder.UseLazyLoadingProxies();
         }
-        // tables
+
+        // 2. WE REMOVED 'OnConfiguring'
+        // This stops the file from forcing a "localhost" connection that breaks Docker.
+
+        // Tables
         public DbSet<User> Users { get; set; }
         public DbSet<Task> Tasks { get; set; }
         public DbSet<Level> Levels { get; set; }
@@ -28,5 +27,4 @@ namespace ADproject.Models.Entities
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<UserVoucher> UserVouchers { get; set; }
     }
-
 }

@@ -1,56 +1,68 @@
 version: '3.8'
 
 services:
-  pocketree-api:
-    build:
-      context: .
-      dockerfile: src/Pocketree.Api/Dockerfile
-    ports:
-      - "5000:5000"   # match host and container port for clarity
-    environment:
-      ConnectionStrings__Default: Server=pocketree-db;Database=pocketree;User=root;Password=${DB_PASSWORD:-password}
-      # Tell the API where to find the Python Service
-      ML_SERVICE_URL: http://ml-service:8000
-    depends_on:
-      - pocketree-db
-      - ml-service    # Wait for Python to start
-    networks:
-      - pocketree-net
-    restart: always
-
+  # 1. DATABASE (MySQL)
   pocketree-db:
     image: mysql:8.0
     container_name: pocketree-db
     restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-password}
-      MYSQL_DATABASE: pocketree
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${DB_NAME:-pocketree}
     ports:
-      - "3307:3306"
+      - "${DB_PORT:-3306}:3306"
     volumes:
       - db_data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     networks:
       - pocketree-net
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      timeout: 20s
+      retries: 10
 
-  # --- NEW PYTHON ML SERVICE ---
-  ml-service:
+  # 2. BACKEND API (.NET)
+  pocketree-api:
     build:
-      context: ml-service  # Look inside the new folder
-      dockerfile: Dockerfile
-    container_name: pocketree-ml
+      context: .
+      dockerfile: src/Pocketree.Api/Dockerfile
+    container_name: pocketree-api
     restart: always
     ports:
-      - "8001:8000"  # Map laptop port 8001 -> Container port 8000
+      - "${API_PORT:-5000}:8080"
+    environment:
+      # FIX: Use 'pocketree-db' instead of '172.18.0.4'
+      - ConnectionStrings__DefaultConnection=Server=pocketree-db;Port=3306;Database=pocketree;User=root;Password=rootpassword;
+      - ML_SERVICE_URL=http://ml-service:8000
+      - ASPNETCORE_ENVIRONMENT=Development
+    depends_on:
+      pocketree-db:
+        condition: service_healthy
+      ml-service:
+        condition: service_started
     networks:
       - pocketree-net
 
+  # 3. ML SERVICE (Python)
+  ml-service:
+    build:
+      context: ml-service
+      dockerfile: Dockerfile
+    container_name: ml-service
+    restart: always
+    ports:
+      - "${ML_PORT:-8001}:8000"
+    networks:
+      - pocketree-net
+
+  # 4. JENKINS (CI/CD)
   jenkins:
     build:
       context: .
       dockerfile: Dockerfile.jenkins
     container_name: pocketree-jenkins
     restart: always
+    privileged: true
+    user: root
     ports:
       - "8080:8080"
       - "50000:50000"
@@ -67,3 +79,4 @@ volumes:
 networks:
   pocketree-net:
     name: fixed-pocketree-network
+    driver: bridge

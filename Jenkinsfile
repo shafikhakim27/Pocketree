@@ -23,7 +23,8 @@ pipeline {
                         // 2. Build & Test
                         sh 'dotnet restore Pocketree.sln'
                         sh 'dotnet build Pocketree.sln -c Release'
-                        sh 'dotnet test Pocketree.sln --no-build -c Release --logger "trx;LogFileName=TestResults.xml"'
+                        // Check if your test folder is named Pocketree.Tests or ADProject.Tests
+                        sh 'dotnet test tests/Pocketree.Tests/Pocketree.Tests.csproj --no-build --verbosity normal'
                         
                         archiveArtifacts artifacts: '**/TestResults.xml', allowEmptyArchive: true
                     }
@@ -34,7 +35,7 @@ pipeline {
                     agent {
                         docker {
                             image 'mobiledevops/android-sdk-image:latest'
-                            args '-u root'
+                            args '-u root:root'
                         }
                     }
                     options { skipDefaultCheckout() }
@@ -59,25 +60,27 @@ pipeline {
                 stage('ML Service Build & Test') {
                     agent { 
                         docker { 
-                            image 'python:3.8-slim' 
+                            image 'python:3.8-slim'
+                            // Run as root to install git
+                            args '-u root:root'
                         } 
                     }
                     options { skipDefaultCheckout() }
                     
                     steps {
+                        // 1. FIX: Install Git first!
+                        sh 'apt-get update && apt-get install -y git'
+
                         sh 'find . -mindepth 1 -delete'
                         sh 'git config --global --add safe.directory "*"'
                         sh 'git clone https://github.com/shafikhakim27/Pocketree.git .'
                         
                         dir('ml-service') {
-                            // 1. Install Dependencies
+                            // 2. Install Dependencies
                             sh 'pip install -r requirements.txt'
                             
-                            // 2. Smoke Test (Verify imports work)
+                            // 3. Smoke Test
                             sh 'python -c "import fastapi; print(\'FastAPI imported successfully\')"'
-                            
-                            // 3. Optional: Run full unit tests later
-                            // sh 'python -m pytest'
                         }
                     }
                 }
@@ -94,36 +97,21 @@ pipeline {
                     
                     steps {
                         echo "Checking DB connectivity..."
-                        // Uses the container name 'pocketree-db' to connect
-                        sh 'mysql -h pocketree-db -u root -ppassword -e "SHOW DATABASES;"'
+                        // FIX: Changed password to 'rootpassword'
+                        sh 'mysql -h pocketree-db -u root -prootpassword -e "SHOW DATABASES;"'
                     }
                 }
             }
         }
-
-        /* ================================================================
-           DISABLED STAGES (Uncomment these when you are ready to deploy)
-           ================================================================
         
-        // --- SONARQUBE ANALYSIS ---
-        stage('SonarQube Analysis') {
-            agent { 
-                docker { image 'mcr.microsoft.com/dotnet/sdk:8.0' } 
-            }
+        // --- DOCKER BUILD (Sequential) ---
+        stage('Docker Image Build') {
+            agent any
             steps {
-                // ... (Your SonarQube steps)
+                script {
+                    sh 'docker build -t pocketree-api -f src/Pocketree.Api/Dockerfile .'
+                }
             }
         }
-
-        // --- DOCKER BUILD & PUSH ---
-        stage('Docker Build & Push') {
-             // ... (Your Docker Push steps)
-        }
-
-        // --- DEPLOY TO AKS ---
-        stage('Deploy to AKS') {
-             // ... (Your Kubernetes steps)
-        }
-        */
     }
 }
