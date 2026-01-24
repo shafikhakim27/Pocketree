@@ -85,7 +85,7 @@ class CreateUserActivity: AppCompatActivity() {
 
             // if local checks pass, check server for username availability
             // if username is available, create user and persist in database
-            checkAvailabilityAndRegister(username, password)
+            performsSignup(username, password)
         }
     }
 
@@ -104,58 +104,27 @@ class CreateUserActivity: AppCompatActivity() {
         })
     }
 
-    private fun checkAvailabilityAndRegister(username:String, password:String){
-        val request = Request.Builder()
-            .url("http://10.0.2.2:5000/api/users/exist/$username") // link to check with george again
-            .get()
-            .build()
-
-        client.newCall(request).enqueue(object:Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread {
-                    Toast.makeText(this@CreateUserActivity,
-                        "Network error",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-
-            override fun onResponse(call:Call, response: Response) {
-                val exists = response.body?.string()?.toBoolean() ?: false
-                runOnUiThread {
-                    if (exists) {
-                        binding.usernameLayout.error = "This username is already taken"
-                    } else {
-                        binding.usernameLayout.helperText = "Username is available!"
-                        performsSignup(username, password)
-                    }
-                }
-            }
-        })
-    }
-
-    private fun hashPassword(password: String): String {
-        val bytes = password.toByteArray()
-        val md = MessageDigest.getInstance("SHA-256")
-        val digest = md.digest(bytes)
-        return digest.fold("") { str, it -> str + "%02x".format(it) }
-    }
+//    private fun hashPassword(password: String): String {
+//        val bytes = password.toByteArray()
+//        val md = MessageDigest.getInstance("SHA-256")
+//        val digest = md.digest(bytes)
+//        return digest.fold("") { str, it -> str + "%02x".format(it) }
+//    }
 
     private fun performsSignup(username: String, password: String) {
-        val hashedPassword = hashPassword(password)
+//        val hashedPassword = hashPassword(password)
 
         // create a JSON object
-        val json = JSONObject()
-        json.put("username", username)
-        json.put("passwordHash", hashedPassword)
-        json.put("totalCoins", 0)
-        json.put("currentLevelID", 1)
+        val json = JSONObject().apply{
+            put("username", username)
+            put("password", password)
+        }
 
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         // build the request
         val request= Request.Builder()
-            .url("http://10.0.2.2:5000/api/users/register") // check back again
+            .url("http://10.0.2.2:5000/api/User/RegisterApi")
             .post(body)
             .build()
 
@@ -171,26 +140,17 @@ class CreateUserActivity: AppCompatActivity() {
                 }
             }
             override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    runOnUiThread {
+                val responseText = response.body?.string()
+                runOnUiThread {
+                    if (response.isSuccessful) {
                         Toast.makeText(
                             this@CreateUserActivity,
                             "Account created successfully!",
                             Toast.LENGTH_SHORT
                         ).show()
                         finish() // to redirect to login screen
-//                        val intent = Intent()
-//                        intent.putExtra("new_username", username)
-//                        setResult(RESULT_OK, intent)
-//                        finish()
-                    }
-                } else {
-                    runOnUiThread {
-                        Toast.makeText(
-                            this@CreateUserActivity,
-                            "Sign up failed, please try again",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                    } else {
+                        binding.usernameLayout.error = responseText ?: "Registration failed"
                     }
                 }
             }

@@ -1,5 +1,6 @@
 package com.pocketree.app
 
+import android.app.ProgressDialog.show
 import android.content.Intent
 import android.os.Bundle
 import android.widget.Toast
@@ -11,8 +12,12 @@ import androidx.core.view.WindowInsetsCompat
 import com.google.gson.Gson
 import com.pocketree.app.databinding.ActivityLoginBinding
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.RequestBody.Companion.toRequestBody
+import org.json.JSONObject
 import java.io.IOException
 import java.security.MessageDigest
+import kotlin.jvm.java
 
 class LoginActivity: AppCompatActivity() {
     private val client= OkHttpClient()
@@ -53,27 +58,29 @@ class LoginActivity: AppCompatActivity() {
         }
     }
 
-    private fun hashPassword(password: String): String {
-        val bytes = password.toByteArray()
-        val md = MessageDigest.getInstance("SHA-256")
-        val digest = md.digest(bytes)
-        return digest.fold("") { str, it -> str + "%02x".format(it) }
-    }
+//    private fun hashPassword(password: String): String {
+//        val bytes = password.toByteArray()
+//        val md = MessageDigest.getInstance("SHA-256")
+//        val digest = md.digest(bytes)
+//        return digest.fold("") { str, it -> str + "%02x".format(it) }
+//    }
 
-    private fun sendLoginRequest(user:String, password:String) {
+    private fun sendLoginRequest(username:String, password:String) {
         // hash the password before sending to backend for verification against database
-        val hashedPassword = hashPassword(password) // remove
+      // val hashedPassword = hashPassword(password)
 
         // create request body
-        val formBody= FormBody.Builder()
-            .add("username", user)
-            .add("passwordHash", hashedPassword)
-            .build()
+        val json = JSONObject().apply{
+            put("username", username)
+            put("password", password)
+        }
+
+        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         // build the request
         val request= okhttp3.Request.Builder()
-            .url("http://10.0.2.2:5000/login")
-            .post(formBody)
+            .url("http://10.0.2.2:5000/api/User/LoginApi")
+            .post(body)
             .build()
 
         // execute asynchronously
@@ -100,13 +107,14 @@ class LoginActivity: AppCompatActivity() {
 
                             Toast.makeText(
                                 this@LoginActivity,
-                                "Welcome, $userData.username!",
+                                "Welcome, ${userData.username}!",
                                 Toast.LENGTH_SHORT
                             ).show()
 
                             val intent = Intent(this@LoginActivity, MainActivity::class.java).apply{
                                 // pass data from Login to Main activity then pass to fragments
-                                putExtra("USER_DATA", Gson().toJson(userData))
+                                putExtra("USER_ID", userData.id)
+                                putExtra("USERNAME", userData.username)
                                 // pass whole object as a JSON string
                             }
                             startActivity(intent)

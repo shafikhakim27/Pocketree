@@ -3,20 +3,21 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
              android:layout_width="match_parent"
              android:layout_height="match_parent"
-             android:orientation="vertical"
-             android:layout_gravity="center">
+             android:orientation="vertical">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:padding="16dp">
 
         <TextView
             android:id="@+id/accountInfo"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="Account Info Here"
-            android:textSize="40sp"/>
+            android:textSize="24sp"/>
 
         <TextView
             android:id="@+id/coinDisplay"
@@ -30,18 +31,44 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Nutrients and Water Progress Bar here"
-        android:textSize="20sp"/>
+        android:textSize="20sp"
+        android:padding="8dp"/>
 
-    <ImageView
+    <TextView
         android:id="@+id/plant"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Daily Tasks"
+        android:textSize="25sp"
+        android:textStyle="bold"
+        android:padding="8dp"/>
+
+    <TextView
+        android:id="@+id/dailyStatusTv"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textSize="14sp"
+        android:textColor="#4CAF50"
+        android:gravity="center"
+        android:padding="8dp"
+        android:visibility="gone"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewTasks"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="3"/>
+        android:layout_weight="2"
+        android:padding="8dp"/>
+    <!--acts as a container that will "inflate" and display-->
+    <!--multiple instances of item_task.xml (one for each task)-->
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:padding="12dp"
+        android:background="#EEEEEE">
 
         <TextView
             android:id="@+id/homeTab"
@@ -75,6 +102,5 @@
             android:text="Settings"
             android:gravity="center"/>
     </LinearLayout>
-
 
 </LinearLayout>

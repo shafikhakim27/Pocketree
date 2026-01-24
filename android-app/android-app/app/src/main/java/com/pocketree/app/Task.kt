@@ -5,9 +5,11 @@ enum class TaskDifficulty{
 }
 
 data class Task (
-    val id: Int,
+    val taskID: Int,
     val description: String,
+    val isCompleted:Boolean,
     val difficulty: TaskDifficulty,
     var coinReward: Int,
-    val requiresEvidence: Boolean
+    val requiresEvidence: Boolean,
+    val keyword: String?
     )
