@@ -6,17 +6,28 @@ namespace ADproject.Models.Entities
 {
     public class MyDbContext : DbContext
     {
+
+        public MyDbContext(DbContextOptions<MyDbContext> options) : base(options)
+        {
+        }
+
         public MyDbContext() { }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseMySql(
-            // provides database connection-string
-            "server=localhost;user=root;password=password;database=pocketree_db;",
-            new MySqlServerVersion(new Version(8, 0, 43))
-            );
-            optionsBuilder.UseLazyLoadingProxies();
+
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder.UseMySql(
+                    "server=localhost;user=root;password=password;database=pocketree_db;",
+                    new MySqlServerVersion(new Version(8, 0, 43))
+                );
+                
+                optionsBuilder.UseLazyLoadingProxies();
+            }
         }
-        // tables
+
+        // Tables
         public DbSet<User> Users { get; set; }
         public DbSet<UserSettings> UserSettings { get; set; }
         public DbSet<UserPreference> UserPreferences { get; set; }
@@ -30,5 +41,4 @@ namespace ADproject.Models.Entities
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<UserVoucher> UserVouchers { get; set; }
     }
-
 }

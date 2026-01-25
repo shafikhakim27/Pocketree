@@ -1,33 +1,56 @@
 using ADproject.Models.Entities;
 using ADproject.Services;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore; // Required for UseMySql
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register the HttpClient for Python communication
+// --- 1. ML Service Configuration ---
+// Uses Docker env var if available, otherwise falls back to the container name
+string mlUrl = builder.Configuration["ML_SERVICE_URL"] ?? "http://ml-service:8000/";
+
 builder.Services.AddHttpClient("ML_Consultant", client => {
-    client.BaseAddress = new Uri("http://localhost:5000/");
+    client.BaseAddress = new Uri(mlUrl);
+});
+
+// --- 2. Database Configuration ---
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+
+builder.Services.AddDbContext<MyDbContext>(options => {
+    // Safety check for connection string
+    if (string.IsNullOrEmpty(connectionString)) 
+    {
+        throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+    }
+
+    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString),
+        mySqlOptions => {
+            // Fixes "Race Condition" where API starts before DB is ready
+            mySqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 10,
+                maxRetryDelay: TimeSpan.FromSeconds(5),
+                errorNumbersToAdd: null
+            );
+        })
+        .UseLazyLoadingProxies(); // ✅ Enable Lazy Loading here for Docker
 });
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
 
-// Add database context dependency
-builder.Services.AddDbContext<MyDbContext>();
-// Add other dependencies needed
+// Add other dependencies
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
-builder.Services.AddHttpClient<IMlService, MlService>();
+builder.Services.AddHttpClient<IMlService, MlService>(); 
 builder.Services.AddScoped<IMlService, MlService>();
 
 // Add session services
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session expires after 30 mins
+    options.IdleTimeout = TimeSpan.FromMinutes(30); 
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
-// Add the context accessor to use Session in Views
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
@@ -36,7 +59,6 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -44,7 +66,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-app.UseSession(); // Enable Session middleware
+app.UseSession(); 
 
 app.UseAuthentication(); 
 app.UseAuthorization();
@@ -53,20 +75,27 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
+// Initialize Database
 initDB(); 
+
 app.Run();
 
-// init database
+// --- Database Initialization Helper ---
 void initDB() 
 {
-    // create the environment to retrieve our database context
     using (var scope = app.Services.CreateScope())
     {
-    // get database context from DI-container
-    var ctx = scope.ServiceProvider.GetRequiredService<MyDbContext>();
-    if (!ctx.Database.CanConnect())
-    ctx.Database.EnsureCreated(); // create database
+        var ctx = scope.ServiceProvider.GetRequiredService<MyDbContext>();
+        try 
+        {
+            // Creates the DB if it doesn't exist
+            ctx.Database.EnsureCreated();
+        }
+        catch (Exception ex)
+        {
+            var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+            logger.LogError(ex, "An error occurred while initializing the database.");
+            throw; // Re-throw to ensure container restarts if DB fails
+        }
     }
 }
-
-
