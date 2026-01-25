@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        // Defines the credentials ID for SonarQube steps to use
+        // SonarQube Token (Must match Jenkins Credentials ID)
         SONAR_TOKEN = credentials('sonar-token') 
         // AZURE_CRED_ID = 'azure-sp-credentials'   
         // RAILWAY_HOOK = credentials('railway-webhook-url') 
@@ -19,7 +19,11 @@ pipeline {
                 // --- STAGE 1: BACKEND (.NET) ---
                 stage('Backend Build & Test') {
                     agent { 
-                        docker { image 'mcr.microsoft.com/dotnet/sdk:8.0' } 
+                        docker { 
+                            image 'mcr.microsoft.com/dotnet/sdk:8.0'
+                            // FIX: Join the compose network to see 'sonarqube'
+                            args '--network fixed-pocketree-network -u 0:0'
+                        } 
                     }
                     options { skipDefaultCheckout() }
                     
@@ -27,10 +31,10 @@ pipeline {
                         sh 'find . -mindepth 1 -delete'
                         sh 'git clone -b develop https://github.com/shafikhakim27/Pocketree.git .'
                         
-                        // 1. Install Java (REQUIRED for SonarScanner to run)
+                        // 1. Install Java (REQUIRED for SonarScanner)
                         sh 'apt-get update && apt-get install -y openjdk-17-jre'
                         
-                        // 2. Install SonarScanner Tool
+                        // 2. Install Scanner
                         sh 'dotnet tool install --global dotnet-sonarscanner'
                         
                         // 3. Run Analysis
@@ -38,21 +42,20 @@ pipeline {
                             sh '''
                             export PATH="$PATH:/root/.dotnet/tools"
                             
-                            # Start SonarScanner
-                            # /k = Key (Project Name), /d:sonar.token = Auth Token, /d:sonar.host.url = Server URL
+                            # Start Scanner
                             dotnet sonarscanner begin /k:"pocketree-api" /d:sonar.token=$SONAR_TOKEN /d:sonar.host.url=$SONAR_HOST_URL /d:sonar.cs.vstest.reportsPaths=TestResults.xml
                             '''
                             
                             sh 'dotnet restore Pocketree.sln'
                             sh 'dotnet build Pocketree.sln -c Release'
                             
-                            // Run Tests (Output to TestResults.xml)
+                            // Run Tests
                             sh 'dotnet test src/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj --no-build -c Release --logger "trx;LogFileName=TestResults.xml"'
                             
                             sh '''
                             export PATH="$PATH:/root/.dotnet/tools"
                             
-                            # Stop SonarScanner (Uploads data)
+                            # End Scanner (Uploads to Server)
                             dotnet sonarscanner end /d:sonar.token=$SONAR_TOKEN
                             '''
                         }
@@ -69,7 +72,8 @@ pipeline {
                     agent {
                         docker {
                             image 'mobiledevops/android-sdk-image:latest'
-                            args '-u root:root'
+                            // FIX: Join the compose network
+                            args '--network fixed-pocketree-network -u root:root'
                         }
                     }
                     options { skipDefaultCheckout() }
@@ -83,12 +87,12 @@ pipeline {
                             sh './gradlew assembleDebug'
                             sh './gradlew lintDebug'
                         }
-                        // Disabled: Signing (Uncomment when Keystore is uploaded)
                     }
                     post {
                         always {
                             archiveArtifacts artifacts: '**/*.apk', allowEmptyArchive: true
-                            recordIssues(enabledForFailure: true, tool: androidLint(pattern: '**/lint-results.xml'))
+                            // FIX: Corrected syntax for your plugin version
+                            recordIssues(enabledForFailure: false, tool: androidLintParser(pattern: '**/lint-results.xml'))
                         }
                     }
                 }
@@ -98,7 +102,8 @@ pipeline {
                     agent { 
                         docker { 
                             image 'python:3.8-slim'
-                            args '-u root:root'
+                            // FIX: Join the compose network
+                            args '--network fixed-pocketree-network -u 0:0'
                         } 
                     }
                     options { skipDefaultCheckout() }
