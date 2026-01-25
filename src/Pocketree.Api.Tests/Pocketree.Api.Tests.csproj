@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Pocketree.Api\Pocketree.Api.csproj" />
+    <ProjectReference Include="..\Pocketree.Shared\Pocketree.Shared.csproj" />
   </ItemGroup>
 
 </Project>

@@ -1,56 +1,42 @@
 using ADproject.Models.Entities;
 using ADproject.Services;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore; // Required for UseMySql, Retry logic, and Proxies
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add services to the container.
-builder.Services.AddControllersWithViews();
-
-// 2. Add Database Context with "Retry Logic", "Lazy Loading", and "Fixed Version"
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-
-builder.Services.AddDbContext<MyDbContext>(options =>
-{
-    // Re-adding Lazy Loading
-    options.UseLazyLoadingProxies();
-
-    // OPTIMIZATION: We explicitly tell it "MySQL 8.0" instead of asking it to "AutoDetect".
-    // This prevents the "CRITICAL ERROR" log at startup because it doesn't need to connect immediately.
-    var serverVersion = new MySqlServerVersion(new Version(8, 0, 0));
-
-    options.UseMySql(connectionString, serverVersion,
-        mysqlOptions =>
-        {
-            // The "Patient" logic: waits 5 seconds between tries if DB is offline
-            mysqlOptions.EnableRetryOnFailure(
-                maxRetryCount: 10,               
-                maxRetryDelay: TimeSpan.FromSeconds(5), 
-                errorNumbersToAdd: null);
-        });
+// Register the HttpClient for Python communication
+builder.Services.AddHttpClient("ML_Consultant", client => {
+    client.BaseAddress = new Uri("http://localhost:5000/");
 });
 
-// 3. Add other dependencies
+// Add services to the container.
+builder.Services.AddControllersWithViews();
+
+// Add database context dependency
+builder.Services.AddDbContext<MyDbContext>();
+// Add other dependencies needed
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddHttpClient<IMlService, MlService>();
+builder.Services.AddScoped<IMlService, MlService>();
 
-// 4. Add session services
+// Add session services
 builder.Services.AddSession(options =>
 {
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.IdleTimeout = TimeSpan.FromMinutes(30); // Session expires after 30 mins
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
 
+// Add the context accessor to use Session in Views
 builder.Services.AddHttpContextAccessor();
 
 var app = builder.Build();
 
-// 5. Configure the HTTP request pipeline.
+// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
+    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -58,42 +44,29 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseSession(); // Enable Session middleware
 
+app.UseAuthentication(); 
 app.UseAuthorization();
-
-// Enable Session middleware
-app.UseSession();
 
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-// 6. Initialize Database (Safe Version)
 initDB(); 
-
 app.Run();
 
-// --- HELPER METHODS ---
-
+// init database
 void initDB() 
 {
+    // create the environment to retrieve our database context
     using (var scope = app.Services.CreateScope())
     {
-        var services = scope.ServiceProvider;
-        try 
-        {
-            var ctx = services.GetRequiredService<MyDbContext>();
-            
-            // This will now use the Retry Logic if the DB is still waking up
-            ctx.Database.EnsureCreated(); 
-            
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogInformation("Database connected and initialized successfully.");
-        }
-        catch (Exception ex)
-        {
-            var logger = services.GetRequiredService<ILogger<Program>>();
-            logger.LogError(ex, "Still waiting for Database... (Application will continue running)");
-        }
+    // get database context from DI-container
+    var ctx = scope.ServiceProvider.GetRequiredService<MyDbContext>();
+    if (!ctx.Database.CanConnect())
+    ctx.Database.EnsureCreated(); // create database
     }
 }
+
+

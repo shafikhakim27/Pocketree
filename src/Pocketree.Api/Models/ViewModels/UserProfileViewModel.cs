@@ -6,7 +6,7 @@
         public int TotalCoins { get; set; }
         public int LevelID { get; set; }
         public string LevelName { get; set; }
-        public string TreeImageURL { get; set; }
+        public string LevelImageURL { get; set; }
         public bool IsWithered { get; set; }
     }
 }

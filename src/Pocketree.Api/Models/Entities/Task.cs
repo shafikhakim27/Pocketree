@@ -15,6 +15,8 @@ namespace ADproject.Models.Entities
         public int CoinReward { get; set; }
         public bool RequiresEvidence { get; set; } // For ML Verification
         [Required, StringLength(80)]
-        public string Keyword { get; set; } // For ML comparison
-     }
+        public string Keyword { get; set; } // For ML use
+        [Required, StringLength(80)]
+        public string Category { get; set; } // For ML use
+    }
 }

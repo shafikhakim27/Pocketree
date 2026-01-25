@@ -1,3 +1,7 @@
+html {
+    overflow-y: scroll;
+}
+
 .btn-green {
     background-color: #4CAF50;
     color: white;
@@ -41,7 +45,7 @@
 }
 
 .input-group:focus-within {
-    border-radius: 0.375rem; 
+    border-radius: 0.375rem;
     box-shadow: 0 0 0 0.25rem rgba(76, 175, 80, 0.25); 
     border: 1px solid #86b7fe;
 }
@@ -49,6 +53,19 @@
 .input-group:focus-within .input-group-text,
 .input-group:focus-within .form-control {
     border-color: #4CAF50;
+}
+
+/* Change the autofill background color to white or match your theme */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+    -webkit-box-shadow: 0 0 0px 1000px white inset;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Ensure the icon span matches the background when autofilled */
+.input-group:has(input:-webkit-autofill) .input-group-text {
+    background-color: white;
 }
 
 .level-img {
@@ -59,7 +76,22 @@
 }
 
 .current-level {
-    max-width: 130px;
+    max-width: 100px;
     border: 3px solid #4CAF50; 
     padding: 10px;
+}
+
+.tree-container {
+    position: relative;
+    display: inline-block; /* Crucial: makes the container wrap the image tightly */
+}
+
+.tree-face {
+    position: absolute;
+    top: 0%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* This centers the face relative to itself */
+    width: 50%; /* Makes face size relative to tree size */
+    max-width: 40px;
+    pointer-events: none;
 }

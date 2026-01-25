@@ -1,19 +1,142 @@
 ﻿@model ADproject.Models.ViewModels.StatusPageViewModel
 
+<nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold text-success" href="@Url.Action("Status", "User")">
+            <i class="bi bi-tree-fill"></i> Pocketree
+        </a>
+
+        <div class="ms-auto">
+            <div class="dropdown">
+                <button class="btn btn-outline-dark dropdown-toggle rounded-pill" type="button" id="accountDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle"></i> My Account
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="accountDropdown">
+                    <li>
+                        <a class="dropdown-item" href="@Url.Action("Profile", "User")">
+                            <i class="bi bi-gear"></i> Profile Details
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="@Url.Action("Settings", "User")">
+                            <i class="bi bi-gear"></i> Settings
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="@Url.Action("ChangePassword", "User")">
+                            <i class="bi bi-box-arrow-right"></i> Change Password
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="@Url.Action("Logout", "User")">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <partial name="_Alerts" />
+
+    <div class="row">
+    </div>
+</div>
+
+<!-- Display Digital Tree -->
 <div class="container py-5 text-center">
     <h2 class="fw-bold green-dark-text mb-5">YOUR DIGITAL FOREST</h2>
 
     <div class="row justify-content-center align-items-end mb-4">
-        <div class="col-2 opacity-50"><img src="~/images/levels/seedling.png" class="img-fluid" /></div>
-        <div class="col-3"><img src="~/images/levels/sapling.png" class="img-fluid border-success border-2 rounded-circle p-2 shadow" /></div>
-        <div class="col-4 opacity-50"><img src="~/images/levels/tree.png" class="img-fluid" /></div>
+        <div class="col-4 @(Model.UserProfile.LevelID != 1 ? "opacity-50" : "")">
+            <div class="tree-container d-inline-block">
+                <img src="~/images/levels/seedling.png" class="img-fluid level-img @(Model.UserProfile.LevelID == 1 ? "border-success border-2 rounded-circle p-2 shadow" : "")" />
+                @if (Model.UserProfile.LevelID == 1)
+                {
+                    @if (Model.UserProfile.IsWithered)
+                    {
+                        <img src="~/images/faces/sad_face.png" class="tree-face" alt="Sad Face" />
+                    }
+                    else
+                    {
+                        <img src="~/images/faces/happy_face.png" class="tree-face" alt="Happy Face" />
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="col-4 @(Model.UserProfile.LevelID != 2 ? "opacity-50" : "")">
+            <div class="tree-container d-inline-block">
+                <img src="~/images/levels/sapling.png" class="img-fluid level-img @(Model.UserProfile.LevelID == 2 ? "border-success border-2 rounded-circle p-2 shadow" : "")" />
+                @if (Model.UserProfile.LevelID == 2)
+                {
+                    @if (Model.UserProfile.IsWithered)
+                    {
+                        <img src="~/images/faces/sad_face.png" class="tree-face" alt="Sad Face" />
+                    }
+                    else
+                    {
+                        <img src="~/images/faces/happy_face.png" class="tree-face" alt="Happy Face" />
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="col-4 @(Model.UserProfile.LevelID != 3 ? "opacity-50" : "")">
+            <div class="tree-container d-inline-block">
+                <img src="~/images/levels/tree.png" class="img-fluid level-img @(Model.UserProfile.LevelID == 3 ? "border-success border-2 rounded-circle p-2 shadow" : "")" />
+                @if (Model.UserProfile.LevelID == 3)
+                {
+                    @if (Model.UserProfile.IsWithered)
+                    {
+                        <img src="~/images/faces/sad_face.png" class="tree-face" alt="Sad Face" />
+                    }
+                    else
+                    {
+                        <img src="~/images/faces/happy_face.png" class="tree-face" alt="Happy Face" />
+                    }
+                }
+            </div>
+        </div>
+
+        @if (Model.UserProfile.IsWithered)
+        {
+            <div class="text-center mt-3">
+                <form asp-action="WaterTree" method="post">
+                    <button type="submit" class="btn btn-info rounded-pill px-4 fw-bold">
+                        <i class="bi bi-droplet-fill me-2"></i>WATER TREE
+                    </button>
+                </form>
+            </div>
+        }
     </div>
 
+    @{
+        // Get thresholds, 250 for Sapling and 500 for Mighty Oak 
+        int nextGoal = Model.UserProfile.TotalCoins < 250 ? 250 : 500;
+
+        // Calculate percentage and ensure it doesn't exceed 100%
+        double percent = (double)Model.UserProfile.TotalCoins / nextGoal * 100;
+        if (percent > 100) percent = 100;
+    }
+
+    <!-- Progressbar in percentage -->
     <div class="progress w-50 mx-auto rounded-pill mb-2" style="height: 10px;">
-        <div class="progress-bar bg-success" style="width: 45%"></div>
+        <div class="progress-bar bg-success"
+            role="progressbar"
+            style="width: @percent%">
+        </div>
     </div>
+
+    <p class="small text-center">@Model.UserProfile.TotalCoins / @nextGoal Coins</p>
     <p class="small text-muted text-uppercase fw-bold">Current Stage: @Model.UserProfile.LevelName</p>
 
+    <!-- Display avatar and username -->
     <div class="d-flex align-items-center justify-content-center my-5">
         <img src="~/images/avatar/avatar.png" class="rounded-circle shadow-sm me-3" width="60" />
         <div class="text-start">
@@ -22,6 +145,7 @@
         </div>
     </div>
 
+    <!-- Display history of activites that have been completed and the score -->
     <div class="row g-4 justify-content-center">
         <div class="col-md-5">
             <div class="card border-0 shadow-sm p-4 h-100 rounded-4">
@@ -53,7 +177,7 @@
                 <div class="d-flex align-items-center justify-content-center">
                     <img src="~/images/skins/leaf-icon.png" height="50" class="me-3" />
                     <div class="text-start">
-                        <p class="mb-0 small text-muted fw-bold">TOTAL SCORE: @Model.UserProfile.TotalCoins POINTS</p>
+                        <p class="mb-0 small text-muted fw-bold">TOTAL SCORE: @Model.UserProfile.TotalCoins COINS</p>
                     </div>
                 </div>
             </div>

@@ -1,13 +1,16 @@
 ﻿using ADproject.Models.Entities;
+using ADproject.Models.DTOs;
 using ADproject.Models.ViewModels;
 using ADproject.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Task = ADproject.Models.Entities.Task;
+using Microsoft.Extensions.Configuration.UserSecrets;
 
 namespace ADproject.Controllers
 {
-    [Route("api/[controller]/[action]")]
+    [Route("api/[controller]")]
     [ApiController]
     public class TaskController : ControllerBase
     {
@@ -19,87 +22,111 @@ namespace ADproject.Controllers
             this.mlService = mlService;
         }
 
+        [Authorize]
+        [HttpPost("GetDailyTasksApi")]
         public async Task<IActionResult> GetDailyTasksApi()
         {
-            // Fetch 1 task from each difficulty level randomly
-            var easyTask = await db.Tasks
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            if (user == null) return Unauthorized();
+
+            // Check user settings
+            var settings = await db.UserSettings
+                .FirstOrDefaultAsync(s => s.UserID == user.UserID);
+
+            List<Task> dailyTasks;
+
+            // Use ML recommended tasks
+            if (settings != null && settings.UseMlRecommendation)
+            {
+                dailyTasks = await mlService.GetRecommendedTasks(user.UserID);
+            }
+            // Else fetch 1 task from each difficulty level randomly
+            else
+            {
+                var easyTask = await db.Tasks
                 .Where(t => t.Difficulty == "Easy")
-                .OrderBy(t => EF.Functions.Random()) 
-                .FirstOrDefaultAsync(); 
-
-            var normalTask = await db.Tasks
-                .Where(t => t.Difficulty == "Normal")
                 .OrderBy(t => EF.Functions.Random())
                 .FirstOrDefaultAsync();
 
-            var hardTask = await db.Tasks
-                .Where(t => t.Difficulty == "Hard")
-                .OrderBy(t => EF.Functions.Random())
-                .FirstOrDefaultAsync();
+                var normalTask = await db.Tasks
+                    .Where(t => t.Difficulty == "Normal")
+                    .OrderBy(t => EF.Functions.Random())
+                    .FirstOrDefaultAsync();
 
-            // Combine into a list of TaskViewModel to send to Android
-            List<TaskViewModel> dailyTasks = new List<Task> { easyTask, normalTask, hardTask }
-                .Where(t => t != null)
-                .Select(t => new TaskViewModel
-                {
-                    TaskID = t.TaskID,
-                    Description = t.Description,
-                    Difficulty = t.Difficulty,
-                    CoinReward = t.CoinReward,
-                    RequiresEvidence = t.RequiresEvidence,  
-                    Keyword = t.Keyword  
-                })
-                .ToList();
+                var hardTask = await db.Tasks
+                    .Where(t => t.Difficulty == "Hard")
+                    .OrderBy(t => EF.Functions.Random())
+                    .FirstOrDefaultAsync();
 
-                return Ok(dailyTasks); // Sends JSON to Android
+                // Combine into a list of Tasks to send to Android
+                dailyTasks = new List<Task> { easyTask, normalTask, hardTask };
+            }
+            
+            return Ok(dailyTasks); // Sends JSON to Android
         }
 
-        public async Task<bool> RecordTaskCompletionApi([FromForm] int userId, [FromForm] int taskId)
+        [Authorize]
+        [HttpPost("RecordTaskCompletionApi")]
+        public async Task<IActionResult> RecordTaskCompletionApi([FromBody] TaskIdDto dto)
         {
-            // Get the task details 
-            var task = await db.Tasks.FindAsync(taskId);
-            if (task == null) return false;
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            if (user == null) return Unauthorized();
 
-            // Start a transaction to update both user task history and user total coins
-            using var transaction = await 
-                db.Database.BeginTransactionAsync();
+            // Get the task details 
+            var task = await db.Tasks.FindAsync(dto.TaskId);
+            if (task == null) return BadRequest("Invalid Task");
+
+            // Start a transaction to update user task history, user total coins and new level if reached
+            using var transaction = await db.Database.BeginTransactionAsync();
             try
             {
                 var taskHistoryEntry = new UserTaskHistory
                 {
-                    UserID = userId,
-                    TaskID = taskId,
+                    UserID = user.UserID,
+                    TaskID = task.TaskID,
                     Status = "Completed",
                     CompletionDate = DateTime.Now
                 };
                 db.UserTaskHistory.Add(taskHistoryEntry);
 
-                var user = await db.Users.FindAsync(userId);
                 user.TotalCoins += task.CoinReward;
+
+                bool levelUp = false;
+                if (user.TotalCoins >= 500 && user.CurrentLevelID < 3)
+                {
+                    user.CurrentLevelID = 3; // Set to new Mighty Oak level
+                    levelUp = true;
+                }
+                else if (user.TotalCoins >= 250 && user.CurrentLevelID < 2)
+                {
+                    user.CurrentLevelID = 2; // Set to new Sapling level
+                    levelUp = true;
+                }
 
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                return true;
+                // Send LevelUp status to Android device              
+                return Ok(new { LevelUp = levelUp });
             }
             catch (Exception)
             {
                 await transaction.RollbackAsync();
-                return false;
+                return BadRequest("Task not updated.");
             }
         }
 
-        public async Task<IActionResult> SubmitTaskApi([FromForm] int userId, [FromForm] int taskId, IFormFile photo)
+        [Authorize]
+        [HttpPost("SubmitTaskApi")]
+        public async Task<IActionResult> SubmitTaskApi([FromForm] TaskIdDto dto, IFormFile photo)
         {
-            var task = await db.Tasks.FindAsync(taskId);
+            var task = await db.Tasks.FindAsync(dto.TaskId);
             // Trigger ML to run verification
             using var stream = photo.OpenReadStream();
             bool isVerified = await mlService.ClassifyImageAsync(stream, task.Keyword);
 
             if (isVerified)
             {
-                // Record as completed and award 30 coins
-                await RecordTaskCompletionApi(userId, taskId);
                 return Ok(new { success = "true" }); 
             }
             return BadRequest("Verification failed. Please try again.");

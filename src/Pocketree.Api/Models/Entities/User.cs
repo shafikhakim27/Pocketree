@@ -12,10 +12,12 @@ namespace ADproject.Models.Entities
         public string Username { get; set; }
         [Required, StringLength(255)]
         public string PasswordHash { get; set; }
+        public string ProfileImageURL { get; set; } = "/images/default-user.jpg";
         public int TotalCoins { get; set; }
         [ForeignKey("CurrentLevelID")]
         public int CurrentLevelID { get; set; }
         public DateTime LastLoginDate { get; set; }
+        public string Email { get; set; }
         // Navigation Properties
         public virtual Level CurrentLevel { get; set; }
         public virtual ICollection<UserTaskHistory> TaskHistory { get; set; }
