@@ -31,7 +31,6 @@ class TaskFragment: Fragment() {
     private var _binding: FragmentTaskBinding? = null
     private val binding get() = _binding!!
 
-    private val client = OkHttpClient()
     private val userViewModel: UserViewModel by activityViewModels()
     private var currentProcessingTaskId: Int? = null
 
@@ -49,7 +48,7 @@ class TaskFragment: Fragment() {
             it.compress(Bitmap.CompressFormat.JPEG, 100, stream)
             // converting the image taken into data (100 means max quality)
             currentProcessingTaskId?.let{ id ->
-                userViewModel.submitTaskWithImage(1, id, stream.toByteArray())
+                userViewModel.submitTaskWithImage(id, stream.toByteArray())
                 // this part checks if there is an active task ID
                 // and converts that memory stream into a Byte Array and tells userViewModel to upload it
             }
@@ -81,6 +80,10 @@ class TaskFragment: Fragment() {
         userViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
             binding.coinDisplay.text = "$coins coins"
         }
+
+        userViewModel.isLoading.observe(viewLifecycleOwner){ loading ->
+            binding.loadingOverlay.visibility = if (loading) View.VISIBLE else View.GONE
+        }
     }
 
     private fun onTaskClick(task: Task) {
@@ -91,7 +94,7 @@ class TaskFragment: Fragment() {
             getPhoto.launch(null) // opens camera
         } else {
             // no photo needed, just send completion into backend
-            userViewModel.completeTaskDirectly(userId, task.taskID)
+            userViewModel.completeTaskDirectly(task.taskID)
         }
     }
 

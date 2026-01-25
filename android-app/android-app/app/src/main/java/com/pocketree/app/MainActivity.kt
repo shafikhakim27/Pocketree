@@ -1,5 +1,9 @@
 package com.pocketree.app
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
@@ -23,12 +27,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         viewModel = ViewModelProvider(this).get(UserViewModel::class.java)
-
-        val userJson = intent.getStringExtra("USER_DATA")
-        if (userJson != null) {
-            val user = Gson().fromJson(userJson, User::class.java)
-            viewModel.setUserData(user) // push data into the ViewModel
-        }
+        viewModel.fetchUserProfile()
 
         enableEdgeToEdge()
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
@@ -47,5 +46,27 @@ class MainActivity : AppCompatActivity() {
 
         binding.bottomNav.setupWithNavController(navController)
         // links the bottom navigation clicks to the fragment swaps
+    }
+
+    private val logoutReceiver = object: BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            NetworkClient.setToken(this@MainActivity, null)
+
+            // go to Login and clear backstack
+            val loginIntent = Intent(this@MainActivity, LoginActivity::class.java)
+            loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(loginIntent)
+            finish()
+        }
+    }
+
+    override fun onStart(){
+        super.onStart()
+        registerReceiver(logoutReceiver, IntentFilter("ACTION_LOGOUT"), RECEIVER_NOT_EXPORTED)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        unregisterReceiver(logoutReceiver)
     }
 }

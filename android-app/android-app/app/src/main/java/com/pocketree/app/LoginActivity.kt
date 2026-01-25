@@ -20,11 +20,23 @@ import java.security.MessageDigest
 import kotlin.jvm.java
 
 class LoginActivity: AppCompatActivity() {
-    private val client= OkHttpClient()
     private lateinit var binding: ActivityLoginBinding
+    private val client = NetworkClient.okHttpClient
 
     override fun onCreate(savedInstanceState: Bundle?){
         super.onCreate(savedInstanceState)
+
+        // initialise NetworkClient context
+        NetworkClient.context = this.applicationContext
+
+        // check for existing token
+        val existingToken = NetworkClient.loadToken(this)
+        if (existingToken != null) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
+
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
@@ -103,19 +115,18 @@ class LoginActivity: AppCompatActivity() {
                     if (response.isSuccessful && !responseBody.isNullOrEmpty()) {
                         try {
                             // get information of user from database
-                            val userData = Gson().fromJson(responseBody, User::class.java)
+                            val loginData = Gson().fromJson(responseBody, LoginResponse::class.java)
+
+                            NetworkClient.setToken(this@LoginActivity, loginData.token)
 
                             Toast.makeText(
                                 this@LoginActivity,
-                                "Welcome, ${userData.username}!",
+                                "Welcome, ${loginData.user.username}!",
                                 Toast.LENGTH_SHORT
                             ).show()
 
                             val intent = Intent(this@LoginActivity, MainActivity::class.java).apply{
-                                // pass data from Login to Main activity then pass to fragments
-                                putExtra("USER_ID", userData.id)
-                                putExtra("USERNAME", userData.username)
-                                // pass whole object as a JSON string
+                                putExtra("USERNAME", loginData.user.username)
                             }
                             startActivity(intent)
                             finish() // close LoginActivity so user can't go back

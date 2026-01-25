@@ -4,6 +4,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.pocketree.app.NetworkClient.gson
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -17,28 +18,74 @@ class UserViewModel: ViewModel() {
     // LiveData is used so that UI updates automatically if coins change
     val username = MutableLiveData<String>()
     val totalCoins = MutableLiveData<Int>()
-    val currentLevelId = MutableLiveData<Int>()
+    val currentLevelId = MutableLiveData<Int>() // pending logic on level up
     val tasks = MutableLiveData<List<Task>>()
-    var userToken: String? = null //Json Web Token is usually received during login
+    val isLoading = MutableLiveData<Boolean>(false) // for loading of progress bar (for ML image verification)
 
-    // use of interceptor to declare JWT token in every request
-    private val client = OkHttpClient.Builder()
-        .addInterceptor { chain ->
-            val requestBuilder = chain.request().newBuilder()
-            userToken?.let {
-                requestBuilder.addHeader("Authorization", "Bearer $it")
-            }
-            chain.proceed(requestBuilder.build())
-        }
-        .build()
-    private val gson = Gson()
+    private val client = NetworkClient.okHttpClient
+    private val gson = NetworkClient.gson
     private val baseUrl = "http://10.0.2.2:5050/api/Task"
 
-    fun fetchUserData(user: User) {
-        username.value = user.username
-        totalCoins.value = user.totalCoins
-        currentLevelId.value = user.currentLevelId
-        tasks.value = user.tasks
+    fun loginUser(credentials: JSONObject) {
+        val body = credentials.toString()
+            .toRequestBody("application/json; charset=utf-8".toMediaType())
+        val request = Request.Builder()
+            .url("$baseUrl/LoginApi")
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object: Callback {
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    val jsonResponse = response.body?.string()
+                    val data = gson.fromJson(jsonResponse, LoginResponse::class.java)
+
+                    // save the token to the Singleton so the Interceptor can find it
+                    NetworkClient.setToken(NetworkClient.context, data.token)
+
+                    // update UI livedata
+                    username.postValue(data.user.username)
+                    totalCoins.postValue(data.user.totalCoins)
+
+                    // fetch tasks now that user is logged in
+                    fetchDailyTasks()
+                }
+            }
+
+            override fun onFailure(call: Call, e: okio.IOException) {
+                e.printStackTrace()
+            }
+        })
+    }
+
+    fun fetchUserProfile() {
+//        isLoading.postValue(true) // start loading
+
+        val request = Request.Builder()
+            .url("${baseUrl}/GetUserProfileApi")
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object: Callback {
+            override fun onResponse(call: Call, response: Response) {
+//                isLoading.postValue(false)
+                if (response.isSuccessful) {
+                    val json = response.body?.string()
+                    val user = gson.fromJson(json, User::class.java)
+
+                    // update all LiveData at once
+                    username.postValue(user.username)
+                    totalCoins.postValue(user.totalCoins)
+                    currentLevelId.postValue(user.currentLevelId)
+                    tasks.postValue(user.tasks)
+                }
+            }
+
+            override fun onFailure(call: Call, e: okio.IOException) {
+//                isLoading.postValue(false)
+                e.printStackTrace()
+            }
+        })
     }
 
     fun fetchDailyTasks(){
@@ -60,12 +107,13 @@ class UserViewModel: ViewModel() {
         })
     }
 
-    fun submitTaskWithImage (userId: Int, taskId: Int, imageBytes: ByteArray) {
+    fun submitTaskWithImage (taskId: Int, imageBytes: ByteArray) {
+        isLoading.postValue(true) // start loading
+
         val requestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("userId", userId.toString())
-            // represents one section within multipart body (ie a file or a form field)
             .addFormDataPart("taskId", taskId.toString())
+            // represents one section within multipart body (ie a file or a form field)
             .addFormDataPart("photo", "upload.jpg",
                 imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull()))
             .build()
@@ -77,11 +125,15 @@ class UserViewModel: ViewModel() {
 
         client.newCall(request).enqueue(object: Callback {
             override fun onResponse(call: Call, response: Response) {
+                isLoading.postValue(false) // stop loading
                 if (response.isSuccessful) {
                     fetchDailyTasks()
                 }
             }
-            override fun onFailure(call: Call, e: IOException) { e.printStackTrace() }
+            override fun onFailure(call: Call, e: IOException) {
+                isLoading.postValue(false) // stop loading on error
+                e.printStackTrace()
+            }
         })
     }
 
@@ -94,7 +146,6 @@ class UserViewModel: ViewModel() {
 
         val request = Request.Builder()
             .url("$baseUrl/RecordTaskCompletionApi")
-            .addHeader("Authorization", "Bearer $userToken") // security check
             .post(body)
             .build()
 
@@ -106,5 +157,15 @@ class UserViewModel: ViewModel() {
             }
             override fun onFailure(call: Call, e: IOException) { e.printStackTrace() }
         })
+    }
+
+    fun logout() {
+        // clearing token in Network Client
+        NetworkClient.setToken(NetworkClient.context, null)
+
+        // clearing LiveData so UI resets
+        tasks.postValue(emptyList())
+        totalCoins.postValue(0)
+        username.postValue("")
     }
 }
