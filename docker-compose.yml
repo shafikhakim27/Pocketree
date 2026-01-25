@@ -30,7 +30,6 @@ services:
     ports:
       - "${API_PORT:-5000}:8080"
     environment:
-      # FIX: Use 'pocketree-db' instead of '172.18.0.4'
       - ConnectionStrings__DefaultConnection=Server=pocketree-db;Port=3306;Database=pocketree;User=root;Password=rootpassword;
       - ML_SERVICE_URL=http://ml-service:8000
       - ASPNETCORE_ENVIRONMENT=Development
@@ -79,9 +78,29 @@ services:
     networks:
       - pocketree-net
 
+  # 5. SONARQUBE (Code Quality) - NEW ADDITION
+  sonarqube:
+    image: sonarqube:lts-community
+    container_name: sonarqube
+    restart: always
+    ports:
+      - "9000:9000"
+    environment:
+      - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
+    volumes:
+      - sonar_data:/opt/sonarqube/data
+      - sonar_extensions:/opt/sonarqube/extensions
+      - sonar_logs:/opt/sonarqube/logs
+    networks:
+      - pocketree-net
+
 volumes:
   db_data:
   jenkins_home:
+  # NEW VOLUMES FOR SONARQUBE
+  sonar_data:
+  sonar_extensions:
+  sonar_logs:
 
 networks:
   pocketree-net:
