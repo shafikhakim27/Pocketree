@@ -16,4 +16,5 @@
     <string name="task_description">Task Description</string>
     <string name="coin_reward">+10 coins</string>
     <string name="action">Action</string>
+    <string name="current_level">Current Level</string>
 </resources>
