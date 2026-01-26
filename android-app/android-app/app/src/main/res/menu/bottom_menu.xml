@@ -2,18 +2,21 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/homeFragment"
-        android:icon="@drawable/ic_home"
-        android:title="Home" />
+        android:title="Home"
+        android:icon="@drawable/home"/>
+
     <item
-        android:id="@+id/tasksFragment"
-        android:icon="@drawable/ic_tasks"
-        android:title="Tasks" />
+        android:id="@+id/taskFragment"
+        android:title="Tasks"
+        android:icon="@drawable/tasks"/>
+
     <item
         android:id="@+id/redeemFragment"
-        android:icon="@drawable/ic_redeem"
-        android:title="Redeem" />
+        android:title="Redeem"
+        android:icon="@drawable/redeem"/>
+
     <item
         android:id="@+id/settingsFragment"
-        android:icon="@drawable/ic_settings"
-        android:title="Settings" />
+        android:title="Settings"
+        android:icon="@drawable/settings"/>
 </menu>

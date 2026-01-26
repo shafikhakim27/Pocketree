@@ -18,11 +18,8 @@ import org.json.JSONObject
 import java.io.IOException
 import java.security.MessageDigest
 import kotlin.jvm.java
-import android.util.Log // for testing
 
 class LoginActivity: AppCompatActivity() {
-    private val TAG = "LoginActivity"
-
     private lateinit var binding: ActivityLoginBinding
     private val client = NetworkClient.okHttpClient
 
@@ -73,19 +70,7 @@ class LoginActivity: AppCompatActivity() {
         }
     }
 
-//    private fun hashPassword(password: String): String {
-//        val bytes = password.toByteArray()
-//        val md = MessageDigest.getInstance("SHA-256")
-//        val digest = md.digest(bytes)
-//        return digest.fold("") { str, it -> str + "%02x".format(it) }
-//    }
-
     private fun sendLoginRequest(username:String, password:String) {
-        // hash the password before sending to backend for verification against database
-      // val hashedPassword = hashPassword(password)
-
-        Log.d(TAG, "sendLoginRequest: Attempting login for $username") // testing
-
         // create request body
         val json = JSONObject().apply{
             put("username", username)

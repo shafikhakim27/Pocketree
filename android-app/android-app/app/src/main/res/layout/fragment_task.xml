@@ -63,46 +63,6 @@
     <!--multiple instances of item_task.xml (one for each task)-->
 
     <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:background="#EEEEEE">
-
-        <TextView
-            android:id="@+id/homeTab"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/home_button_text"
-            android:gravity="center"/>
-
-        <TextView
-            android:id="@+id/taskTab"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/task_button_text"
-            android:gravity="center"/>
-
-        <TextView
-            android:id="@+id/redeemTab"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/redeem_button_text"
-            android:gravity="center"/>
-
-        <TextView
-            android:id="@+id/settingsTab"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/settings_button_text"
-            android:gravity="center"/>
-    </LinearLayout>
-
-    <LinearLayout
         android:id="@+id/loadingOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"

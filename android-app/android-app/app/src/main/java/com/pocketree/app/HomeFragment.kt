@@ -27,6 +27,9 @@ class HomeFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // test
+        binding.plant.setImageResource(R.drawable.mighty_oak)
+
         sharedViewModel.username.observe(viewLifecycleOwner) { name ->
             binding.accountInfo.text = "${name ?: "User"}"
         }

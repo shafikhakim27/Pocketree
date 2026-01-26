@@ -7,10 +7,6 @@
     <string name="login_header">Welcome!\nPlease log in</string>
     <string name="account_info">Account Info Here</string>
     <string name="number_of_coins">number of coins here</string>
-    <string name="home_button_text">Home</string>
-    <string name="task_button_text">Tasks</string>
-    <string name="redeem_button_text">Redeem</string>
-    <string name="settings_button_text">Settings</string>
     <string name="task_header">Daily Tasks</string>
     <string name="image_verification">Verifying image...</string>
     <string name="task_description">Task Description</string>

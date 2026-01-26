@@ -1,23 +1,20 @@
 package com.pocketree.app
 
-import android.R.attr.password
-import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
+import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-import com.google.gson.Gson
+import androidx.core.widget.doAfterTextChanged
 import com.pocketree.app.databinding.ActivityCreateUserBinding
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
-import java.security.MessageDigest
+import androidx.core.widget.doAfterTextChanged
 
 class CreateUserActivity: AppCompatActivity() {
     private val client= OkHttpClient()
@@ -42,11 +39,13 @@ class CreateUserActivity: AppCompatActivity() {
     private fun initButton() {
         binding.createButton.setOnClickListener {
             val username = binding.username.text.toString().trim()
+            val email = binding.email.text.toString()
             val password = binding.password.text.toString()
             val confirmPassword = binding.confirmPassword.text.toString()
 
             // reset errors in all fields if any
             binding.usernameLayout.error = null
+            binding.emailLayout.error = null
             binding.passwordLayout.error = null
             binding.confirmPasswordLayout.error = null
 
@@ -55,6 +54,15 @@ class CreateUserActivity: AppCompatActivity() {
             // check for empty fields
             if (username.isEmpty()){
                 binding.usernameLayout.error = "Username is required"
+                hasError = true
+            }
+
+            if (email.isEmpty()){
+                binding.emailLayout.error = "Email is required"
+                hasError = true
+            } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()){
+                // this checks for the @ and the domain (eg .com)
+                binding.emailLayout.error = "Please enter a valid email address"
                 hasError = true
             }
 
@@ -85,39 +93,52 @@ class CreateUserActivity: AppCompatActivity() {
 
             // if local checks pass, check server for username availability
             // if username is available, create user and persist in database
-            performsSignup(username, password)
+            performsSignup(username, email, password)
         }
     }
 
     // to clear off error message when user re-types into the text fields
-    private fun setupValidation(){
-        binding.username.addTextChangedListener(object: TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start:Int, count:Int, after:Int){
-                // do nothing
+    private fun setupValidation() {
+        // for username
+        binding.username.doAfterTextChanged { text ->
+            if (text.isNullOrBlank()) {
+                binding.usernameLayout.error = "Username is required"
+            } else {
+                binding.usernameLayout.error = null // clear error when user starts typing
             }
-            override fun onTextChanged(s: CharSequence?, start:Int, before:Int, count:Int){
-                binding.usernameLayout.error = null // clear error
+        }
+
+        // for email
+        binding.email.doAfterTextChanged { text ->
+            val email = text.toString()
+            if (email.isEmpty()) {
+                binding.emailLayout.error = "Email is required"
+            } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                binding.emailLayout.error = "Please enter a valid email address"
+            } else {
+                binding.emailLayout.error = null
             }
-            override fun afterTextChanged(s: Editable?) {
-                // do nothing
+        }
+
+        // for passwords
+        binding.confirmPassword.doAfterTextChanged { text ->
+            val pass = binding.password.text.toString()
+            val confirmPass = text.toString()
+
+            if (confirmPass != pass) {
+                binding.confirmPasswordLayout.error = "Passwords do not match"
+            } else {
+                binding.confirmPasswordLayout.error = null
             }
-        })
+        }
     }
 
-//    private fun hashPassword(password: String): String {
-//        val bytes = password.toByteArray()
-//        val md = MessageDigest.getInstance("SHA-256")
-//        val digest = md.digest(bytes)
-//        return digest.fold("") { str, it -> str + "%02x".format(it) }
-//    }
-
-    private fun performsSignup(username: String, password: String) {
-//        val hashedPassword = hashPassword(password)
-
+    private fun performsSignup(username: String, email: String, password: String) {
         // create a JSON object
         val json = JSONObject().apply{
-            put("username", username)
-            put("password", password)
+            put("Username", username)
+            put("Email", email)
+            put("Password", password)
         }
 
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -141,6 +162,8 @@ class CreateUserActivity: AppCompatActivity() {
             }
             override fun onResponse(call: Call, response: Response) {
                 val responseText = response.body?.string()
+                val responseCode = response.code // get code 400, 500, etc
+
                 runOnUiThread {
                     if (response.isSuccessful) {
                         Toast.makeText(
@@ -150,7 +173,11 @@ class CreateUserActivity: AppCompatActivity() {
                         ).show()
                         finish() // to redirect to login screen
                     } else {
-                        binding.usernameLayout.error = responseText ?: "Registration failed"
+                        if (responseCode == 500) {
+                            binding.usernameLayout.error = "Server database error."
+                        } else {
+                            binding.usernameLayout.error = responseText ?: "Registration failed"
+                        }
                     }
                 }
             }

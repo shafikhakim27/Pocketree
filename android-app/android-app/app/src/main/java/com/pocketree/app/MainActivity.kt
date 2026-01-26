@@ -25,20 +25,27 @@ class MainActivity : AppCompatActivity() {
 
         // initialise NetworkClient context (safety net)
         NetworkClient.context = this.applicationContext
-        NetworkClient.loadToken(this)
+        val token = NetworkClient.loadToken(this)
+
+        // check login status
+        if (token == null) {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+            finish()
+        }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
+        enableEdgeToEdge()
         setContentView(binding.root)
 
-        viewModel = ViewModelProvider(this).get(UserViewModel::class.java)
-        viewModel.fetchUserProfile()
-
-        enableEdgeToEdge()
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+
+        viewModel = ViewModelProvider(this).get(UserViewModel::class.java)
+        viewModel.fetchUserProfile()
 
         setupNavigation()
     }
