@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
@@ -98,6 +99,13 @@ class TaskFragment: Fragment() {
 
                 userViewModel.levelUpEvent.value = false
             // reset the event so the notice doesn't fire again
+            }
+        }
+
+        userViewModel.errorMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                userViewModel.errorMessage.value = null // clear message after showing
             }
         }
     }

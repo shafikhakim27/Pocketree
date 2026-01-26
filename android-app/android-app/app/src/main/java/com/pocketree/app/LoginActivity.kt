@@ -18,8 +18,11 @@ import org.json.JSONObject
 import java.io.IOException
 import java.security.MessageDigest
 import kotlin.jvm.java
+import android.util.Log // for testing
 
 class LoginActivity: AppCompatActivity() {
+    private val TAG = "LoginActivity"
+
     private lateinit var binding: ActivityLoginBinding
     private val client = NetworkClient.okHttpClient
 
@@ -80,6 +83,8 @@ class LoginActivity: AppCompatActivity() {
     private fun sendLoginRequest(username:String, password:String) {
         // hash the password before sending to backend for verification against database
       // val hashedPassword = hashPassword(password)
+
+        Log.d(TAG, "sendLoginRequest: Attempting login for $username") // testing
 
         // create request body
         val json = JSONObject().apply{

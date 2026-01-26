@@ -1,5 +1,6 @@
 package com.pocketree.app
 
+import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.gson.Gson
@@ -11,10 +12,13 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import android.util.Log // for testing
 
 // creation of a SharedViewModel to enable passing of data between fragments
 
 class UserViewModel: ViewModel() {
+    private val TAG = "UserViewModel" // testing
+
     // LiveData is used so that UI updates automatically if coins change
     val username = MutableLiveData<String>()
     val totalCoins = MutableLiveData<Int>()
@@ -24,12 +28,15 @@ class UserViewModel: ViewModel() {
     val levelImageUrl = MutableLiveData<String>()
     val isWithered = MutableLiveData<Boolean>()
     val levelUpEvent = MutableLiveData<Boolean>()
+    val errorMessage = MutableLiveData<String>()
 
     private val client = NetworkClient.okHttpClient
     private val gson = NetworkClient.gson
-    private val baseUrl = "http://10.0.2.2:5050/api/Task"
+    private val baseUrl = "http://10.0.2.2:5000/api/Task"
 
     fun loginUser(credentials: JSONObject) {
+        Log.d(TAG, "loginUser: Starting request") // testing
+
         val body = credentials.toString()
             .toRequestBody("application/json; charset=utf-8".toMediaType())
         val request = Request.Builder()
@@ -62,6 +69,7 @@ class UserViewModel: ViewModel() {
     }
 
     fun fetchUserProfile() {
+        Log.d(TAG, "fetchUserProfile: Starting request") // testing
 //        isLoading.postValue(true) // start loading
 
         val request = Request.Builder()
@@ -94,6 +102,8 @@ class UserViewModel: ViewModel() {
     }
 
     fun fetchDailyTasks(){
+        Log.d(TAG, "fetchDailyTasks: Starting request") // testing
+
         val request = Request.Builder()
             .url("${baseUrl}/GetDailyTasksApi")
             .build()
@@ -113,6 +123,8 @@ class UserViewModel: ViewModel() {
     }
 
     fun submitTaskWithImage (taskId: Int, imageBytes: ByteArray) {
+        Log.d(TAG, "submitTaskWithImage: Starting request") // testing
+
         isLoading.postValue(true) // start loading
 
         val requestBody = MultipartBody.Builder()
@@ -130,27 +142,35 @@ class UserViewModel: ViewModel() {
 
         client.newCall(request).enqueue(object: Callback {
             override fun onResponse(call: Call, response: Response) {
-                isLoading.postValue(false) // stop loading
                 if (response.isSuccessful) {
                     val jsonResponse = response.body?.string()
                     val result = gson.fromJson(jsonResponse, Map::class.java)
+                    // we tell Gson to treat the JSOn as a generic Map
 
-                    if (result["levelUp"] as? Boolean == true) {
-                        levelUpEvent.postValue(true)
+                    // check if verification was successful
+                    if (result["success"] == "true") {
+                        completeTaskDirectly(taskId) // record task completion
+                    } else {
+                        isLoading.postValue(false)  // stop loading on verification failure
+                        // show error message for unsuccessful verification
+                        errorMessage.postValue("Image verification failed. Please try again.")
                     }
-
-                    fetchUserProfile()
-                    fetchDailyTasks()
+                } else {
+                    isLoading.postValue(false) // stop loading on error
+                    // handle verification failure
+                    errorMessage.postValue("Verification failed. Please try again.")
                 }
             }
             override fun onFailure(call: Call, e: IOException) {
                 isLoading.postValue(false) // stop loading on error
+                errorMessage.postValue("Network error. Please check your connection.")
                 e.printStackTrace()
             }
         })
     }
 
     fun completeTaskDirectly(taskId: Int) {
+        Log.d(TAG, "completeTaskDirectly: Starting request") // testing
 
         val json = JSONObject().apply{
             put("TaskId", taskId)
@@ -164,6 +184,7 @@ class UserViewModel: ViewModel() {
 
         client.newCall(request).enqueue(object: Callback {
             override fun onResponse(call: Call, response: Response) {
+                isLoading.postValue(false)
                 if (response.isSuccessful) {
                     val jsonResponse = response.body?.string()
                     val result = gson.fromJson(jsonResponse, Map::class.java)
