@@ -17,4 +17,11 @@
     <string name="coin_reward">+10 coins</string>
     <string name="action">Action</string>
     <string name="current_level">Current Level</string>
+    <string name="redeem_header">Redeem Items</string>
+    <string name="item_to_redeem">Item to Redeem</string>
+    <string name="price_to_redeem">100 coins</string>
+    <string name="settings_header">Settings</string>
+    <string name="background_sound">Background Sound</string>
+    <string name="sound_effects">Sound Effects</string>
+    <string name="logout_button">Logout</string>
 </resources>

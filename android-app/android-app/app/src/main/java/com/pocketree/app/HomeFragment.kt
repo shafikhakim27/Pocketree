@@ -28,11 +28,11 @@ class HomeFragment: Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         sharedViewModel.username.observe(viewLifecycleOwner) { name ->
-            binding.accountInfo.text = "Hello, ${name ?: "User"}"
+            binding.accountInfo.text = "${name ?: "User"}"
         }
 
         sharedViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
-            binding.coinDisplay.text = "$coins pts"
+            binding.coinDisplay.text = "$coins coins"
         }
 
         // kiv for image insertion

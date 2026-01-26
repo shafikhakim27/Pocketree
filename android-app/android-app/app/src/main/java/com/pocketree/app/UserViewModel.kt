@@ -207,9 +207,9 @@ class UserViewModel: ViewModel() {
         // clearing token in Network Client
         NetworkClient.setToken(NetworkClient.context, null)
 
-        // clearing LiveData so UI resets
-        tasks.postValue(emptyList())
-        totalCoins.postValue(0)
-        username.postValue("")
+        // reset UI state immediately (using .value is faster, since logout is running on main thread)
+        username.value=""
+        totalCoins.value=0
+        tasks.value=emptyList()
     }
 }

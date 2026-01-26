@@ -33,7 +33,7 @@ class TaskFragment: Fragment() {
     private var _binding: FragmentTaskBinding? = null
     private val binding get() = _binding!!
 
-    private val userViewModel: UserViewModel by activityViewModels()
+    private val sharedViewModel: UserViewModel by activityViewModels()
     private var currentProcessingTaskId: Int? = null
 
     override fun onCreateView(
@@ -50,7 +50,7 @@ class TaskFragment: Fragment() {
             it.compress(Bitmap.CompressFormat.JPEG, 100, stream)
             // converting the image taken into data (100 means max quality)
             currentProcessingTaskId?.let{ id ->
-                userViewModel.submitTaskWithImage(id, stream.toByteArray())
+                sharedViewModel.submitTaskWithImage(id, stream.toByteArray())
                 // this part checks if there is an active task ID
                 // and converts that memory stream into a Byte Array and tells userViewModel to upload it
             }
@@ -66,8 +66,17 @@ class TaskFragment: Fragment() {
         binding.recyclerViewTasks.layoutManager = LinearLayoutManager(context)
         binding.recyclerViewTasks.adapter = adapter
 
+        sharedViewModel.username.observe(viewLifecycleOwner) { name ->
+            binding.accountInfo.text = "${name ?: "User"}"
+        }
+
+        // observe coins to update coinDisplay TextView
+        sharedViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
+            binding.coinDisplay.text = "$coins coins"
+        }
+
         // observe the ViewModel and update the adapter when the list changes
-        userViewModel.tasks.observe(viewLifecycleOwner) { tasks ->
+        sharedViewModel.tasks.observe(viewLifecycleOwner) { tasks ->
             adapter.updateTasks(tasks)
 
             if (tasks.isNotEmpty() && tasks.all { it.isCompleted }) {
@@ -78,18 +87,13 @@ class TaskFragment: Fragment() {
             }
         }
 
-        // observe coins to update coinDisplay TextView
-        userViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
-            binding.coinDisplay.text = "$coins coins"
-        }
-
-        userViewModel.isLoading.observe(viewLifecycleOwner){ loading ->
+        sharedViewModel.isLoading.observe(viewLifecycleOwner){ loading ->
             binding.loadingOverlay.visibility = if (loading) View.VISIBLE else View.GONE
         }
 
-        userViewModel.levelUpEvent.observe(viewLifecycleOwner) { levelUp ->
+        sharedViewModel.levelUpEvent.observe(viewLifecycleOwner) { levelUp ->
             if (levelUp == true) {
-                val currentLevelName = userViewModel.levelName.value ?: "next"
+                val currentLevelName = sharedViewModel.levelName.value ?: "next"
                 AlertDialog.Builder(requireContext())
                     // returns non-null Context associated with fragment's current host (activity)
                     .setTitle("Level Up!")
@@ -97,15 +101,15 @@ class TaskFragment: Fragment() {
                     .setPositiveButton("Yay!", null) // button for dismissal of notification
                     .show()
 
-                userViewModel.levelUpEvent.value = false
-            // reset the event so the notice doesn't fire again
+                sharedViewModel.levelUpEvent.value = false
+                // reset the event so the notice doesn't fire again
             }
         }
 
-        userViewModel.errorMessage.observe(viewLifecycleOwner) { message ->
+        sharedViewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
                 Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
-                userViewModel.errorMessage.value = null // clear message after showing
+                sharedViewModel.errorMessage.value = null // clear message after showing
             }
         }
     }
@@ -118,7 +122,7 @@ class TaskFragment: Fragment() {
             getPhoto.launch(null) // opens camera
         } else {
             // no photo needed, just send completion into backend
-            userViewModel.completeTaskDirectly(task.taskID)
+            sharedViewModel.completeTaskDirectly(task.taskID)
         }
     }
 

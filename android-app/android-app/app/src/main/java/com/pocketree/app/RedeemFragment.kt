@@ -10,7 +10,6 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import com.pocketree.app.databinding.FragmentRedeemBinding
 
-
 class RedeemFragment: Fragment() {
     private var _binding: FragmentRedeemBinding? = null
     private val binding get() = _binding!!
@@ -72,4 +71,7 @@ class RedeemFragment: Fragment() {
         super.onDestroyView()
         _binding = null
     }
+
+    // UpdateCoinsApi (total coins int)
+    // post - pass token and updated number of coins to backend
 }
