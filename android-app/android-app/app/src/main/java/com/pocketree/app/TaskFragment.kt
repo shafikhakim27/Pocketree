@@ -2,6 +2,7 @@ package com.pocketree.app
 
 import android.R.attr.bitmap
 import android.R.attr.password
+import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -83,6 +84,21 @@ class TaskFragment: Fragment() {
 
         userViewModel.isLoading.observe(viewLifecycleOwner){ loading ->
             binding.loadingOverlay.visibility = if (loading) View.VISIBLE else View.GONE
+        }
+
+        userViewModel.levelUpEvent.observe(viewLifecycleOwner) { levelUp ->
+            if (levelUp == true) {
+                val currentLevelName = userViewModel.levelName.value ?: "next"
+                AlertDialog.Builder(requireContext())
+                    // returns non-null Context associated with fragment's current host (activity)
+                    .setTitle("Level Up!")
+                    .setMessage("Good job! You have progressed to the $currentLevelName stage!")
+                    .setPositiveButton("Yay!", null) // button for dismissal of notification
+                    .show()
+
+                userViewModel.levelUpEvent.value = false
+            // reset the event so the notice doesn't fire again
+            }
         }
     }
 

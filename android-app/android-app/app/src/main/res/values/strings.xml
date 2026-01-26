@@ -1,3 +1,19 @@
 <resources>
     <string name="app_name">Pocketree</string>
+    <string name="pocketree">PockeTree \u00A9 2026</string>
+    <string name="create_account">Create An Account</string>
+    <string name="create_account_header">Create Account</string>
+    <string name="login">Login</string>
+    <string name="login_header">Welcome!\nPlease log in</string>
+    <string name="account_info">Account Info Here</string>
+    <string name="number_of_coins">number of coins here</string>
+    <string name="home_button_text">Home</string>
+    <string name="task_button_text">Tasks</string>
+    <string name="redeem_button_text">Redeem</string>
+    <string name="settings_button_text">Settings</string>
+    <string name="task_header">Daily Tasks</string>
+    <string name="image_verification">Verifying image...</string>
+    <string name="task_description">Task Description</string>
+    <string name="coin_reward">+10 coins</string>
+    <string name="action">Action</string>
 </resources>

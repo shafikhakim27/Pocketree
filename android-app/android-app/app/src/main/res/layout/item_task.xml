@@ -19,7 +19,7 @@
             android:id="@+id/descriptionTv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Task Description"
+            android:text="@string/task_description"
             android:textColor="#333333"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -28,7 +28,7 @@
             android:id="@+id/rewardTv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="+20 Coins"
+            android:text="@string/coin_reward"
             android:textColor="#2E7D32" />
     </LinearLayout>
 
@@ -36,6 +36,6 @@
         android:id="@+id/actionBtn"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Action" />
+        android:text="@string/action" />
 
 </LinearLayout>

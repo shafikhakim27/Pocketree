@@ -15,14 +15,14 @@
             android:id="@+id/accountInfo"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Account Info Here"
+            android:text="@string/account_info"
             android:textSize="40sp"/>
 
         <TextView
             android:id="@+id/coinDisplay"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:text="number of coins here"/>
+            android:text="@string/number_of_coins"/>
 
     </LinearLayout>
 
@@ -48,7 +48,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Home"
+            android:text="@string/home_button_text"
             android:gravity="center"/>
 
         <TextView
@@ -56,7 +56,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Task"
+            android:text="@string/task_button_text"
             android:gravity="center"/>
 
         <TextView
@@ -64,7 +64,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Redeem"
+            android:text="@string/redeem_button_text"
             android:gravity="center"/>
 
         <TextView
@@ -72,7 +72,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Settings"
+            android:text="@string/settings_button_text"
             android:gravity="center"/>
     </LinearLayout>
 

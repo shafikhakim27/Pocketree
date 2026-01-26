@@ -9,7 +9,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Create Account"
+        android:text="@string/create_account_header"
         android:textSize="40sp"/>
 
      <!--to show validation errors beside text field-->
@@ -62,7 +62,7 @@
         android:id="@+id/createButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Create An Account"
+        android:text="@string/create_account"
         android:layout_gravity="center"
         android:layout_marginLeft="10dp"
         android:layout_marginRight="10dp"/>
@@ -70,7 +70,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="PockeTree \u00A9 2026"
+        android:text="@string/pocketree"
         android:layout_marginLeft="10dp" />
 
 </LinearLayout>

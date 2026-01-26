@@ -18,9 +18,12 @@ class UserViewModel: ViewModel() {
     // LiveData is used so that UI updates automatically if coins change
     val username = MutableLiveData<String>()
     val totalCoins = MutableLiveData<Int>()
-    val currentLevelId = MutableLiveData<Int>() // pending logic on level up
+    val levelName = MutableLiveData<String>()
     val tasks = MutableLiveData<List<Task>>()
     val isLoading = MutableLiveData<Boolean>(false) // for loading of progress bar (for ML image verification)
+    val levelImageUrl = MutableLiveData<String>()
+    val isWithered = MutableLiveData<Boolean>()
+    val levelUpEvent = MutableLiveData<Boolean>()
 
     private val client = NetworkClient.okHttpClient
     private val gson = NetworkClient.gson
@@ -76,7 +79,9 @@ class UserViewModel: ViewModel() {
                     // update all LiveData at once
                     username.postValue(user.username)
                     totalCoins.postValue(user.totalCoins)
-                    currentLevelId.postValue(user.currentLevelId)
+                    levelName.postValue(user.levelName)
+                    levelImageUrl.postValue(user.levelImageUrl)
+                    isWithered.postValue(user.isWithered)
                     tasks.postValue(user.tasks)
                 }
             }
@@ -127,6 +132,14 @@ class UserViewModel: ViewModel() {
             override fun onResponse(call: Call, response: Response) {
                 isLoading.postValue(false) // stop loading
                 if (response.isSuccessful) {
+                    val jsonResponse = response.body?.string()
+                    val result = gson.fromJson(jsonResponse, Map::class.java)
+
+                    if (result["levelUp"] as? Boolean == true) {
+                        levelUpEvent.postValue(true)
+                    }
+
+                    fetchUserProfile()
                     fetchDailyTasks()
                 }
             }
@@ -140,7 +153,7 @@ class UserViewModel: ViewModel() {
     fun completeTaskDirectly(taskId: Int) {
 
         val json = JSONObject().apply{
-            put("taskID", taskId)
+            put("TaskId", taskId)
         }
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
@@ -152,6 +165,16 @@ class UserViewModel: ViewModel() {
         client.newCall(request).enqueue(object: Callback {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
+                    val jsonResponse = response.body?.string()
+                    val result = gson.fromJson(jsonResponse, Map::class.java)
+
+                    // check for level up
+                    val isLevelUp = result["levelUp"] as? Boolean ?: false
+                    if (isLevelUp) {
+                        levelUpEvent.postValue(true)
+                    }
+
+                    fetchUserProfile() // refresh profile to get new total coins and level name
                     fetchDailyTasks() // refresh list so the task shows as completed
                 }
             }

@@ -24,7 +24,29 @@ class HomeFragment: Fragment() {
         sharedViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
             binding.coinDisplay.text = "$coins pts"
         }
+
+        // create withering logic also - reminder one day before
+        sharedViewModel.isWithered.observe(viewLifecycleOwner) { withered ->
+            if (withered) {
+                binding.statusWarning.text = "Your plant has withered."
+                binding.statusWarning.visibility = View.VISIBLE
+                // remove below if changing to picture of dying tree
+                binding.plant.visibility = View.GONE // make the plant look "faded"
+            } else {
+                binding.statusWarning.visibility = View.GONE
+                binding.plant.visibility = View.VISIBLE
+            }
+        }
     }
+
+    // kiv for now - insertion of plant images
+    // viewModel.levelImageURL.observe(this) { url ->
+    //    // Use a library like Glide or Picasso to load the image from the URL
+    //    // Note: Since your API returns "~/images/...", you may need to
+    //    // clean the URL to match your server's public address.
+    //    val fullUrl = url.replace("~/", baseUrl + "/")
+    //    Glide.with(this).load(fullUrl).into(binding.plantImageView)
+    //}
 
     override fun onDestroyView() {
         super.onDestroyView()
