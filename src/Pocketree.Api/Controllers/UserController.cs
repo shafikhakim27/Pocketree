@@ -1,13 +1,19 @@
-﻿using ADproject.Models.Entities;
-using ADproject.Models.DTOs;
+﻿using ADproject.Models.DTOs;
+using ADproject.Models.Entities;
+using ADproject.Models.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ADproject.Models.ViewModels;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.Net.Http.Headers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using System.Security.Claims;
+using System.Text;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+
 
 namespace ADproject.Controllers
 {
@@ -17,11 +23,13 @@ namespace ADproject.Controllers
     {
         private readonly IPasswordHasher<User> passwordHasher;
         private readonly MyDbContext db;
+        private readonly IConfiguration _configuration;
 
-        public UserController(MyDbContext db, IPasswordHasher<User> passwordHasher)
+        public UserController(MyDbContext db, IPasswordHasher<User> passwordHasher, IConfiguration configuration)
         {
             this.db = db;
             this.passwordHasher = passwordHasher;
+            _configuration = configuration;
         }
 
         /**********************
@@ -40,12 +48,16 @@ namespace ADproject.Controllers
             newUser.PasswordHash = passwordHasher.HashPassword(newUser, dto.Password);
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
-            newUser.LastLoginDate = DateTime.Now;
+            newUser.LastLoginDate = DateTime.UtcNow;
             newUser.Email = dto.Email;
 
             db.Users.Add(newUser);
             await db.SaveChangesAsync();
-            return Ok("Registration successful.");
+
+            // Proceed to plant a seed for the mission
+            bool seedStatus = await PlantSeed(newUser.UserID);
+
+            return Ok( new{ Success = seedStatus });
         }
 
         [HttpPost("LoginApi")]
@@ -60,12 +72,21 @@ namespace ADproject.Controllers
 
             if (result == PasswordVerificationResult.Success)
             {
-                user.LastLoginDate = DateTime.Now; // Update LastLoginDate
+                user.LastLoginDate = DateTime.UtcNow; // Update LastLoginDate
                 db.Users.Update(user);
                 await db.SaveChangesAsync();
 
-                return Ok(new { user.UserID, user.Username });
+                // GenerateJwtToken
+                var claims = new[]
+                {
+                    new Claim(ClaimTypes.Name, user.Username),
+                };
+
+                var token = GenerateJwtToken(claims);
+
+                return Ok(new { Token = token, user.UserID });
             }
+
             return Unauthorized("Invalid credentials.");
         }
 
@@ -93,7 +114,7 @@ namespace ADproject.Controllers
         public async Task<IActionResult> GetUserProfileApi()
         {
             // Define withering threshold (3 days)
-            var witheringThreshold = DateTime.Now.AddDays(-3);
+            var witheringThreshold = DateTime.UtcNow.AddDays(-3);
 
             var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
             if (user == null) return NotFound();
@@ -110,6 +131,45 @@ namespace ADproject.Controllers
              };
 
             return Ok(userProfile);
+        }
+
+        private string GenerateJwtToken(Claim[] claims)
+        {
+            // Get secret key from appsettings.json
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            // Token details
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddDays(7), // Set 7 days for Android user to stay logged in
+                signingCredentials: creds
+            );
+
+            // Serialize token as a string
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private async Task<bool> PlantSeed(int userId)
+        {
+            var activeMission = await db.GlobalMissions
+                                    .FirstOrDefaultAsync(m => m.MissionName == "Greenify Sahara");
+            if (activeMission != null)
+            {
+                var initialTree = new Tree
+                {
+                    UserID = userId,
+                    MissionID = activeMission.MissionID,
+                    ContributeToMission = false
+                };
+
+                db.Trees.Add(initialTree);
+                await db.SaveChangesAsync();
+                return true;
+            }
+            return false;
         }
 
 
@@ -144,14 +204,21 @@ namespace ADproject.Controllers
             newUser.PasswordHash = passwordHasher.HashPassword(newUser, dto.Password);
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
-            newUser.LastLoginDate = DateTime.Now;
+            newUser.LastLoginDate = DateTime.UtcNow;
             newUser.Email = dto.Email;
 
             db.Users.Add(newUser);
             await db.SaveChangesAsync();
 
+            // Proceed to plant a seed for the mission
+            bool seedStatus = await PlantSeed(newUser.UserID);
+
             // Redirect to login page after successful sign-up
-            TempData["Message"] = "Successfully registered.";
+            if (seedStatus == true) 
+                TempData["Message"] = "Successfully registered.";
+            else
+                ModelState.AddModelError("", "Registration failed");
+            
             return RedirectToAction("Login", "User");
         }
 
@@ -173,7 +240,7 @@ namespace ADproject.Controllers
                 var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
                 if (result == PasswordVerificationResult.Success)
                 {
-                    user.LastLoginDate = DateTime.Now; // Update LastLoginDate
+                    user.LastLoginDate = DateTime.UtcNow; // Update LastLoginDate
                     db.Users.Update(user);
                     await db.SaveChangesAsync();
 
@@ -223,7 +290,7 @@ namespace ADproject.Controllers
                 }).ToListAsync();
 
             // Define withering threshold (3 days)
-            var witheringThreshold = DateTime.Now.AddDays(-3);
+            var witheringThreshold = DateTime.UtcNow.AddDays(-3);
 
             // Combine both data for the Status Page
             var compositeViewModel = new StatusPageViewModel
@@ -374,7 +441,7 @@ namespace ADproject.Controllers
 
             if (user != null)
             {
-                user.LastLoginDate = DateTime.Now; // Update latest LastLoginDate
+                user.LastLoginDate = DateTime.UtcNow; // Update latest LastLoginDate
                 db.Users.Update(user);
                 await db.SaveChangesAsync();
             }

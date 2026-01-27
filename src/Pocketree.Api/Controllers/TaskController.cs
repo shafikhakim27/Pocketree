@@ -1,12 +1,15 @@
-﻿using ADproject.Models.Entities;
-using ADproject.Models.DTOs;
+﻿using ADproject.Models.DTOs;
+using ADproject.Models.Entities;
 using ADproject.Models.ViewModels;
 using ADproject.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
-using Task = ADproject.Models.Entities.Task;
 using Microsoft.Extensions.Configuration.UserSecrets;
+using System.Diagnostics.Eventing.Reader;
+using System.Threading.Tasks;
+using Task = ADproject.Models.Entities.Task;
 
 namespace ADproject.Controllers
 {
@@ -16,10 +19,13 @@ namespace ADproject.Controllers
     {
         private readonly MyDbContext db;
         private readonly IMlService mlService;
-        public TaskController(MyDbContext db, IMlService mlService)
+        private readonly MissionService missionService;
+
+        public TaskController(MyDbContext db, IMlService mlService, MissionService missionService)
         {
             this.db = db;
             this.mlService = mlService;
+            this.missionService = missionService;
         }
 
         [Authorize]
@@ -85,23 +91,11 @@ namespace ADproject.Controllers
                     UserID = user.UserID,
                     TaskID = task.TaskID,
                     Status = "Completed",
-                    CompletionDate = DateTime.Now
+                    CompletionDate = DateTime.UtcNow
                 };
                 db.UserTaskHistory.Add(taskHistoryEntry);
 
-                user.TotalCoins += task.CoinReward;
-
-                bool levelUp = false;
-                if (user.TotalCoins >= 500 && user.CurrentLevelID < 3)
-                {
-                    user.CurrentLevelID = 3; // Set to new Mighty Oak level
-                    levelUp = true;
-                }
-                else if (user.TotalCoins >= 250 && user.CurrentLevelID < 2)
-                {
-                    user.CurrentLevelID = 2; // Set to new Sapling level
-                    levelUp = true;
-                }
+                bool levelUp = await UpdateLevelAndCoins(user, task);
 
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -130,6 +124,58 @@ namespace ADproject.Controllers
                 return Ok(new { success = "true" }); 
             }
             return BadRequest("Verification failed. Please try again.");
+        }
+
+        [Authorize]
+        [HttpPost("UpdateCoinsApi")]
+        public async Task<IActionResult> UpdateCoinsApi([FromBody] int CoinsBalance)
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            if (user == null) return Unauthorized();
+
+            user.TotalCoins = CoinsBalance;
+            await db.SaveChangesAsync();
+            return Ok(new { CoinsUpdated = "true" });
+        }
+
+        private async Task<bool> UpdateLevelAndCoins(User user, Task task)
+        {
+            user.TotalCoins += task.CoinReward;
+
+            if (user.TotalCoins >= 500 && user.CurrentLevelID < 3)
+            {
+                user.CurrentLevelID = 3; // Set to new Mighty Oak level   
+                await ContributeToGlobalMission(user, "Greenify Sahara"); // To specify MissionName for now 
+                return true;
+            }
+            else if (user.TotalCoins >= 250 && user.CurrentLevelID < 2)
+            {
+                user.CurrentLevelID = 2; // Set to new Sapling level
+                return true;
+            }
+            else return false;
+        }
+
+        private async System.Threading.Tasks.Task ContributeToGlobalMission(User user, string missionName)
+        {
+            var mission = await db.GlobalMissions
+                .Include(m => m.Trees)
+                .FirstOrDefaultAsync(m => m.MissionName == missionName);
+
+            if (mission != null)
+            {
+                mission.CurrentTreeCount++; // Increase global tree count
+                
+                // Get the tree for the specific mission
+                var tree = mission.Trees.FirstOrDefault(t => t.UserID == user.UserID && !t.ContributeToMission);
+                if (tree != null) tree.ContributeToMission = true;
+
+                // Plant global tree if frequency met
+                if (mission.CurrentTreeCount % mission.PlantingFrequency == 0)
+                {
+                    await missionService.PlantNextTree(mission.MissionID);
+                }
+            }
         }
     }
 }

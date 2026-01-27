@@ -7,13 +7,14 @@ namespace ADproject.Models.Entities
     {
         [Key]
         public int PreferenceID { get; set; }
-        [ForeignKey("User")]
         public int UserID { get; set; }
         [Required, StringLength(50)]
         public string PreferredCategory { get; set; } = "General";
         [Required, StringLength(20)]
         public string PreferredDifficulty { get; set; } = "Easy";
+
         // Navigation property
+        [ForeignKey("UserID")]
         public virtual User User { get; set; } = null!;
     }
 }

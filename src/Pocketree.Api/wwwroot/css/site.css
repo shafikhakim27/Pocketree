@@ -95,3 +95,19 @@ input:-webkit-autofill:focus {
     max-width: 40px;
     pointer-events: none;
 }
+
+#tree-overlay img {
+    filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.3));
+    z-index: 10;
+}
+
+/* Pop-in animation */
+@keyframes grow {
+    from {
+        transform: scale(0);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}

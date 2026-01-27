@@ -7,15 +7,15 @@ namespace ADproject.Models.Entities
     {
         [Key]
         public int HistoryID { get; set; }
-        [ForeignKey("UserID")]
         public int UserID { get; set; }
-        [ForeignKey("TaskID")]
         public int TaskID { get; set; }
         [Required, StringLength(20)]
         public string Status { get; set; }
         public DateTime CompletionDate { get; set; }
         // Navigation Property
+        [ForeignKey("UserID")]
         public virtual User User { get; set; }
+        [ForeignKey("TaskID")]
         public virtual Task Task { get; set; }
     }
 }
