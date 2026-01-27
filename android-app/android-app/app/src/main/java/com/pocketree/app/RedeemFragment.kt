@@ -15,6 +15,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import kotlin.compareTo
 
 class RedeemFragment: Fragment() {
     private var _binding: FragmentRedeemBinding? = null
@@ -24,12 +25,20 @@ class RedeemFragment: Fragment() {
     private val client = NetworkClient.okHttpClient
 
     // mock data for now
-    private val mockItems = listOf(
+    private val virtualItems = listOf(
+        Skin(1, "Item1", 10, R.drawable.redeem_item_1, true, true),
+        Skin(2, "Item2", 20, R.drawable.redeem_item_2, true, false),
+        Skin(3, "Item3", 30, R.drawable.redeem_item_3, false, false)
+    )
+    private val physicalItems = listOf(
+        Skin(4, "Item4", 40, R.drawable.redeem_item_4, false, false)
+    )
+    /* private val mockItems = listOf(
         Skin(1, "Item1", 10, R.drawable.redeem_item_1, true, true),
         Skin(2, "Item2", 20, R.drawable.redeem_item_2, true, false),
         Skin(3, "Item3", 30, R.drawable.redeem_item_3, false, false),
         Skin(4, "Item4", 40, R.drawable.redeem_item_4, false, false)
-    )
+    ) */
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -46,7 +55,6 @@ class RedeemFragment: Fragment() {
         sharedViewModel.username.observe(viewLifecycleOwner) { name ->
             binding.accountInfo.text = "${name ?: "User"}"
         }
-
         // observe coins to update coinDisplay TextView
         sharedViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
             binding.coinDisplay.text = "$coins coins"
@@ -55,14 +63,51 @@ class RedeemFragment: Fragment() {
 
     private fun setupRecyclerView() {
         // GridLayoutManager: parameter 3 indicates that 3 items are displayed in one row.
+        binding.recyclerViewVirtual.layoutManager = GridLayoutManager(context, 3)
+        binding.recyclerViewVirtual.adapter = RedeemAdapter(virtualItems) { selectedItem ->
+            showConfirmDialog(selectedItem)
+        }
+
+        binding.recyclerViewPhysical.layoutManager = GridLayoutManager(context, 3)
+        binding.recyclerViewPhysical.adapter = RedeemAdapter(physicalItems) { selectedItem ->
+            showConfirmDialog(selectedItem)
+        }
+    }
+
+    /* private fun setupRecyclerView() {
         binding.recyclerViewRedeem.layoutManager = GridLayoutManager(context, 3)
         val adapter = RedeemAdapter(mockItems) { selectedItem ->
             showConfirmDialog(selectedItem)
         }
         binding.recyclerViewRedeem.adapter = adapter
-    }
+    } */
 
     private fun showConfirmDialog(skin: Skin) {
+        val currentCoins = sharedViewModel.totalCoins.value ?: 0
+        if (currentCoins >= skin.price) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Confirm Redemption")
+                .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
+                .setPositiveButton("Confirm") { dialog, _ ->
+                    val newTotal = currentCoins - skin.price
+                    deductCoins(newTotal, skin)
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Cancel") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .create()
+                .show()
+        } else {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Redemption Failed")
+                .setMessage("Insufficient coins!")
+                .setPositiveButton("Confirm", null)
+                .show()
+        }
+    }
+
+    /* private fun showConfirmDialog(skin: Skin) {
         AlertDialog.Builder(requireContext())
             .setTitle("Confirm Redemption")
             .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
@@ -76,10 +121,8 @@ class RedeemFragment: Fragment() {
             .create()
             .show()
     }
-
     private fun performRedeem(skin: Skin) {
         val currentCoins = sharedViewModel.totalCoins.value ?: 0
-
         if (currentCoins >= skin.price) {
             val newTotal = currentCoins - skin.price
             deductCoins(newTotal, skin)
@@ -90,7 +133,7 @@ class RedeemFragment: Fragment() {
                 .setPositiveButton("Confirm", null)
                 .show()
         }
-    }
+    } */
 
     private fun deductCoins(newTotal:Int, skin: Skin){
         val json = JSONObject().apply{
