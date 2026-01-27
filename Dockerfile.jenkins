@@ -1,8 +1,9 @@
-﻿# Modern Jenkins with Docker capability
-FROM jenkins/jenkins:2.452.1-jdk21-bookworm
+﻿# 1. Use the latest Stable LTS version with Java 21
+FROM jenkins/jenkins:lts-jdk21
+
 USER root
 
-# Install Docker (for DinD - Docker in Docker)
+# 2. Install Docker CLI and Git
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     docker.io \
@@ -11,15 +12,19 @@ RUN apt-get update && \
     curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Add Jenkins user to docker group (better than sudo)
+# 3. Add Jenkins user to Docker group
 RUN usermod -aG docker jenkins
 
-# Set back to jenkins user
+# 4. Switch back to Jenkins user
 USER jenkins
 
-# Install Jenkins plugins for build pipeline
-RUN jenkins-plugin-cli.sh -p \
+# 5. Install Plugins (Modern Syntax)
+# Added 'workflow-aggregator' and 'docker-workflow' which are CRITICAL for pipelines
+RUN jenkins-plugin-cli --plugins \
     docker-plugin \
+    docker-workflow \
+    workflow-aggregator \
     pipeline-github-lib \
     sonar \
-    xunit
+    xunit \
+    git

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. DATABASE (MySQL)
   pocketree-db:
@@ -10,6 +8,7 @@ services:
       - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-rootpassword}
       - MYSQL_DATABASE=${DB_NAME:-pocketree}
     ports:
+      # Maps internal 3306 to external 3307 (default) to avoid conflicts
       - "${DB_PORT:-3306}:3306"
     volumes:
       - db_data:/var/lib/mysql
@@ -30,6 +29,7 @@ services:
     ports:
       - "${API_PORT:-5042}:8080"
     environment:
+      # Forces container to use internal DB name, ignoring any local appsettings files
       - ConnectionStrings__DefaultConnection=Server=pocketree-db;Port=3306;Database=${DB_NAME:-pocketree};User=root;Password=${DB_PASSWORD:-rootpassword};
       - ML_SERVICE_URL=http://ml-service:8000
       - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
@@ -53,10 +53,17 @@ services:
       - "${ML_PORT:-8000}:8000"
     environment:
       - ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      # These variables are here for when you eventually update the Python script
+      - DB_HOST=pocketree-db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=rootpassword
+      - DB_NAME=pocketree
     networks:
       - pocketree-net
+    # Optional: Basic healthcheck to ensure Flask/FastAPI is responsive
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"] 
       timeout: 10s
       retries: 3
       interval: 10s
@@ -79,7 +86,7 @@ services:
     networks:
       - pocketree-net
 
-  # 5. SONARQUBE (Code Quality) - NEW ADDITION
+  # 5. SONARQUBE (Code Quality)
   sonarqube:
     image: sonarqube:lts-community
     container_name: sonarqube
@@ -98,7 +105,6 @@ services:
 volumes:
   db_data:
   jenkins_home:
-  # NEW VOLUMES FOR SONARQUBE
   sonar_data:
   sonar_extensions:
   sonar_logs:

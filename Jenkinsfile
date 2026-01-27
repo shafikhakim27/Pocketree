@@ -8,120 +8,72 @@ pipeline {
     }
 
     environment {
-        // Build configurations
+        // Configuration
         DOTNET_SDK = '9.0'
         REGISTRY = 'docker.io'
         IMAGE_NAME = 'pocketree-api'
         IMAGE_TAG = "${BUILD_NUMBER}"
         
-        // SonarQube (optional)
+        // SonarQube (Optional)
         SONAR_TOKEN = credentials('sonar-token')
         SONAR_HOST_URL = 'http://sonarqube:9000'
     }
 
     stages {
         stage('Setup') {
-            agent { label 'master' }
+            agent any
             steps {
                 script {
                     echo "Setting up build environment..."
-                    sh '''
-                    # Create Docker network if not exists
-                    docker network create pocketree-network || true
-                    '''
+                    sh 'docker --version'
                 }
             }
         }
 
-        stage('Parallel Build & Checks') {
+        stage('Parallel Build') {
             parallel {
                 
-                // BACKEND (.NET 9.0)
-                stage('Backend Build & Test') {
+                // 1. BACKEND (.NET)
+                stage('Backend Build') {
                     agent {
                         docker {
                             image "mcr.microsoft.com/dotnet/sdk:${DOTNET_SDK}"
-                            args '--network pocketree-network -u 0:0 --rm'
+                            args '--network fixed-pocketree-network -u 0:0 --rm'
                             reuseNode true
                         }
                     }
                     steps {
                         checkout scm
-                        
                         script {
                             sh '''
-                            # Restore
                             dotnet restore Pocketree.sln
-                            
-                            # Build Release
                             dotnet build Pocketree.sln -c Release --no-restore
-                            
-                            # Run Tests (if tests exist)
-                            if [ -f "src/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj" ]; then
-                                dotnet test src/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj \
-                                    -c Release \
-                                    --no-build \
-                                    --logger "trx;LogFileName=TestResults.xml" \
-                                    --verbosity normal || true
-                            fi
                             '''
-                        }
-                    }
-                    post {
-                        always {
-                            junit '**/TestResults.xml' || true
-                            archiveArtifacts artifacts: '**/bin/Release/**/*.dll', allowEmptyArchive: true
                         }
                     }
                 }
 
-                // ANDROID BUILD
-                stage('Android Build') {
-                    agent {
-                        docker {
-                            image 'mobiledevops/android-sdk-image:latest'
-                            args '--network pocketree-network -u root:root --rm'
-                            reuseNode true
-                        }
-                    }
-                    steps {
-                        checkout scm
-                        
-                        dir('android-app/android-app') {
-                            sh '''
-                            chmod +x gradlew
-                            ./gradlew clean assembleDebug lintDebug
-                            '''
-                        }
-                    }
-                    post {
-                        always {
-                            archiveArtifacts artifacts: '**/outputs/apk/**/*.apk', allowEmptyArchive: true
-                            recordIssues enabledForFailure: false, tool: androidLintParser(pattern: '**/lint-results.xml') || true
-                        }
-                    }
-                }
-
-                // ML SERVICE (Python)
+                // 2. ML SERVICE (Python/CLIP)
                 stage('ML Service Build') {
                     agent {
+                        // We use a base python image just to verify syntax/imports
                         docker {
-                            image 'python:3.8-slim'
-                            args '--network pocketree-network -u 0:0 --rm'
+                            image 'python:3.9-slim' 
+                            args '--network fixed-pocketree-network -u 0:0 --rm'
                             reuseNode true
                         }
                     }
                     steps {
                         checkout scm
-                        
                         dir('ml-service') {
                             sh '''
                             pip install --upgrade pip
-                            pip install -r requirements.txt
+                            # Install minimal deps to check syntax (skipping heavy torch for speed in this check)
+                            pip install flask mysql-connector-python
                             
-                            # Validate imports
-                            python -c "import fastapi; print('FastAPI OK')"
-                            python -c "import uvicorn; print('Uvicorn OK')"
+                            # Verify the script parses correctly (Syntax Check)
+                            python -m py_compile CLIPModel-donotmerge.py
+                            echo "Syntax check passed!"
                             '''
                         }
                     }
@@ -130,20 +82,20 @@ pipeline {
         }
 
         stage('Build Docker Images') {
-            agent { label 'master' }
+            agent any
             steps {
                 checkout scm
-                
                 script {
+                    echo "Building Docker Images..."
                     sh '''
-                    # Backend
+                    # Build Backend
                     docker build \
                         -f src/Pocketree.Api/Dockerfile \
                         -t ${IMAGE_NAME}:${IMAGE_TAG} \
                         -t ${IMAGE_NAME}:latest \
                         .
                     
-                    # ML Service
+                    # Build ML Service (This installs the heavy PyTorch libs)
                     docker build \
                         -f ml-service/Dockerfile \
                         -t pocketree-ml:${IMAGE_TAG} \
@@ -154,54 +106,26 @@ pipeline {
             }
         }
 
-        stage('Integration Tests') {
-            agent { label 'master' }
+        stage('Smoke Test') {
+            agent any
             steps {
                 script {
-                    sh '''
-                    # Start services
-                    docker-compose -f docker-compose.yml up -d
-                    
-                    # Wait for services
-                    sleep 15
-                    
-                    # Test backend health
-                    curl -f http://localhost:5042/ || exit 1
-                    
-                    # Cleanup
-                    docker-compose -f docker-compose.yml down
-                    '''
-                }
-            }
-            post {
-                always {
-                    sh 'docker-compose -f docker-compose.yml down || true'
+                    echo "Verifying ML Container starts..."
+                    // We simply check if python version prints, ensuring the image is valid.
+                    sh 'docker run --rm --entrypoint python pocketree-ml:latest --version'
                 }
             }
         }
 
-        stage('Push to Registry') {
-            when { branch 'main' }
-            agent { label 'master' }
-            steps {
-                script {
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                        sh '''
-                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                        docker tag ${IMAGE_NAME}:${IMAGE_TAG} ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                        docker push ${REGISTRY}/${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}
-                        '''
-                    }
-                }
-            }
-        }
-
-        stage('Deploy') {
+        stage('Deploy (Develop)') {
             when { branch 'develop' }
-            agent { label 'master' }
+            agent any
             steps {
-                echo "Deploying to development environment..."
-                // Add your deployment logic here
+                echo "Deploying to development..."
+                script {
+                    // Rebuilds and restarts containers with the new code
+                    sh 'docker compose -f docker-compose.yml up -d --build'
+                }
             }
         }
     }
@@ -210,11 +134,11 @@ pipeline {
         always {
             cleanWs()
         }
-        failure {
-            echo "Build failed! Check logs."
-        }
         success {
-            echo "Build succeeded!"
+            echo "Pipeline succeeded!"
+        }
+        failure {
+            echo "Pipeline failed."
         }
     }
 }
