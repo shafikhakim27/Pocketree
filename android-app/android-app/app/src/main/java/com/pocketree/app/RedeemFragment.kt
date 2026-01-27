@@ -89,8 +89,7 @@ class RedeemFragment: Fragment() {
                 .setTitle("Confirm Redemption")
                 .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
                 .setPositiveButton("Confirm") { dialog, _ ->
-                    val newTotal = currentCoins - skin.price
-                    deductCoins(newTotal, skin)
+                    processRedemption(skin)
                     dialog.dismiss()
                 }
                 .setNegativeButton("Cancel") { dialog, _ ->
@@ -105,6 +104,15 @@ class RedeemFragment: Fragment() {
                 .setPositiveButton("Confirm", null)
                 .show()
         }
+    }
+
+    private fun processRedemption(skin: Skin){
+        val currentCoins = sharedViewModel.totalCoins.value ?: 0
+        deductCoins(currentCoins - skin.price, skin)
+        showSuccessDialog(skin.name)
+        // Next, we need to perform corresponding operations based on the names of the redeemed items.
+        // I think we don't need this part for physical items for now, but virtual items will affect the UI...
+        // We'll discuss next time what items should be placed in the virtual item area.
     }
 
     /* private fun showConfirmDialog(skin: Skin) {
@@ -169,6 +177,18 @@ class RedeemFragment: Fragment() {
                 }
             }
         })
+    }
+
+    private fun showSuccessDialog(itemName: String) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Redemption Successful!")
+            .setMessage("Congratulations! You earned $itemName")
+            .setIcon(R.drawable.redeem)
+            .setPositiveButton("OK") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+            .show()
     }
 
     override fun onDestroyView(){
