@@ -1,6 +1,7 @@
 package com.pocketree.app
 
 import android.util.Log
+import android.util.Log.e
 import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -21,12 +22,13 @@ class UserViewModel: ViewModel() {
     // LiveData is used so that UI updates automatically if coins change
     val username = MutableLiveData<String>()
     val totalCoins = MutableLiveData<Int>()
+    val currentLevelID = MutableLiveData<Int>()
     val levelName = MutableLiveData<String>()
+    val levelUpEvent = MutableLiveData<Boolean>()
     val tasks = MutableLiveData<List<Task>>()
     val isLoading = MutableLiveData<Boolean>(false) // for loading of progress bar (for ML image verification)
     val levelImageUrl = MutableLiveData<String>()
     val isWithered = MutableLiveData<Boolean>()
-    val levelUpEvent = MutableLiveData<Boolean>()
     val errorMessage = MutableLiveData<String>()
 
     private val client = NetworkClient.okHttpClient
@@ -162,6 +164,7 @@ class UserViewModel: ViewModel() {
     }
 
     fun completeTaskDirectly(taskId: Int) {
+        isLoading.postValue(true)
         val json = JSONObject().apply{
             put("TaskId", taskId)
         }
@@ -175,26 +178,64 @@ class UserViewModel: ViewModel() {
         client.newCall(request).enqueue(object: Callback {
             override fun onResponse(call: Call, response: Response) {
                 isLoading.postValue(false)
-                if (response.isSuccessful) {
-                    val jsonResponse = response.body?.string()
-                    val result = gson.fromJson(jsonResponse, Map::class.java)
 
-                    // check for level up
-                    val isLevelUp = result["levelUp"] as? Boolean ?: false
-                    if (isLevelUp) {
-                        levelUpEvent.postValue(true)
+                val responseBody = response.body
+                try {
+                    if (response.isSuccessful) {
+                        val content = responseBody?.string() ?: ""
+                        val jsonResponse = JSONObject(content)
+                        val isLevelUp = jsonResponse.optBoolean("LevelUp", false)
+                        val newCoinTotal = jsonResponse.optInt("TotalCoins", 0)
+
+                        handleTaskCompletion(isLevelUp, newCoinTotal)
+                        fetchUserProfile() // refresh profile to get new total coins and level name
+                        fetchDailyTasks() // refresh list so the task shows as completed
                     }
-
-                    fetchUserProfile() // refresh profile to get new total coins and level name
-                    fetchDailyTasks() // refresh list so the task shows as completed
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                } finally {
+                    responseBody?.close()
                 }
             }
             override fun onFailure(call: Call, e: IOException) { e.printStackTrace() }
         })
     }
 
+    fun getLevelDetails(): Triple<String, String, String>{
+        return when (currentLevelID.value) {
+            2 -> Triple ("Sapling", "Sapling Badge", "Voucher 1")
+            3 -> Triple ("Mighty Oak", "Oak Badge", "Voucher 2")
+            else -> Triple("Seedling", "No Badge", "No Voucher")
+        }
+    }
+
+    fun handleTaskCompletion(levelUp:Boolean, newCoinTotal:Int){
+        totalCoins.postValue(newCoinTotal)
+        if (levelUp) {
+            val nextLevel = (currentLevelID.value ?:1) + 1
+            currentLevelID.postValue(nextLevel)
+            levelUpEvent.postValue(true)
+        }
+    }
+
+    // used for redemption of skins
     fun updateTotalCoins(newTotal:Int) {
         totalCoins.postValue(newTotal)
+    }
+
+    fun getRewardForLevel(levelId: Int): Reward? {
+        return when (levelId) {
+            2-> Reward(
+                levelName = "Sapling",
+                badge = Badge(101, "Sapling Badge", "Level Up", "none", 0),
+                voucher = Voucher(101, "Voucher 1", "none")
+            )
+            3-> Reward(
+                levelName = "Mighty Oak",
+                badge = Badge(102, "Oak Badge", "Level Up", "none", 0),
+                voucher = Voucher(102, "Voucher 2", "none" )
+            )
+            else -> null
     }
 
     fun logout() {
