@@ -15,8 +15,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
-import com.pocketree.app.databinding.ItemBadgeBinding
-import com.pocketree.app.databinding.ItemRedeemBinding
+import kotlin.compareTo
 
 class RedeemFragment: Fragment() {
     private var _binding: FragmentRedeemBinding? = null
@@ -24,15 +23,22 @@ class RedeemFragment: Fragment() {
 
     private val sharedViewModel: UserViewModel by activityViewModels()
     private val client = NetworkClient.okHttpClient
-    private val baseUrl = "http://10.0.2.2:5000/api/Task"
 
     // mock data for now
-    private val skinList = listOf(
+    private val virtualItems = listOf(
+        Skin(1, "Item1", 10, R.drawable.redeem_item_1, true, true),
+        Skin(2, "Item2", 20, R.drawable.redeem_item_2, true, false),
+        Skin(3, "Item3", 30, R.drawable.redeem_item_3, false, false)
+    )
+    private val physicalItems = listOf(
+        Skin(4, "Item4", 40, R.drawable.redeem_item_4, false, false)
+    )
+    /* private val mockItems = listOf(
         Skin(1, "Item1", 10, R.drawable.redeem_item_1, true, true),
         Skin(2, "Item2", 20, R.drawable.redeem_item_2, true, false),
         Skin(3, "Item3", 30, R.drawable.redeem_item_3, false, false),
         Skin(4, "Item4", 40, R.drawable.redeem_item_4, false, false)
-    )
+    ) */
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -49,7 +55,6 @@ class RedeemFragment: Fragment() {
         sharedViewModel.username.observe(viewLifecycleOwner) { name ->
             binding.accountInfo.text = "${name ?: "User"}"
         }
-
         // observe coins to update coinDisplay TextView
         sharedViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
             binding.coinDisplay.text = "$coins coins"
@@ -58,14 +63,59 @@ class RedeemFragment: Fragment() {
 
     private fun setupRecyclerView() {
         // GridLayoutManager: parameter 3 indicates that 3 items are displayed in one row.
+        binding.recyclerViewVirtual.layoutManager = GridLayoutManager(context, 3)
+        binding.recyclerViewVirtual.adapter = RedeemAdapter(virtualItems) { selectedItem ->
+            showConfirmDialog(selectedItem)
+        }
+
+        binding.recyclerViewPhysical.layoutManager = GridLayoutManager(context, 3)
+        binding.recyclerViewPhysical.adapter = RedeemAdapter(physicalItems) { selectedItem ->
+            showConfirmDialog(selectedItem)
+        }
+    }
+
+    /* private fun setupRecyclerView() {
         binding.recyclerViewRedeem.layoutManager = GridLayoutManager(context, 3)
-        val adapter = RedeemAdapter(skinList) { selectedItem ->
+        val adapter = RedeemAdapter(mockItems) { selectedItem ->
             showConfirmDialog(selectedItem)
         }
         binding.recyclerViewRedeem.adapter = adapter
-    }
+    } */
 
     private fun showConfirmDialog(skin: Skin) {
+        val currentCoins = sharedViewModel.totalCoins.value ?: 0
+        if (currentCoins >= skin.price) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Confirm Redemption")
+                .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
+                .setPositiveButton("Confirm") { dialog, _ ->
+                    processRedemption(skin)
+                    dialog.dismiss()
+                }
+                .setNegativeButton("Cancel") { dialog, _ ->
+                    dialog.dismiss()
+                }
+                .create()
+                .show()
+        } else {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Redemption Failed")
+                .setMessage("Insufficient coins!")
+                .setPositiveButton("Confirm", null)
+                .show()
+        }
+    }
+
+    private fun processRedemption(skin: Skin){
+        val currentCoins = sharedViewModel.totalCoins.value ?: 0
+        deductCoins(currentCoins - skin.price, skin)
+        showSuccessDialog(skin.name)
+        // Next, we need to perform corresponding operations based on the names of the redeemed items.
+        // I think we don't need this part for physical items for now, but virtual items will affect the UI...
+        // We'll discuss next time what items should be placed in the virtual item area.
+    }
+
+    /* private fun showConfirmDialog(skin: Skin) {
         AlertDialog.Builder(requireContext())
             .setTitle("Confirm Redemption")
             .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
@@ -79,19 +129,8 @@ class RedeemFragment: Fragment() {
             .create()
             .show()
     }
-
     private fun performRedeem(skin: Skin) {
-        // check if already owned
-        if (skin.isRedeemed) {
-            Toast.makeText(requireContext(),
-                "You already own this item!",
-                Toast.LENGTH_SHORT
-            ).show()
-            return
-        }
-
         val currentCoins = sharedViewModel.totalCoins.value ?: 0
-
         if (currentCoins >= skin.price) {
             val newTotal = currentCoins - skin.price
             deductCoins(newTotal, skin)
@@ -102,7 +141,7 @@ class RedeemFragment: Fragment() {
                 .setPositiveButton("Confirm", null)
                 .show()
         }
-    }
+    } */
 
     private fun deductCoins(newTotal:Int, skin: Skin){
         val json = JSONObject().apply{
@@ -112,7 +151,7 @@ class RedeemFragment: Fragment() {
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = okhttp3.Request.Builder()
-            .url("$baseUrl/UpdateCoinsApi")
+            .url("http://10.0.2.2:5000/api/User/UpdateCoinsApi")
             .post(body)
             .build()
 
@@ -140,11 +179,25 @@ class RedeemFragment: Fragment() {
         })
     }
 
+    private fun showSuccessDialog(itemName: String) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Redemption Successful!")
+            .setMessage("Congratulations! You earned $itemName")
+            .setIcon(R.drawable.redeem)
+            .setPositiveButton("OK") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+            .show()
+    }
+
     override fun onDestroyView(){
         super.onDestroyView()
         _binding = null
     }
 
-    // pending equipping of skins
-    // pending vouchers
+    // UpdateCoinsApi (total coins int)
+    // post - pass token and updated number of coins to backend
+
+    // make sure to record redemption date of item
 }
