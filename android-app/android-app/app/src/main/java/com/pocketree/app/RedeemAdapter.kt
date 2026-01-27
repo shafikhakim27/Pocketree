@@ -9,8 +9,8 @@ import androidx.recyclerview.widget.RecyclerView
 
 
 class RedeemAdapter(
-    private val items: List<RedeemItem>,
-    private val onItemClick: (RedeemItem) -> Unit
+    private val skins: List<Skin>,
+    private val onItemClick: (Skin) -> Unit
 ) : RecyclerView.Adapter<RedeemAdapter.RedeemViewHolder>() {
 
     class RedeemViewHolder(view: View) : RecyclerView.ViewHolder(view) {
@@ -26,16 +26,16 @@ class RedeemAdapter(
     }
 
     override fun onBindViewHolder(holder: RedeemViewHolder, position: Int) {
-        val item = items[position]
-        holder.name.text = item.name
-        holder.price.text = "${item.price} Coins"
+        val skin = skins[position]
+        holder.name.text = skin.name
+        holder.price.text = "${skin.price} coins"
         // 这里设置图片，暂时使用默认图标
         // holder.image.setImageResource(item.imageResId)
         holder.image.setImageResource(android.R.drawable.ic_menu_gallery)
         holder.itemView.setOnClickListener {
-            onItemClick(item)
+            onItemClick(skin)
         }
     }
 
-    override fun getItemCount() = items.size
+    override fun getItemCount() = skins.size
 }

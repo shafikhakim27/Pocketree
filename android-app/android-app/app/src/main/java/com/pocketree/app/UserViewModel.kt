@@ -1,5 +1,6 @@
 package com.pocketree.app
 
+import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
@@ -12,12 +13,10 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
-import android.util.Log // for testing
 
 // creation of a SharedViewModel to enable passing of data between fragments
 
 class UserViewModel: ViewModel() {
-    private val TAG = "UserViewModel" // testing
 
     // LiveData is used so that UI updates automatically if coins change
     val username = MutableLiveData<String>()
@@ -35,8 +34,6 @@ class UserViewModel: ViewModel() {
     private val baseUrl = "http://10.0.2.2:5000/api/Task"
 
     fun loginUser(credentials: JSONObject) {
-        Log.d(TAG, "loginUser: Starting request") // testing
-
         val body = credentials.toString()
             .toRequestBody("application/json; charset=utf-8".toMediaType())
         val request = Request.Builder()
@@ -69,7 +66,6 @@ class UserViewModel: ViewModel() {
     }
 
     fun fetchUserProfile() {
-        Log.d(TAG, "fetchUserProfile: Starting request") // testing
 //        isLoading.postValue(true) // start loading
 
         val request = Request.Builder()
@@ -102,8 +98,6 @@ class UserViewModel: ViewModel() {
     }
 
     fun fetchDailyTasks(){
-        Log.d(TAG, "fetchDailyTasks: Starting request") // testing
-
         val request = Request.Builder()
             .url("${baseUrl}/GetDailyTasksApi")
             .build()
@@ -123,8 +117,6 @@ class UserViewModel: ViewModel() {
     }
 
     fun submitTaskWithImage (taskId: Int, imageBytes: ByteArray) {
-        Log.d(TAG, "submitTaskWithImage: Starting request") // testing
-
         isLoading.postValue(true) // start loading
 
         val requestBody = MultipartBody.Builder()
@@ -170,8 +162,6 @@ class UserViewModel: ViewModel() {
     }
 
     fun completeTaskDirectly(taskId: Int) {
-        Log.d(TAG, "completeTaskDirectly: Starting request") // testing
-
         val json = JSONObject().apply{
             put("TaskId", taskId)
         }
@@ -201,6 +191,10 @@ class UserViewModel: ViewModel() {
             }
             override fun onFailure(call: Call, e: IOException) { e.printStackTrace() }
         })
+    }
+
+    fun updateTotalCoins(newTotal:Int) {
+        totalCoins.postValue(newTotal)
     }
 
     fun logout() {
