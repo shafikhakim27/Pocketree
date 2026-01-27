@@ -1,0 +1,53 @@
+package com.pocketree.app
+
+import android.content.Intent
+import android.os.Bundle
+import android.view.LayoutInflater
+import android.view.View
+import android.view.ViewGroup
+import android.widget.Toast
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import com.pocketree.app.databinding.FragmentSettingsBinding
+
+class SettingsFragment: Fragment() {
+    private var _binding: FragmentSettingsBinding? = null
+    private val binding get() = _binding!!
+
+    private val sharedViewModel: UserViewModel by activityViewModels()
+
+    override fun onCreateView(
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
+    ): View? {
+        _binding = FragmentSettingsBinding.inflate(inflater, container, false)
+        return binding.root
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+
+        binding.logoutButton.setOnClickListener {
+            // clear data in ViewModel
+            sharedViewModel.logout()
+
+            // 2. Navigate back to Login
+            val loginIntent = Intent(requireContext(), LoginActivity::class.java).apply{
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                // clears app history so user can't press Back button to head back to Settings tab
+            }
+            startActivity(loginIntent) // start the login activity
+            activity?.finish() // ensures the activity holding the fragment is closed
+
+            Toast.makeText(context,
+                "Logged out successfully",
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+    }
+
+    override fun onDestroyView(){
+        super.onDestroyView()
+        _binding = null
+    }
+}
