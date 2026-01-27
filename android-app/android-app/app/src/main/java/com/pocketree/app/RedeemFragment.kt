@@ -15,6 +15,8 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import com.pocketree.app.databinding.ItemBadgeBinding
+import com.pocketree.app.databinding.ItemRedeemBinding
 
 class RedeemFragment: Fragment() {
     private var _binding: FragmentRedeemBinding? = null
@@ -22,9 +24,10 @@ class RedeemFragment: Fragment() {
 
     private val sharedViewModel: UserViewModel by activityViewModels()
     private val client = NetworkClient.okHttpClient
+    private val baseUrl = "http://10.0.2.2:5000/api/Task"
 
     // mock data for now
-    private val mockItems = listOf(
+    private val skinList = listOf(
         Skin(1, "Item1", 10, R.drawable.redeem_item_1, true, true),
         Skin(2, "Item2", 20, R.drawable.redeem_item_2, true, false),
         Skin(3, "Item3", 30, R.drawable.redeem_item_3, false, false),
@@ -56,7 +59,7 @@ class RedeemFragment: Fragment() {
     private fun setupRecyclerView() {
         // GridLayoutManager: parameter 3 indicates that 3 items are displayed in one row.
         binding.recyclerViewRedeem.layoutManager = GridLayoutManager(context, 3)
-        val adapter = RedeemAdapter(mockItems) { selectedItem ->
+        val adapter = RedeemAdapter(skinList) { selectedItem ->
             showConfirmDialog(selectedItem)
         }
         binding.recyclerViewRedeem.adapter = adapter
@@ -78,6 +81,15 @@ class RedeemFragment: Fragment() {
     }
 
     private fun performRedeem(skin: Skin) {
+        // check if already owned
+        if (skin.isRedeemed) {
+            Toast.makeText(requireContext(),
+                "You already own this item!",
+                Toast.LENGTH_SHORT
+            ).show()
+            return
+        }
+
         val currentCoins = sharedViewModel.totalCoins.value ?: 0
 
         if (currentCoins >= skin.price) {
@@ -100,7 +112,7 @@ class RedeemFragment: Fragment() {
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = okhttp3.Request.Builder()
-            .url("http://10.0.2.2:5000/api/User/UpdateCoinsApi")
+            .url("$baseUrl/UpdateCoinsApi")
             .post(body)
             .build()
 
@@ -133,8 +145,6 @@ class RedeemFragment: Fragment() {
         _binding = null
     }
 
-    // UpdateCoinsApi (total coins int)
-    // post - pass token and updated number of coins to backend
-
-    // make sure to record redemption date of item
+    // pending equipping of skins
+    // pending vouchers
 }

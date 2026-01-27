@@ -1,11 +1,7 @@
 package com.pocketree.app
 
-import android.util.Log
-import android.util.Log.e
-import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.pocketree.app.NetworkClient.gson
 import okhttp3.*
@@ -18,28 +14,35 @@ import java.io.IOException
 // creation of a SharedViewModel to enable passing of data between fragments
 
 class UserViewModel: ViewModel() {
-
     // LiveData is used so that UI updates automatically if coins change
+
+    // UI state livedata
     val username = MutableLiveData<String>()
     val totalCoins = MutableLiveData<Int>()
     val currentLevelID = MutableLiveData<Int>()
     val levelName = MutableLiveData<String>()
-    val levelUpEvent = MutableLiveData<Boolean>()
-    val tasks = MutableLiveData<List<Task>>()
-    val isLoading = MutableLiveData<Boolean>(false) // for loading of progress bar (for ML image verification)
     val levelImageUrl = MutableLiveData<String>()
     val isWithered = MutableLiveData<Boolean>()
+    val tasks = MutableLiveData<List<Task>>()
+    val recentBadges = MutableLiveData<List<Badge>>()
+    val earnedBadges = MutableLiveData<List<Badge>>()
+
+    // event livedata
+    val levelUpEvent = MutableLiveData<Boolean>()
+    val isLoading = MutableLiveData<Boolean>(false) // for loading of progress bar (for ML image verification)
     val errorMessage = MutableLiveData<String>()
 
     private val client = NetworkClient.okHttpClient
     private val gson = NetworkClient.gson
-    private val baseUrl = "http://10.0.2.2:5000/api/Task"
+
+    private val taskBaseUrl = "http://10.0.2.2:5042/api/Task"
+    private val userBaseUrl = "http://10.0.2.2:5042/api/User"
 
     fun loginUser(credentials: JSONObject) {
         val body = credentials.toString()
             .toRequestBody("application/json; charset=utf-8".toMediaType())
         val request = Request.Builder()
-            .url("$baseUrl/LoginApi")
+            .url("$userBaseUrl/User/LoginApi")
             .post(body)
             .build()
 
@@ -55,9 +58,15 @@ class UserViewModel: ViewModel() {
                     // update UI livedata
                     username.postValue(data.user.username)
                     totalCoins.postValue(data.user.totalCoins)
+                    levelName.postValue(data.levelName)
+                    tasks.postValue(data.tasks)
 
                     // fetch tasks now that user is logged in
-                    fetchDailyTasks()
+//                    fetchDailyTasks()
+
+                    // set defaults for fields not in login resposne
+                    isWithered.postValue(false)
+                    levelImageUrl.postValue("")
                 }
             }
 
@@ -71,7 +80,7 @@ class UserViewModel: ViewModel() {
 //        isLoading.postValue(true) // start loading
 
         val request = Request.Builder()
-            .url("${baseUrl}/GetUserProfileApi")
+            .url("${userBaseUrl}/GetUserProfileApi")
             .get()
             .build()
 
@@ -100,17 +109,22 @@ class UserViewModel: ViewModel() {
     }
 
     fun fetchDailyTasks(){
+
+        val emptyBody = "".toRequestBody("application/json".toMediaTypeOrNull())
+
         val request = Request.Builder()
-            .url("${baseUrl}/GetDailyTasksApi")
+            .url("${taskBaseUrl}/GetDailyTasksApi")
             .build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string() ?: ""
+
                 if (response.isSuccessful) {
-                    val json = response.body?.string()
-                    val taskListType = object: TypeToken<List<Task>>() {}.type
+//                    val json = response.body?.string()
+                    val taskListType = object : TypeToken<List<Task>>() {}.type
                     // TypeToken helps to retain generic type information
-                    val fetchedTasks: List<Task> = gson.fromJson(json, taskListType)
+                    val fetchedTasks: List<Task> = gson.fromJson(responseBody, taskListType)
                     tasks.postValue(fetchedTasks) // update UI automatically
                 }
             }
@@ -130,7 +144,7 @@ class UserViewModel: ViewModel() {
             .build()
 
         val request = Request.Builder()
-            .url("${baseUrl}/SubmitTaskApi")
+            .url("${taskBaseUrl}/SubmitTaskApi")
             .post(requestBody)
             .build()
 
@@ -164,38 +178,52 @@ class UserViewModel: ViewModel() {
     }
 
     fun completeTaskDirectly(taskId: Int) {
-        isLoading.postValue(true)
         val json = JSONObject().apply{
             put("TaskId", taskId)
         }
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
-            .url("$baseUrl/RecordTaskCompletionApi")
+            .url("$taskBaseUrl/RecordTaskCompletionApi")
             .post(body)
             .build()
 
         client.newCall(request).enqueue(object: Callback {
             override fun onResponse(call: Call, response: Response) {
                 isLoading.postValue(false)
+                if (response.isSuccessful) {
+                    val jsonResponse = response.body?.string()
+                    val result = gson.fromJson(jsonResponse, Map::class.java)
 
-                val responseBody = response.body
-                try {
-                    if (response.isSuccessful) {
-                        val content = responseBody?.string() ?: ""
-                        val jsonResponse = JSONObject(content)
-                        val isLevelUp = jsonResponse.optBoolean("LevelUp", false)
-                        val newCoinTotal = jsonResponse.optInt("TotalCoins", 0)
+                    // instant revival on UI if plant is withered
+                    isWithered.postValue(false)
 
-                        handleTaskCompletion(isLevelUp, newCoinTotal)
-                        fetchUserProfile() // refresh profile to get new total coins and level name
-                        fetchDailyTasks() // refresh list so the task shows as completed
+                    // check for level up
+                    val isLevelUp = result["levelUp"] as? Boolean ?: false
+                    if (isLevelUp) {
+                        levelUpEvent.postValue(true)
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                } finally {
-                    responseBody?.close()
+
+                    fetchUserProfile() // refresh profile to get new total coins and level name
+                    fetchDailyTasks() // refresh list so the task shows as completed
                 }
+//                val responseBody = response.body
+//                try {
+//                    if (response.isSuccessful) {
+//                        val content = responseBody?.string() ?: ""
+//                        val jsonResponse = JSONObject(content)
+//                        val isLevelUp = jsonResponse.optBoolean("LevelUp", false)
+//                        val newCoinTotal = jsonResponse.optInt("TotalCoins", 0)
+//
+//                        handleTaskCompletion(isLevelUp, newCoinTotal)
+//                        fetchUserProfile() // refresh profile to get new total coins and level name
+//                        fetchDailyTasks() // refresh list so the task shows as completed
+//                    }
+//                } catch (e: Exception) {
+//                    e.printStackTrace()
+//                } finally {
+//                    responseBody?.close()
+//                }
             }
             override fun onFailure(call: Call, e: IOException) { e.printStackTrace() }
         })
@@ -223,19 +251,64 @@ class UserViewModel: ViewModel() {
         totalCoins.postValue(newTotal)
     }
 
+    // if we're putting the logic in frontend
     fun getRewardForLevel(levelId: Int): Reward? {
         return when (levelId) {
-            2-> Reward(
+            2 -> Reward(
                 levelName = "Sapling",
                 badge = Badge(101, "Sapling Badge", "Level Up", "none", 0),
                 voucher = Voucher(101, "Voucher 1", "none")
             )
-            3-> Reward(
+
+            3 -> Reward(
                 levelName = "Mighty Oak",
                 badge = Badge(102, "Oak Badge", "Level Up", "none", 0),
-                voucher = Voucher(102, "Voucher 2", "none" )
+                voucher = Voucher(102, "Voucher 2", "none")
             )
             else -> null
+        }
+    }
+
+    // kiv remove
+    fun fetchRecentBadges() {
+        val request = Request.Builder()
+            .url("$userBaseUrl/GetRecentBadgesApi")
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object: Callback {
+            override fun onResponse(call: Call, response:Response) {
+                if (response.isSuccessful) {
+                    val json = response.body?.string()
+                    val badgeListType = object: TypeToken<List<Badge>>() {}.type
+                    val fetchedBadges: List<Badge> = gson.fromJson(json, badgeListType)
+                    recentBadges.postValue(fetchedBadges)
+                }
+            }
+            override fun onFailure(call:Call, e:IOException) {e.printStackTrace()}
+        })
+    }
+
+    // kiv remove
+    fun fetchEarnedBadges() {
+        val request = Request.Builder()
+            .url("$userBaseUrl/GetEarnedBadgesApi")
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object:Callback {
+            override fun onResponse(call:Call, response:Response) {
+                if (response.isSuccessful) {
+                    val json = response.body?.string()
+                    val badgeListType = object: TypeToken<List<Badge>>() {}.type
+                    val allFetchedBadges: List<Badge> = gson.fromJson(json, badgeListType)
+
+                    val displayBadges = allFetchedBadges.take(3)
+
+                    earnedBadges.postValue(displayBadges)
+                }
+            }
+        })
     }
 
     fun logout() {

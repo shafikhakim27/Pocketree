@@ -58,6 +58,7 @@
         android:text="@string/current_level"/>
 
     <TextView
+        android:id="@+id/badgesHeader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/badges"
@@ -65,31 +66,10 @@
         android:textSize="20dp"
         android:textStyle="bold"/>
 
-    <LinearLayout
-        android:id="@+id/badgesLayout"
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewBadges"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
-
-        <ImageView
-            android:id="@+id/badge1"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:src="@android:drawable/ic_menu_report_image"/>
-
-        <ImageView
-            android:id="@+id/badge2"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:src="@android:drawable/ic_menu_report_image"/>
-
-        <ImageView
-            android:id="@+id/badge3"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:src="@android:drawable/ic_menu_report_image"/>
-    </LinearLayout>
+        android:orientation="horizontal"
+        android:padding="8dp"/>
 </LinearLayout>

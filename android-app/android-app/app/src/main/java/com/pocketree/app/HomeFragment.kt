@@ -1,17 +1,21 @@
 package com.pocketree.app
 
 import android.R.attr.level
+import android.app.AlertDialog
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.recyclerview.widget.LinearLayoutManager
 import com.pocketree.app.databinding.FragmentHomeBinding
 
 class HomeFragment: Fragment() {
     private var _binding: FragmentHomeBinding? = null
     private val binding get() = _binding!!
+    var wasWithered:Boolean? = null
 
     // ViewModel (to get the data)
     private val sharedViewModel: UserViewModel by activityViewModels()
@@ -50,10 +54,33 @@ class HomeFragment: Fragment() {
             binding.levelDisplay.text = "Current Stage: ${level ?: "Seedling"}"
         }
 
-        // create withering logic also - reminder one day before
+        // set up recyclerview layout manager for badges
+        binding.recyclerViewBadges.layoutManager = LinearLayoutManager(requireContext(),
+            LinearLayoutManager.HORIZONTAL, false)
+
+        sharedViewModel.fetchRecentBadges() // fetch data
+        sharedViewModel.recentBadges.observe(viewLifecycleOwner) { badges ->
+            if (badges.isNullOrEmpty()) {
+                binding.badgesHeader.visibility = View.GONE
+                binding.recyclerViewBadges.visibility = View.GONE
+            }
+            if (badges != null) {
+                binding.recyclerViewBadges.adapter = BadgeAdapter(badges)
+            }
+        }
+
+        // withering logic
         sharedViewModel.isWithered.observe(viewLifecycleOwner) { withered ->
+            // if withered tree has revived
+            if (wasWithered == true && !withered) {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Plant Revived")
+                    .setMessage("Your plant has revived! Good job!")
+                    .setPositiveButton("Yay!", null)
+                    .show()
+            }
             if (withered) {
-                binding.statusWarning.text = "Your plant has withered."
+                binding.statusWarning.text = "Your plant has withered. Complete a task to revive it!"
                 binding.statusWarning.visibility = View.VISIBLE
                 // remove below if changing to picture of dying tree
                 binding.plant.alpha = 0.3f // make the plant look "faded"
@@ -62,6 +89,9 @@ class HomeFragment: Fragment() {
                 binding.plant.alpha = 1.0f
                 binding.plant.visibility = View.VISIBLE
             }
+
+            // update tracker for the next change
+            wasWithered = withered
         }
     }
 
@@ -78,6 +108,4 @@ class HomeFragment: Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
-    // insert badge photos below the tree?
 }

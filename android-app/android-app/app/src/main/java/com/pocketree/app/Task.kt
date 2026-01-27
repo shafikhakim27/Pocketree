@@ -1,15 +1,17 @@
 package com.pocketree.app
 
-enum class TaskDifficulty{
-    Easy, Normal, Hard
-}
+import com.google.gson.annotations.SerializedName
+
+//enum class TaskDifficulty{
+//    Easy, Normal, Hard
+//}
 
 data class Task (
-    val taskID: Int,
-    val description: String,
-    val isCompleted:Boolean,
-    val difficulty: TaskDifficulty,
-    var coinReward: Int,
-    val requiresEvidence: Boolean,
+    @SerializedName("TaskId") val taskID: Int,
+    @SerializedName("Description") val description: String,
+    @SerializedName("IsCompleted") val isCompleted:Boolean,
+    val difficulty: String,
+    @SerializedName("CoinReward") var coinReward: Int,
+    @SerializedName("RequiresEvidence") val requiresEvidence: Boolean,
     val keyword: String?
     )

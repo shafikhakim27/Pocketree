@@ -8,6 +8,7 @@
     <string name="account_info">Account Info Here</string>
     <string name="number_of_coins">number of coins here</string>
     <string name="badges">Badges</string>
+    <string name="badgeName">Badge Name</string>
     <string name="task_header">Daily Tasks</string>
     <string name="image_verification">Verifying image...</string>
     <string name="task_description">Task Description</string>
