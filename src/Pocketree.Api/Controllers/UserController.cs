@@ -24,6 +24,8 @@ namespace ADproject.Controllers
         private readonly IPasswordHasher<User> passwordHasher;
         private readonly MyDbContext db;
         private readonly IConfiguration _configuration;
+        // Define withering threshold (3 days)
+        private int witheringThreshold = 3;
 
         public UserController(MyDbContext db, IPasswordHasher<User> passwordHasher, IConfiguration configuration)
         {
@@ -49,6 +51,7 @@ namespace ADproject.Controllers
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
             newUser.LastLoginDate = DateTime.UtcNow;
+            newUser.LastActivityDate = null;
             newUser.Email = dto.Email;
 
             db.Users.Add(newUser);
@@ -63,8 +66,9 @@ namespace ADproject.Controllers
         [HttpPost("LoginApi")]
         public async Task<IActionResult> LoginApi([FromBody] UserLoginDto dto)
         {
-            var user = await db.Users.FirstOrDefaultAsync(u =>
-                u.Username == dto.Username);
+            var user = await db.Users
+                .Include(u => u.Trees) // For checking the tree status later
+                .FirstOrDefaultAsync(u => u.Username == dto.Username);
 
             if (user == null) return Unauthorized("Invalid credentials.");
 
@@ -72,6 +76,8 @@ namespace ADproject.Controllers
 
             if (result == PasswordVerificationResult.Success)
             {
+                UpdateTreeStatus(user);
+
                 user.LastLoginDate = DateTime.UtcNow; // Update LastLoginDate
                 db.Users.Update(user);
                 await db.SaveChangesAsync();
@@ -113,11 +119,13 @@ namespace ADproject.Controllers
         [HttpGet("GetUserProfileApi")]
         public async Task<IActionResult> GetUserProfileApi()
         {
-            // Define withering threshold (3 days)
-            var witheringThreshold = DateTime.UtcNow.AddDays(-3);
-
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            var user = await db.Users
+                .Include(u => u.Trees) 
+                .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
             if (user == null) return NotFound();
+            
+            // Get active tree
+            var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
 
             var userProfile = new UserProfileViewModel
             {
@@ -126,11 +134,33 @@ namespace ADproject.Controllers
                 LevelName = user.CurrentLevel?.LevelName ?? "Seedling",
                 LevelID = user.CurrentLevelID,
                 LevelImageURL = user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png",
-                // If the last login was earlier than the threshold, IsWithered = true 
-                IsWithered = user.LastLoginDate < witheringThreshold
-             };
+                IsWithered = activeTree?.IsWithered ?? false 
+            };
 
             return Ok(userProfile);
+        }
+
+        [Authorize]
+        [HttpGet("GetLatestBadgesApi")]
+        public async Task<IActionResult> GetLatestBadgesApi()
+        {
+            var username = User.Identity?.Name;
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null) return Unauthorized();
+
+            var latestBadges = await db.UserBadges
+                .Where(ub => ub.UserID == user.UserID)
+                .OrderByDescending(ub => ub.DateEarned) // From latest to oldest
+                .Take(3) // For now Android just display 3 latest badges
+                .Select(ub => new
+                {
+                    BadgeName = ub.Badge.BadgeName,
+                    BadgeImageURL = ub.Badge.BadgeImageURL,
+                    DateEarned = ub.DateEarned
+                })
+                .ToListAsync();
+
+            return Ok(latestBadges);
         }
 
         private string GenerateJwtToken(Claim[] claims)
@@ -162,7 +192,7 @@ namespace ADproject.Controllers
                 {
                     UserID = userId,
                     MissionID = activeMission.MissionID,
-                    ContributeToMission = false
+                    IsCompleted = false
                 };
 
                 db.Trees.Add(initialTree);
@@ -170,6 +200,21 @@ namespace ADproject.Controllers
                 return true;
             }
             return false;
+        }
+
+        private void UpdateTreeStatus (User user)
+        {
+            if (user.LastLoginDate.HasValue)
+            {
+                var daysAway = (DateTime.UtcNow - user.LastLoginDate.Value).TotalDays;
+                if (daysAway > witheringThreshold)
+                {
+                    // Get active tree
+                    var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
+                    if (activeTree != null)
+                        activeTree.IsWithered = true;
+                }
+            }
         }
 
 
@@ -274,41 +319,49 @@ namespace ADproject.Controllers
 
             // Get User Data
             var user = await db.Users
+                .Include(u => u.Trees)
                 .Include(u => u.CurrentLevel)
                 .FirstOrDefaultAsync(u => u.UserID == int.Parse(userId));
 
-            // Get the history of tasks performed by user
-            var history = await db.UserTaskHistory
-                .Where(h => h.UserID == int.Parse(userId))
-                .Include(h => h.Task)
-                .OrderByDescending(h => h.CompletionDate)
-                .Select(h => new TaskHistoryViewModel
-                {
-                    TaskDescription = h.Task.Description,
-                    DateCompleted = h.CompletionDate.ToString("dd MMM yyyy"),
-                    CoinsEarned = h.Task.CoinReward
-                }).ToListAsync();
-
-            // Define withering threshold (3 days)
-            var witheringThreshold = DateTime.UtcNow.AddDays(-3);
-
-            // Combine both data for the Status Page
-            var compositeViewModel = new StatusPageViewModel
+            if (user != null)
             {
-                UserProfile = new UserProfileViewModel
-                {
-                    Username = user.Username,
-                    TotalCoins = user.TotalCoins,
-                    LevelName = user.CurrentLevel?.LevelName ?? "Seedling",
-                    LevelID = user.CurrentLevelID,
-                    LevelImageURL = user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png",
-                    // If the last login was earlier than the threshold, IsWithered = true 
-                    IsWithered = user.LastLoginDate < witheringThreshold
-                },
-                TaskHistory = history
-            };
+                // Get active tree and update tree status
+                var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
+                if (activeTree != null) UpdateTreeStatus(user);
 
-            return View(compositeViewModel);
+                // Get the history of tasks performed by user
+                var history = await db.UserTaskHistory
+                    .Where(h => h.UserID == int.Parse(userId))
+                    .Include(h => h.Task)
+                    .OrderByDescending(h => h.CompletionDate)
+                    .Select(h => new TaskHistoryViewModel
+                    {
+                        TaskDescription = h.Task.Description,
+                        DateCompleted = h.CompletionDate.ToString("dd MMM yyyy"),
+                        CoinsEarned = h.Task.CoinReward
+                    }).ToListAsync();
+
+                // Combine both data for the Status Page
+                var compositeViewModel = new StatusPageViewModel
+                {
+                    UserProfile = new UserProfileViewModel
+                    {
+                        Username = user.Username,
+                        TotalCoins = user.TotalCoins,
+                        LevelName = user.CurrentLevel?.LevelName ?? "Seedling",
+                        LevelID = user.CurrentLevelID,
+                        LevelImageURL = user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png",
+                        // If the last login was earlier than the threshold, IsWithered = true 
+                        IsWithered = activeTree?.IsWithered ?? false
+                    },
+                    TaskHistory = history
+                };
+
+                return View(compositeViewModel);
+            }
+            
+            ModelState.AddModelError("", "User details cannot be retrieved!");
+            return View();
         }
 
         // Show the Change Password Page
