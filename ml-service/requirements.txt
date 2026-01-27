@@ -1,6 +1,21 @@
+# --- Core Web Frameworks ---
 fastapi
 uvicorn
+flask
+
+# --- Database ---
+mysql-connector-python
+
+# --- AI & Data Science ---
+torch --index-url https://download.pytorch.org/whl/cpu
+transformers
+pillow
 scikit-learn
 pandas
-pytest
+numpy
+
+# --- Utilities ---
+pydantic
 httpx
+pytest
+requests

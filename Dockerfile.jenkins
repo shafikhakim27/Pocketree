@@ -1,7 +1,25 @@
-﻿FROM jenkins/jenkins:lts-jdk17
+﻿# Modern Jenkins with Docker capability
+FROM jenkins/jenkins:2.452.1-jdk21-bookworm
 USER root
+
+# Install Docker (for DinD - Docker in Docker)
 RUN apt-get update && \
-    apt-get install -y docker.io docker-compose && \
+    apt-get install -y --no-install-recommends \
+    docker.io \
+    docker-compose \
+    git \
+    curl && \
     rm -rf /var/lib/apt/lists/*
 
-RUN echo "jenkins ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+# Add Jenkins user to docker group (better than sudo)
+RUN usermod -aG docker jenkins
+
+# Set back to jenkins user
+USER jenkins
+
+# Install Jenkins plugins for build pipeline
+RUN jenkins-plugin-cli.sh -p \
+    docker-plugin \
+    pipeline-github-lib \
+    sonar \
+    xunit
