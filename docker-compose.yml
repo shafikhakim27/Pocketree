@@ -28,16 +28,17 @@ services:
     container_name: pocketree-api
     restart: always
     ports:
-      - "${API_PORT:-5000}:8080"
+      - "${API_PORT:-5042}:8080"
     environment:
-      - ConnectionStrings__DefaultConnection=Server=pocketree-db;Port=3306;Database=pocketree;User=root;Password=rootpassword;
+      - ConnectionStrings__DefaultConnection=Server=pocketree-db;Port=3306;Database=${DB_NAME:-pocketree};User=root;Password=${DB_PASSWORD:-rootpassword};
       - ML_SERVICE_URL=http://ml-service:8000
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
+      - Jwt__Key=${JWT_KEY:-DevelopmentSecretKey_AtLeast32CharactersLong!!}
+      - Jwt__Issuer=${JWT_ISSUER:-PocketreeApi}
+      - Jwt__Audience=${JWT_AUDIENCE:-PocketreeApiUsers}
     depends_on:
       pocketree-db:
         condition: service_healthy
-      ml-service:
-        condition: service_started
     networks:
       - pocketree-net
 
@@ -49,16 +50,16 @@ services:
     container_name: ml-service
     restart: always
     ports:
-      - "${ML_PORT:-8001}:8000"
+      - "${ML_PORT:-8000}:8000"
     environment:
-      - DB_HOST=pocketree-db
-      - DB_PORT=3306
-      - DB_NAME=pocketree
-      - DB_USER=root
-      - DB_PASSWORD=rootpassword
-      - BACKEND_API_URL=http://pocketree-api:8080
+      - ENVIRONMENT=${ASPNETCORE_ENVIRONMENT:-Development}
     networks:
       - pocketree-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      timeout: 10s
+      retries: 3
+      interval: 10s
 
   # 4. JENKINS (CI/CD)
   jenkins:
