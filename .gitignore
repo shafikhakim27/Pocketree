@@ -497,6 +497,3 @@ build/
 
 *.keystore
 
-appsettings.json
-
-appsettings.Development.json
