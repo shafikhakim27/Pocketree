@@ -34,7 +34,6 @@
         android:textStyle="bold"
         android:layout_marginBottom="8dp"/>
 
-    <!-- chenyu's portion -->
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
@@ -49,13 +48,13 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Virtual Items"
+                android:text="Skins"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp"/>
 
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerViewVirtual"
+                android:id="@+id/recyclerViewSkin"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="24dp"
@@ -64,13 +63,13 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Physical Items"
+                android:text="Vouchers"
                 android:textSize="20sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp"/>
 
             <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recyclerViewPhysical"
+                android:id="@+id/recyclerViewVoucher"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:nestedScrollingEnabled="false"
@@ -79,12 +78,12 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- end of chenyu's portion-->
+    <!-- Shirley's portion, before 1.29-->
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewRedeem"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1.5"/>
+<!--    <androidx.recyclerview.widget.RecyclerView-->
+<!--        android:id="@+id/recyclerViewRedeem"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="0dp"-->
+<!--        android:layout_weight="1.5"/>-->
 
 </LinearLayout>

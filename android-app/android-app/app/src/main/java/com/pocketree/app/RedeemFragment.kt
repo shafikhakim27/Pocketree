@@ -33,7 +33,8 @@ class RedeemFragment: Fragment() {
         Skin(3, "Item3", 30, R.drawable.redeem_item_3, false, false)
     )
     private val voucherList = listOf(
-        Voucher(4, "Voucher 1", "none")
+        Voucher(4, "Voucher 1", "none", true),
+        Voucher(5, "Voucher 2", "none", false)
     )
 
     override fun onCreateView(
@@ -47,11 +48,9 @@ class RedeemFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
-
         sharedViewModel.username.observe(viewLifecycleOwner) { name ->
             binding.accountInfo.text = "${name ?: "User"}"
         }
-
         // observe coins to update coinDisplay TextView
         sharedViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
             binding.coinDisplay.text = "$coins coins"
@@ -60,32 +59,40 @@ class RedeemFragment: Fragment() {
 
     private fun setupRecyclerView() {
         // GridLayoutManager: parameter 3 indicates that 3 items are displayed in one row.
-        binding.recyclerViewRedeem.layoutManager = GridLayoutManager(context, 3)
-        val adapter = RedeemAdapter(skinList) { selectedItem ->
-            showConfirmDialog(selectedItem)
+        binding.recyclerViewSkin.layoutManager = GridLayoutManager(context, 3)
+        // The item here is of type Any, so we need to determine if it is a Skin.
+        binding.recyclerViewSkin.adapter = RedeemAdapter(skinList) { item ->
+            if (item is Skin) {
+                if (!item.isRedeemed) {
+                    showSkinConfirmDialog(item)
+                }
+            }
         }
-        binding.recyclerViewRedeem.adapter = adapter
 
-        // chenyu's code below:
-        // GridLayoutManager: parameter 3 indicates that 3 items are displayed in one row.
-//        binding.recyclerViewVirtual.layoutManager = GridLayoutManager(context, 3)
-//        binding.recyclerViewVirtual.adapter = RedeemAdapter(virtualItems) { selectedItem ->
+        binding.recyclerViewVoucher.layoutManager = GridLayoutManager(context, 3)
+        binding.recyclerViewVoucher.adapter = RedeemAdapter(voucherList) { item ->
+            if (item is Voucher) {
+                if (item.isUsable) {
+                    showVoucherConfirmDialog(item)
+                }
+            }
+        }
+
+// --- Shirley's works before 1.29 ---
+//        binding.recyclerViewRedeem.layoutManager = GridLayoutManager(context, 3)
+//        val adapter = RedeemAdapter(skinList) { selectedItem ->
 //            showConfirmDialog(selectedItem)
 //        }
-//
-//        binding.recyclerViewPhysical.layoutManager = GridLayoutManager(context, 3)
-//        binding.recyclerViewPhysical.adapter = RedeemAdapter(physicalItems) { selectedItem ->
-//            showConfirmDialog(selectedItem)
-//        }
-
+//        binding.recyclerViewRedeem.adapter = adapter
     }
 
-    private fun showConfirmDialog(skin: Skin) {
+
+    private fun showVoucherConfirmDialog(voucher: Voucher) {
         AlertDialog.Builder(requireContext())
             .setTitle("Confirm Redemption")
-            .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
+            .setMessage("Do you want to use ${voucher.voucherName}?")
             .setPositiveButton("Confirm") { dialog, _ ->
-                performRedeem(skin)
+                //TODO: useVoucher(voucher)
                 dialog.dismiss()
             }
             .setNegativeButton("Cancel") { dialog, _ ->
@@ -95,46 +102,33 @@ class RedeemFragment: Fragment() {
             .show()
     }
 
-    // chenyu's version:
-//    private fun showConfirmDialog(skin: Skin) {
-//        val currentCoins = sharedViewModel.totalCoins.value ?: 0
-//        if (currentCoins >= skin.price) {
-//            AlertDialog.Builder(requireContext())
-//                .setTitle("Confirm Redemption")
-//                .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
-//                .setPositiveButton("Confirm") { dialog, _ ->
-//                    processRedemption(skin)
-//                    dialog.dismiss()
-//                }
-//                .setNegativeButton("Cancel") { dialog, _ ->
-//                    dialog.dismiss()
-//                }
-//                .create()
-//                .show()
-//        } else {
-//            AlertDialog.Builder(requireContext())
-//                .setTitle("Redemption Failed")
-//                .setMessage("Insufficient coins!")
-//                .setPositiveButton("Confirm", null)
-//                .show()
-//        }
-//    }
 
-    private fun performRedeem(skin: Skin) {
+    private fun showSkinConfirmDialog(skin: Skin) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Confirm Redemption")
+            .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
+            .setPositiveButton("Confirm") { dialog, _ ->
+                preRedeem(skin)
+                dialog.dismiss()
+            }
+            .setNegativeButton("Cancel") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .create()
+            .show()
+    }
+
+
+    private fun preRedeem(skin: Skin) {
         // check if already owned
         if (skin.isRedeemed) {
-            Toast.makeText(requireContext(),
-                "You already own this item!",
-                Toast.LENGTH_SHORT
-            ).show()
+            Toast.makeText(requireContext(), "You already own this item!", Toast.LENGTH_SHORT).show()
             return
         }
 
         val currentCoins = sharedViewModel.totalCoins.value ?: 0
-
         if (currentCoins >= skin.price) {
-            val newTotal = currentCoins - skin.price
-            deductCoins(newTotal, skin)
+            processRedemption(skin)
         } else {
             AlertDialog.Builder(requireContext())
                 .setTitle("Redemption Failed")
@@ -144,15 +138,13 @@ class RedeemFragment: Fragment() {
         }
     }
 
-    // chenyu's code:
-//    private fun processRedemption(skin: Skin){
-//        val currentCoins = sharedViewModel.totalCoins.value ?: 0
-//        deductCoins(currentCoins - skin.price, skin)
-//        showSuccessDialog(skin.name)
-//        // Next, we need to perform corresponding operations based on the names of the redeemed items.
-//        // I think we don't need this part for physical items for now, but virtual items will affect the UI...
-//        // We'll discuss next time what items should be placed in the virtual item area.
-//    }
+
+    private fun processRedemption(skin: Skin){
+        val currentCoins = sharedViewModel.totalCoins.value ?: 0
+        deductCoins(currentCoins - skin.price, skin)
+        showSuccessDialog(skin.name)
+    }
+
 
     private fun deductCoins(newTotal:Int, skin: Skin){
         val json = JSONObject().apply{
@@ -190,7 +182,7 @@ class RedeemFragment: Fragment() {
         })
     }
 
-    // chenyu's code below:
+
     private fun showSuccessDialog(itemName: String) {
         AlertDialog.Builder(requireContext())
             .setTitle("Redemption Successful!")
