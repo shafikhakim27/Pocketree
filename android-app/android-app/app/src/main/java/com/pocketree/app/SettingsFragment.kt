@@ -54,10 +54,10 @@ class SettingsFragment: Fragment() {
 
             if (isChecked) {
                 playMusic()
-                Toast.makeText(context, "Music On", Toast.LENGTH_SHORT).show()
+//                Toast.makeText(context, "Music On", Toast.LENGTH_SHORT).show()
             } else {
                 stopMusic()
-                Toast.makeText(context, "Music Off", Toast.LENGTH_SHORT).show()
+//                Toast.makeText(context, "Music Off", Toast.LENGTH_SHORT).show()
             }
         }
     }
@@ -117,7 +117,7 @@ class SettingsFragment: Fragment() {
 
             Toast.makeText(
                 context,
-                "You have Logged out successfully",
+                "You have logged out successfully",
                 Toast.LENGTH_SHORT
             ).show()
         }
@@ -131,4 +131,6 @@ class SettingsFragment: Fragment() {
         mediaPlayer = null
         _binding = null
     }
+
+    // can explore changing of password for user also - ChangePasswordApi in .NET backend
 }

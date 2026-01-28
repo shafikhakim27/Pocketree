@@ -3,6 +3,7 @@
     <string name="pocketree">PockeTree \u00A9 2026</string>
     <string name="create_account">Create An Account</string>
     <string name="create_account_header">Create Account</string>
+    <string name="back_to_login">Back To Login Page</string>
     <string name="login">Login</string>
     <string name="login_header">Welcome!\nPlease log in</string>
     <string name="account_info">Account Info Here</string>
