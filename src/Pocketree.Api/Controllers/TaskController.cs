@@ -155,6 +155,7 @@ namespace ADproject.Controllers
             return Ok(new { CoinsUpdated = "true" });
         }
 
+        // Private function (not API) for backend use
         private async Task<bool> UpdateLevelAndCoins(User user, Task task)
         {
             user.TotalCoins += task.CoinReward;
@@ -173,6 +174,7 @@ namespace ADproject.Controllers
             else return false;
         }
 
+        // Private function (not API) for backend use
         private async System.Threading.Tasks.Task CheckAndAwardBadges(User user)
         {
             // Get all badge IDs currently owned by user
@@ -210,6 +212,7 @@ namespace ADproject.Controllers
             }
         }
 
+        // Private function (not API) for backend use
         private async System.Threading.Tasks.Task AwardBadge(int userId, int badgeId)
         {
             var newBadge = new UserBadge
@@ -222,6 +225,7 @@ namespace ADproject.Controllers
             db.UserBadges.Add(newBadge);
         }
 
+        // Private function (not API) for backend use
         private async System.Threading.Tasks.Task ContributeToGlobalMission(User user, string missionName)
         {
             var mission = await db.GlobalMissions

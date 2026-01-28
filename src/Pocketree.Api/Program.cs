@@ -5,8 +5,12 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.Tasks;
+using static Microsoft.Extensions.Logging.EventSource.LoggingEventSource;
+using Task = ADproject.Models.Entities.Task;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -128,20 +132,70 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
-initDB(); 
+await initDB(app.Services); 
 app.Run();
 
 // init database
-void initDB() 
+async System.Threading.Tasks.Task initDB(IServiceProvider services)
 {
     // create the environment to retrieve our database context
-    using (var scope = app.Services.CreateScope())
+    using var scope = services.CreateScope();
     {
-    // get database context from DI-container
-    var ctx = scope.ServiceProvider.GetRequiredService<MyDbContext>();
-    if (!ctx.Database.CanConnect())
-    ctx.Database.EnsureCreated(); // create database
+        // get database context from DI-container
+        var ctx = scope.ServiceProvider.GetRequiredService<MyDbContext>();
+        await ctx.Database.EnsureCreatedAsync();
+
+        if (!ctx.Levels.Any())
+        {
+            // Add Levels
+            ctx.Levels.AddRange(
+            new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" },
+            new Level { LevelID = 2, LevelName = "Sapling", MinCoins = 250, LevelImageURL = "/images/levels/sapling.png" },
+            new Level { LevelID = 3, LevelName = "Mighty Oak", MinCoins = 500, LevelImageURL = "/images/levels/oak.png" }
+            );
+
+            // Add Tasks
+            ctx.Tasks.AddRange(
+                new Task { TaskID = 1, Description = "Turn off lights when leaving a room", Difficulty = "Easy", CoinReward = 100, RequiresEvidence = false, Keyword = "switch", Category = "Energy Saving" },
+                new Task { TaskID = 2, Description = "Use a reusable water bottle all day", Difficulty = "Easy", CoinReward = 100, RequiresEvidence = false, Keyword = "bottle", Category = "Recycling" },
+                new Task { TaskID = 3, Description = "Compost your food scraps", Difficulty = "Normal", CoinReward = 200, RequiresEvidence = false, Keyword = "compost", Category = "Recycling" },
+                new Task { TaskID = 4, Description = "Take a 5-minute shower", Difficulty = "Normal", CoinReward = 200, RequiresEvidence = false, Keyword = "timer", Category = "Water Saving" },
+                new Task { TaskID = 5, Description = "Plant a physical tree or shrub", Difficulty = "Hard", CoinReward = 300, RequiresEvidence = false, Keyword = "tree", Category = "Nature" }
+            );
+
+            // Add Badges
+            ctx.Badges.AddRange(
+                new Badge { BadgeID = 1, BadgeName = "Tree Starter", Description = "This badge is awarded to player who reaches Level 2", BadgeImageURL = "", CriteriaType = "LevelUp", RequiredDifficulty = "Any", RequiredCount = 2 },
+                new Badge { BadgeID = 2, BadgeName = "Mighty Oak", Description = "This badge is awarded to player who reaches Level 3", BadgeImageURL = "", CriteriaType = "LevelUp", RequiredDifficulty = "Any", RequiredCount = 3 },
+                new Badge { BadgeID = 3, BadgeName = "Green Starter", Description = "This badge is awarded to player who completed 30 Easy tasks", BadgeImageURL = "", CriteriaType = "TaskCount", RequiredDifficulty = "Easy", RequiredCount = 30 },
+                new Badge { BadgeID = 4, BadgeName = "Green Champion", Description = "This badge is awarded to player who completed 20 Normal tasks", BadgeImageURL = "", CriteriaType = "TaskCount", RequiredDifficulty = "Normal", RequiredCount = 20 },
+                new Badge { BadgeID = 5, BadgeName = "Eco Warrior", Description = "This badge is awarded to player who completed 10 Hard tasks", BadgeImageURL = "", CriteriaType = "TaskCount", RequiredDifficulty = "Hard", RequiredCount = 10 }
+            );
+
+            // Add initial Test User 
+            ctx.Users.Add(new User
+            {
+                UserID = 1,
+                Username = "ecotester",
+                PasswordHash = "AQAAAAIAAYagAAAAEMO7BqP3P6mwKCn+y4U448SilNgQsmcaKZlFou2pu3x/3EiFixI8pLMryKFzJWQbOA==", 
+                ProfileImageURL = "",
+                TotalCoins = 0,
+                CurrentLevelID = 1,
+                LastLoginDate = DateTime.UtcNow,
+                LastActivityDate = null,
+                Email = "ecotester@gmail.com"
+            });
+
+            // Add UserPreferences
+            ctx.UserPreferences.AddRange(
+                new UserPreference { PreferenceID = 1, UserID = 1, PreferredCategory = "Recycling", PreferredDifficulty = "Easy"}
+            );
+
+            await ctx.SaveChangesAsync();
+        }
     }
 }
+
+
 
 

@@ -163,6 +163,7 @@ namespace ADproject.Controllers
             return Ok(latestBadges);
         }
 
+        // Private function (not API) for backend use
         private string GenerateJwtToken(Claim[] claims)
         {
             // Get secret key from appsettings.json
@@ -182,6 +183,7 @@ namespace ADproject.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
+        // Private function (not API) for backend use
         private async Task<bool> PlantSeed(int userId)
         {
             var activeMission = await db.GlobalMissions
@@ -202,6 +204,7 @@ namespace ADproject.Controllers
             return false;
         }
 
+        // Private function (not API) for backend use
         private void UpdateTreeStatus (User user)
         {
             if (user.LastLoginDate.HasValue)
@@ -302,7 +305,7 @@ namespace ADproject.Controllers
             return View(); // Remain on login page
         }
 
-        [Route("/User/Logout")]
+        [HttpGet("/User/Logout")]
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();

@@ -23,6 +23,7 @@ namespace ADproject.Controllers
             this.hub = hub;
         }
 
+        // API not for Android (for web use only)
         [AllowAnonymous]
         [HttpGet("GetAllForestTrees")]
         public async Task<ActionResult<IEnumerable<TreeCoordinateDto>>> GetAllForestTrees()
