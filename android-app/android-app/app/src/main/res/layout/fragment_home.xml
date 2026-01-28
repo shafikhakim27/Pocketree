@@ -44,8 +44,9 @@
 
     <ImageView
         android:id="@+id/plant"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="300dp"
+        android:layout_height="300dp"
+        android:layout_gravity="center"
         android:src="@android:drawable/ic_menu_report_image"/>
 
     <TextView
@@ -56,4 +57,19 @@
         android:textSize="20sp"
         android:text="@string/current_level"/>
 
+    <TextView
+        android:id="@+id/badgesHeader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/badges"
+        android:layout_marginLeft="8dp"
+        android:textSize="20dp"
+        android:textStyle="bold"/>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewBadges"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="8dp"/>
 </LinearLayout>

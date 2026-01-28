@@ -45,7 +45,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel = ViewModelProvider(this).get(UserViewModel::class.java)
-        viewModel.fetchUserProfile()
+//        viewModel.fetchUserProfile()
 
         setupNavigation()
     }

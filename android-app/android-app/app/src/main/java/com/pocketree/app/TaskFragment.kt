@@ -47,8 +47,8 @@ class TaskFragment: Fragment() {
     private val getPhoto = registerForActivityResult(ActivityResultContracts
         .TakePicturePreview()) { bitmap -> bitmap?.let { // camera returns a bitmap if photo is taken
             val stream = ByteArrayOutputStream()
-            it.compress(Bitmap.CompressFormat.JPEG, 100, stream)
-            // converting the image taken into data (100 means max quality)
+            it.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+            // converting the image taken into data (90 to balance quality and upload speed)
             currentProcessingTaskId?.let{ id ->
                 sharedViewModel.submitTaskWithImage(id, stream.toByteArray())
                 // this part checks if there is an active task ID
@@ -93,13 +93,26 @@ class TaskFragment: Fragment() {
 
         sharedViewModel.levelUpEvent.observe(viewLifecycleOwner) { levelUp ->
             if (levelUp == true) {
-                val currentLevelName = sharedViewModel.levelName.value ?: "next"
+                val (levelName, badgeName, voucherName) = sharedViewModel.getLevelDetails()
                 AlertDialog.Builder(requireContext())
                     // returns non-null Context associated with fragment's current host (activity)
                     .setTitle("Level Up!")
-                    .setMessage("Good job! You have progressed to the $currentLevelName stage!")
-                    .setPositiveButton("Yay!", null) // button for dismissal of notification
-                    .show()
+                    .setMessage("Good job! You have progressed to the $levelName stage!")
+                    .setPositiveButton("Yay!") { _, _ ->
+
+                        // chain to badge dialog
+                        AlertDialog.Builder(requireContext())
+                            .setTitle("Badge Obtained!")
+                            .setMessage("You have earned the $badgeName badge! View it under the Home tab.")
+                            .setPositiveButton("Got it!") { _, _ ->
+
+                                AlertDialog.Builder(requireContext())
+                                    .setTitle("Voucher Obtained!")
+                                    .setMessage("You have earned a voucher! Check the Redeeem tab.")
+                                    .setPositiveButton("Awesome!", null)
+                                    .show()
+                            }.show()
+                    }.show()
 
                 sharedViewModel.levelUpEvent.value = false
                 // reset the event so the notice doesn't fire again

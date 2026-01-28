@@ -75,14 +75,16 @@ namespace ADproject.Controllers
         [HttpPost("RecordTaskCompletionApi")]
         public async Task<IActionResult> RecordTaskCompletionApi([FromBody] TaskIdDto dto)
         {
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            var user = await db.Users
+                .Include(u => u.Trees)
+                .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
             if (user == null) return Unauthorized();
 
             // Get the task details 
             var task = await db.Tasks.FindAsync(dto.TaskId);
             if (task == null) return BadRequest("Invalid Task");
 
-            // Start a transaction to update user task history, user total coins and new level if reached
+            // Start a transaction to update user task history, tree status, user total coins and new level if reached
             using var transaction = await db.Database.BeginTransactionAsync();
             try
             {
@@ -95,13 +97,28 @@ namespace ADproject.Controllers
                 };
                 db.UserTaskHistory.Add(taskHistoryEntry);
 
+                // Update tree status
+                var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
+                if (activeTree != null && activeTree.IsWithered)
+                {
+                    activeTree.IsWithered = false; // Tree is revived after the task completion
+                }
+                user.LastActivityDate = DateTime.UtcNow; // Update the activity date
+
                 bool levelUp = await UpdateLevelAndCoins(user, task);
+
+                await CheckAndAwardBadges(user);
 
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // Send LevelUp status to Android device              
-                return Ok(new { LevelUp = levelUp });
+                // Send LevelUp, Coin balance, level and tree status to Android device              
+                return Ok(new { 
+                    LevelUp = levelUp,
+                    NewCoins = user.TotalCoins,
+                    NewLevel = user.CurrentLevelID,
+                    IsWithered = activeTree?.IsWithered?? false
+                });
             }
             catch (Exception)
             {
@@ -156,6 +173,55 @@ namespace ADproject.Controllers
             else return false;
         }
 
+        private async System.Threading.Tasks.Task CheckAndAwardBadges(User user)
+        {
+            // Get all badge IDs currently owned by user
+            var currentBadgeIds = await db.UserBadges
+                .Where(ub => ub.UserID == user.UserID)
+                .Select(ub => ub.BadgeID)
+                .ToListAsync();
+
+            // Get all available badges
+            var availableBadges = await db.Badges
+                .Where(b => !currentBadgeIds.Contains(b.BadgeID))
+                .ToListAsync();
+
+            foreach (var badge in availableBadges)
+            {
+                bool eligibility = false;
+
+                if (badge.CriteriaType == "LevelUp")
+                {
+                    eligibility = user.CurrentLevelID >= badge.RequiredCount;
+                }
+                else if (badge.CriteriaType == "TaskCount")
+                {
+                    int taskCount = await db.UserTaskHistory.CountAsync
+                                            (th => th.UserID == user.UserID &&
+                                             th.Task.Difficulty == badge.RequiredDifficulty);
+                    eligibility = taskCount >= badge.RequiredCount;
+                }
+
+                // Award badges based on type if eligible
+                if (eligibility == true)
+                {
+                    await AwardBadge(user.UserID, badge.BadgeID);
+                }
+            }
+        }
+
+        private async System.Threading.Tasks.Task AwardBadge(int userId, int badgeId)
+        {
+            var newBadge = new UserBadge
+            {
+                UserID = userId,
+                BadgeID = badgeId,
+                DateEarned = DateTime.UtcNow
+            };
+
+            db.UserBadges.Add(newBadge);
+        }
+
         private async System.Threading.Tasks.Task ContributeToGlobalMission(User user, string missionName)
         {
             var mission = await db.GlobalMissions
@@ -167,8 +233,8 @@ namespace ADproject.Controllers
                 mission.CurrentTreeCount++; // Increase global tree count
                 
                 // Get the tree for the specific mission
-                var tree = mission.Trees.FirstOrDefault(t => t.UserID == user.UserID && !t.ContributeToMission);
-                if (tree != null) tree.ContributeToMission = true;
+                var tree = mission.Trees.FirstOrDefault(t => t.UserID == user.UserID && !t.IsCompleted);
+                if (tree != null) tree.IsCompleted = true;
 
                 // Plant global tree if frequency met
                 if (mission.CurrentTreeCount % mission.PlantingFrequency == 0)

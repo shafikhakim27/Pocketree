@@ -5,7 +5,6 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
 import android.widget.TextView
-import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 
 // this adapter handles the visual "checking off" of tasks
@@ -29,24 +28,28 @@ class TaskAdapter(
 
     override fun onBindViewHolder(holder: TaskViewHolder, position:Int) {
         val task = taskList[position]
-        val actionButton = holder.itemView.findViewById<Button>(R.id.actionBtn)
-        val description = holder.itemView.findViewById<TextView>(R.id.descriptionTv)
 
-        description.text = task.description
+        // bind data to the views held by ViewHolder
+        holder.description.text = task.description
+        holder.reward.text = "${task.coinReward} coins"
 
         if (task.isCompleted) {
-            actionButton.text = "Completed!"
-            actionButton.isEnabled = false
+            holder.actionButton.text = "Completed!"
+            holder.actionButton.isEnabled = false
             holder.itemView.alpha = 0.5f // visual "checked off" state
         } else {
-            actionButton.text = if (task.requiresEvidence) "Upload a photo" else "Let's do it!"
-            actionButton.isEnabled = true
+            holder.actionButton.text = if (task.requiresEvidence) "Upload a photo" else "Let's do it!"
+            holder.actionButton.isEnabled = true
             holder.itemView.alpha = 1.0f
-            actionButton.setOnClickListener { onTaskClick(task) }
+            holder.actionButton.setOnClickListener { onTaskClick(task) }
         }
     }
 
     override fun getItemCount() = taskList.size
 
-    class TaskViewHolder(itemView: View): RecyclerView.ViewHolder(itemView)
+    class TaskViewHolder(itemView: View): RecyclerView.ViewHolder(itemView) {
+        val description: TextView = itemView.findViewById(R.id.descriptionTv)
+        val reward: TextView = itemView.findViewById(R.id.rewardTv)
+        val actionButton: Button = itemView.findViewById(R.id.actionBtn)
+    }
 }

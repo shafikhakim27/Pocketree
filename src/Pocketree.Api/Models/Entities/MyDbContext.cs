@@ -24,7 +24,7 @@ namespace ADproject.Models.Entities
             // Prevents a GlobalMission from being deleted if users still have trees linked to it 
             modelBuilder.Entity<Tree>()
                 .HasOne(t => t.GlobalMission)
-                .WithMany()
+                .WithMany(m => m.Trees)
                 .HasForeignKey(t => t.MissionID)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -49,6 +49,7 @@ namespace ADproject.Models.Entities
         public DbSet<Level> Levels { get; set; }
         public DbSet<UserTaskHistory> UserTaskHistory { get; set; }
         public DbSet<Badge> Badges { get; set; }
+        public DbSet<UserBadge> UserBadges { get; set; }
         public DbSet<GlobalMission> GlobalMissions { get; set; }
         public DbSet<Skin> Skins { get; set; }
         public DbSet<UserSkin> UserSkins { get; set; }
