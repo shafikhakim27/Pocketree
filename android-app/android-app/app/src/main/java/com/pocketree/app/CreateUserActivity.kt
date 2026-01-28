@@ -1,5 +1,6 @@
 package com.pocketree.app
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Patterns
 import android.widget.Toast
@@ -15,10 +16,12 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
 import androidx.core.widget.doAfterTextChanged
+import kotlin.jvm.java
 
 class CreateUserActivity: AppCompatActivity() {
     private val client= OkHttpClient()
     private lateinit var binding: ActivityCreateUserBinding
+    private val baseUrl = "http://10.0.2.2:5042/api/User"
 
     override fun onCreate(savedInstanceState: Bundle?){
         super.onCreate(savedInstanceState)
@@ -37,6 +40,11 @@ class CreateUserActivity: AppCompatActivity() {
     }
 
     private fun initButton() {
+        binding.backButton.setOnClickListener {
+            val backIntent= Intent(this, LoginActivity::class.java)
+            startActivity(backIntent)
+        }
+
         binding.createButton.setOnClickListener {
             val username = binding.username.text.toString().trim()
             val email = binding.email.text.toString()
@@ -145,7 +153,7 @@ class CreateUserActivity: AppCompatActivity() {
 
         // build the request
         val request= Request.Builder()
-            .url("http://10.0.2.2:5000/api/User/RegisterApi")
+            .url("$baseUrl/RegisterApi")
             .post(body)
             .build()
 

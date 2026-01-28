@@ -38,44 +38,6 @@ class UserViewModel: ViewModel() {
     private val taskBaseUrl = "http://10.0.2.2:5042/api/Task"
     private val userBaseUrl = "http://10.0.2.2:5042/api/User"
 
-    fun loginUser(credentials: JSONObject) {
-        val body = credentials.toString()
-            .toRequestBody("application/json; charset=utf-8".toMediaType())
-        val request = Request.Builder()
-            .url("$userBaseUrl/User/LoginApi")
-            .post(body)
-            .build()
-
-        client.newCall(request).enqueue(object: Callback {
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val jsonResponse = response.body?.string()
-                    val data = gson.fromJson(jsonResponse, LoginResponse::class.java)
-
-                    // save the token to the Singleton so the Interceptor can find it
-                    NetworkClient.setToken(NetworkClient.context, data.token)
-
-                    // update UI livedata
-                    username.postValue(data.user.username)
-                    totalCoins.postValue(data.user.totalCoins)
-                    levelName.postValue(data.levelName)
-                    tasks.postValue(data.tasks)
-
-                    // fetch tasks now that user is logged in
-//                    fetchDailyTasks()
-
-                    // set defaults for fields not in login resposne
-                    isWithered.postValue(false)
-                    levelImageUrl.postValue("")
-                }
-            }
-
-            override fun onFailure(call: Call, e: okio.IOException) {
-                e.printStackTrace()
-            }
-        })
-    }
-
     fun fetchUserProfile() {
 //        isLoading.postValue(true) // start loading
 
@@ -94,10 +56,16 @@ class UserViewModel: ViewModel() {
                     // update all LiveData at once
                     username.postValue(user.username)
                     totalCoins.postValue(user.totalCoins)
+                    currentLevelID.postValue(user.currentLevelId)
                     levelName.postValue(user.levelName)
                     levelImageUrl.postValue(user.levelImageUrl)
                     isWithered.postValue(user.isWithered)
-                    tasks.postValue(user.tasks)
+
+                    // fetch tasks and badges after profile is loaded
+                    fetchDailyTasks()
+                    fetchEarnedBadges()
+                } else {
+                    errorMessage.postValue("Failed to load profile.")
                 }
             }
 
@@ -137,7 +105,7 @@ class UserViewModel: ViewModel() {
 
         val requestBody = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("taskId", taskId.toString())
+            .addFormDataPart("TaskID", taskId.toString())
             // represents one section within multipart body (ie a file or a form field)
             .addFormDataPart("photo", "upload.jpg",
                 imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull()))
@@ -156,7 +124,7 @@ class UserViewModel: ViewModel() {
                     // we tell Gson to treat the JSOn as a generic Map
 
                     // check if verification was successful
-                    if (result["success"] == "true") {
+                    if (result["success"] == true) {
                         completeTaskDirectly(taskId) // record task completion
                     } else {
                         isLoading.postValue(false)  // stop loading on verification failure
@@ -179,7 +147,7 @@ class UserViewModel: ViewModel() {
 
     fun completeTaskDirectly(taskId: Int) {
         val json = JSONObject().apply{
-            put("TaskId", taskId)
+            put("TaskID", taskId)
         }
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
@@ -252,44 +220,43 @@ class UserViewModel: ViewModel() {
     }
 
     // if we're putting the logic in frontend
-    fun getRewardForLevel(levelId: Int): Reward? {
-        return when (levelId) {
-            2 -> Reward(
-                levelName = "Sapling",
-                badge = Badge(101, "Sapling Badge", "Level Up", "none", 0),
-                voucher = Voucher(101, "Voucher 1", "none")
-            )
-
-            3 -> Reward(
-                levelName = "Mighty Oak",
-                badge = Badge(102, "Oak Badge", "Level Up", "none", 0),
-                voucher = Voucher(102, "Voucher 2", "none")
-            )
-            else -> null
-        }
-    }
-
-    // kiv remove
-    fun fetchRecentBadges() {
-        val request = Request.Builder()
-            .url("$userBaseUrl/GetRecentBadgesApi")
-            .get()
-            .build()
-
-        client.newCall(request).enqueue(object: Callback {
-            override fun onResponse(call: Call, response:Response) {
-                if (response.isSuccessful) {
-                    val json = response.body?.string()
-                    val badgeListType = object: TypeToken<List<Badge>>() {}.type
-                    val fetchedBadges: List<Badge> = gson.fromJson(json, badgeListType)
-                    recentBadges.postValue(fetchedBadges)
-                }
-            }
-            override fun onFailure(call:Call, e:IOException) {e.printStackTrace()}
-        })
-    }
+//    fun getRewardForLevel(levelId: Int): Reward? {
+//        return when (levelId) {
+//            2 -> Reward(
+//                levelName = "Sapling",
+//                badge = Badge(101, "Sapling Badge", "Level Up", "none", 0),
+//                voucher = Voucher(101, "Voucher 1", "none")
+//            )
+//
+//            3 -> Reward(
+//                levelName = "Mighty Oak",
+//                badge = Badge(102, "Oak Badge", "Level Up", "none", 0),
+//                voucher = Voucher(102, "Voucher 2", "none")
+//            )
+//            else -> null
+//        }
+//    }
 
     // kiv remove
+//    fun fetchRecentBadges() {
+//        val request = Request.Builder()
+//            .url("$userBaseUrl/GetRecentBadgesApi")
+//            .get()
+//            .build()
+//
+//        client.newCall(request).enqueue(object: Callback {
+//            override fun onResponse(call: Call, response:Response) {
+//                if (response.isSuccessful) {
+//                    val json = response.body?.string()
+//                    val badgeListType = object: TypeToken<List<Badge>>() {}.type
+//                    val fetchedBadges: List<Badge> = gson.fromJson(json, badgeListType)
+//                    recentBadges.postValue(fetchedBadges)
+//                }
+//            }
+//            override fun onFailure(call:Call, e:IOException) {e.printStackTrace()}
+//        })
+//    }
+
     fun fetchEarnedBadges() {
         val request = Request.Builder()
             .url("$userBaseUrl/GetEarnedBadgesApi")
@@ -308,6 +275,7 @@ class UserViewModel: ViewModel() {
                     earnedBadges.postValue(displayBadges)
                 }
             }
+            override fun onFailure(call:Call, e:IOException) {e.printStackTrace()}
         })
     }
 
@@ -321,3 +289,5 @@ class UserViewModel: ViewModel() {
         tasks.value=emptyList()
     }
 }
+
+// to implement logic of viewing all badges with "See More" later on

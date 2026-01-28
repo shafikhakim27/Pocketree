@@ -7,6 +7,8 @@ import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.registerReceiver
+import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
@@ -28,10 +30,11 @@ class MainActivity : AppCompatActivity() {
         val token = NetworkClient.loadToken(this)
 
         // check login status
-        if (token == null) {
+        if (token.isNullOrEmpty() || token == "no_token") {
             val intent = Intent(this, LoginActivity::class.java)
             startActivity(intent)
             finish()
+            return // stop execution here
         }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -45,7 +48,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel = ViewModelProvider(this).get(UserViewModel::class.java)
-//        viewModel.fetchUserProfile()
+        viewModel.fetchUserProfile()
 
         setupNavigation()
     }

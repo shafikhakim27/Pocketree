@@ -58,7 +58,7 @@ class HomeFragment: Fragment() {
         binding.recyclerViewBadges.layoutManager = LinearLayoutManager(requireContext(),
             LinearLayoutManager.HORIZONTAL, false)
 
-        sharedViewModel.fetchRecentBadges() // fetch data
+        sharedViewModel.fetchEarnedBadges() // fetch data
         sharedViewModel.recentBadges.observe(viewLifecycleOwner) { badges ->
             if (badges.isNullOrEmpty()) {
                 binding.badgesHeader.visibility = View.GONE
@@ -108,4 +108,6 @@ class HomeFragment: Fragment() {
         super.onDestroyView()
         _binding = null
     }
+
+    // need to work on getting the tree images up (finish Redeem portion first)
 }

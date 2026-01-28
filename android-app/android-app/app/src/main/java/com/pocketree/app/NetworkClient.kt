@@ -5,7 +5,6 @@ import android.content.Intent
 import com.google.gson.Gson
 import okhttp3.OkHttpClient
 
-
 // interceptor object for Json Web Token
 
 object NetworkClient {

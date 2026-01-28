@@ -24,7 +24,7 @@ class RedeemFragment: Fragment() {
 
     private val sharedViewModel: UserViewModel by activityViewModels()
     private val client = NetworkClient.okHttpClient
-    private val baseUrl = "http://10.0.2.2:5000/api/Task"
+    private val baseUrl = "http://10.0.2.2:5042/api/Task"
 
     // mock data for now
     private val skinList = listOf(
