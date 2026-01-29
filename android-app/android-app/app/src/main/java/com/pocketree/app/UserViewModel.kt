@@ -1,14 +1,20 @@
 package com.pocketree.app
 
+import android.os.Looper
+import android.os.Handler
+import android.util.Log
+import androidx.core.os.postDelayed
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.gson.reflect.TypeToken
+import com.pocketree.app.NetworkClient.gson
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import kotlin.jvm.java
 
 // creation of a SharedViewModel to enable passing of data between fragments
 
@@ -23,8 +29,8 @@ class UserViewModel: ViewModel() {
     val levelImageUrl = MutableLiveData<String>()
     val isWithered = MutableLiveData<Boolean>()
     val tasks = MutableLiveData<List<Task>>()
-    val recentBadges = MutableLiveData<List<Badge>>()
     val earnedBadges = MutableLiveData<List<Badge>>()
+    val redeemSuccessEvent = MutableLiveData<String?>()
 
     // event livedata
     val levelUpEvent = MutableLiveData<Boolean>()
@@ -60,11 +66,18 @@ class UserViewModel: ViewModel() {
                     errorMessage.postValue("Failed to load profile.")
                 }
             }
-
             override fun onFailure(call: Call, e: okio.IOException) {
                 e.printStackTrace()
             }
         })
+    }
+
+    // trial
+    fun initUserData(name: String, coins: Int, level: Int, withered: Boolean) {
+        username.value = name
+        totalCoins.value = coins
+        currentLevelID.value = level
+        isWithered.value = withered
     }
 
     // helper function
@@ -79,6 +92,7 @@ class UserViewModel: ViewModel() {
     }
 
     // used for passing data when moving from Login to Main activity
+    // for use by fragments
     fun updateUserData(
         username: String,
         totalCoins: Int,
@@ -96,15 +110,16 @@ class UserViewModel: ViewModel() {
         this.levelImageUrl.value = levelImageUrl ?: ""
 
         // Now that the main profile is set, go get the rest
-        fetchDailyTasks()
-        fetchEarnedBadges()
+        if (tasks.value.isNullOrEmpty()){
+            fetchDailyTasks()
+            fetchEarnedBadges()
+        }
     }
 
     fun fetchDailyTasks(){
-        val emptyBody = "".toRequestBody("application/json".toMediaTypeOrNull())
-
         val request = Request.Builder()
             .url("${taskBaseUrl}/GetDailyTasksApi")
+            .get()
             .build()
 
         client.newCall(request).enqueue(object : Callback {
@@ -112,93 +127,164 @@ class UserViewModel: ViewModel() {
                 val responseBody = response.body?.string() ?: ""
 
                 if (response.isSuccessful) {
-//                    val json = response.body?.string()
                     val taskListType = object : TypeToken<List<Task>>() {}.type
                     // TypeToken helps to retain generic type information
                     val fetchedTasks: List<Task> = gson.fromJson(responseBody, taskListType)
                     tasks.postValue(fetchedTasks) // update UI automatically
+                } else {
+                    errorMessage.postValue("Failed to load tasks.")
                 }
             }
             override fun onFailure(call: Call, e: IOException) { e.printStackTrace() }
         })
     }
 
-    fun submitTaskWithImage (taskId: Int, imageBytes: ByteArray) {
-        isLoading.postValue(true) // start loading
+//    remove if merge submittaskapi with recordtaskcompletionapi
 
-        val requestBody = MultipartBody.Builder()
+//    fun submitTaskWithImage (taskId: Int, imageBytes: ByteArray) {
+//        isLoading.postValue(true) // start loading
+//
+//        val requestBody = MultipartBody.Builder()
+//            .setType(MultipartBody.FORM)
+//            .addFormDataPart("TaskId", taskId.toString())
+//            // represents one section within multipart body (ie a file or a form field)
+//            .addFormDataPart("photo", "upload.jpg",
+//                imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull()))
+//            .build()
+//
+//        val request = Request.Builder()
+//            .url("${taskBaseUrl}/SubmitTaskApi")
+//            .post(requestBody)
+//            .build()
+//
+//        client.newCall(request).enqueue(object: Callback {
+//            override fun onResponse(call: Call, response: Response) {
+//                if (response.isSuccessful) {
+//                    val jsonResponse = response.body?.string()
+//                    val result = gson.fromJson(jsonResponse, Map::class.java)
+//                    // we tell Gson to treat the JSOn as a generic Map
+//
+//                    // check if verification was successful
+//                    if (result["success"] == true) {
+//                        completeTaskDirectly(taskId) // record task completion
+//                    } else {
+//                        isLoading.postValue(false)  // stop loading on verification failure
+//                        // show error message for unsuccessful verification
+//                        errorMessage.postValue("Image verification failed. Please try again.")
+//                    }
+//                } else {
+//                    isLoading.postValue(false) // stop loading on error
+//                    // handle verification failure
+//                    errorMessage.postValue("Verification failed. Please try again.")
+//                }
+//            }
+//            override fun onFailure(call: Call, e: IOException) {
+//                isLoading.postValue(false) // stop loading on error
+//                errorMessage.postValue("Network error. Please check your connection.")
+//                e.printStackTrace()
+//            }
+//        })
+//    }
+//
+//    fun completeTaskDirectly(taskId: Int) {
+//        val json = JSONObject().apply{
+//            put("TaskId", taskId)
+//        }
+//        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+//
+//        val request = Request.Builder()
+//            .url("$taskBaseUrl/RecordTaskCompletionApi")
+//            .post(body)
+//            .build()
+//
+//        client.newCall(request).enqueue(object: Callback {
+//            override fun onResponse(call: Call, response: Response) {
+//                val responseBody = response.body?.string()
+//                if (response.isSuccessful && !responseBody.isNullOrEmpty()) {
+//                    try {
+//                        // instant revival on UI if plant is withered
+//                        isWithered.postValue(false)
+//
+//                        // handle level up event
+//                        val result = gson.fromJson(responseBody, TaskCompletionResponse::class.java)
+//
+//                        totalCoins.postValue(result.newCoins)
+//                        currentLevelID.postValue(result.newLevel)
+//                        isWithered.postValue(result.isWithered)
+//
+//                        if (result.levelUp) {
+//                            levelUpEvent.postValue(true)
+//                        }
+//
+//                        fetchUserProfile() // refresh profile to get new total coins and level name
+//                        fetchDailyTasks() // refresh list so the task shows as completed
+//                    } catch (e:Exception) {
+//                        errorMessage.postValue("Error processing completion")
+//                    }
+//                } else {
+//                    errorMessage.postValue("Failed to complete task")
+//                }
+//            }
+//            override fun onFailure(call: Call, e: IOException) {
+//                errorMessage.postValue("Network error")
+//            }
+//        })
+//    }
+
+    // trial
+    fun submitTask(taskId: Int, imageBytes: ByteArray? = null) {
+        isLoading.postValue(true)
+
+        val requestBodyBuilder = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("TaskID", taskId.toString())
-            // represents one section within multipart body (ie a file or a form field)
-            .addFormDataPart("photo", "upload.jpg",
-                imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull()))
-            .build()
+            .addFormDataPart("TaskId", taskId.toString())
 
-        val request = Request.Builder()
-            .url("${taskBaseUrl}/SubmitTaskApi")
-            .post(requestBody)
-            .build()
-
-        client.newCall(request).enqueue(object: Callback {
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    val jsonResponse = response.body?.string()
-                    val result = gson.fromJson(jsonResponse, Map::class.java)
-                    // we tell Gson to treat the JSOn as a generic Map
-
-                    // check if verification was successful
-                    if (result["success"] == true) {
-                        completeTaskDirectly(taskId) // record task completion
-                    } else {
-                        isLoading.postValue(false)  // stop loading on verification failure
-                        // show error message for unsuccessful verification
-                        errorMessage.postValue("Image verification failed. Please try again.")
-                    }
-                } else {
-                    isLoading.postValue(false) // stop loading on error
-                    // handle verification failure
-                    errorMessage.postValue("Verification failed. Please try again.")
-                }
-            }
-            override fun onFailure(call: Call, e: IOException) {
-                isLoading.postValue(false) // stop loading on error
-                errorMessage.postValue("Network error. Please check your connection.")
-                e.printStackTrace()
-            }
-        })
-    }
-
-    fun completeTaskDirectly(taskId: Int) {
-        val json = JSONObject().apply{
-            put("TaskID", taskId)
+        // Only add photo if it exists
+        imageBytes?.let {
+            requestBodyBuilder.addFormDataPart("photo", "upload.jpg",
+                it.toRequestBody("image/jpeg".toMediaTypeOrNull()))
         }
-        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
-            .url("$taskBaseUrl/RecordTaskCompletionApi")
-            .post(body)
+            .url("${taskBaseUrl}/SubmitTaskWithVerification")
+            .post(requestBodyBuilder.build())
             .build()
 
-        client.newCall(request).enqueue(object: Callback {
+        client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
                 isLoading.postValue(false)
-                if (response.isSuccessful) {
-                    // instant revival on UI if plant is withered
-                    isWithered.postValue(false)
+                val bodyString = response.body?.string()
 
-                    // handle level up event
-                    val jsonResponse = response.body?.string()
-                    val result = gson.fromJson(jsonResponse, Map::class.java)
+                if (response.isSuccessful && !bodyString.isNullOrEmpty()) {
+                    val result = gson.fromJson(bodyString, TaskCompletionResponse::class.java)
 
-                    if (result["levelUp"]==true) {
-                        levelUpEvent.postValue(true)
-                    }
+                    // Update everything at once
+                    totalCoins.postValue(result.newCoins)
+                    currentLevelID.postValue(result.newLevel)
+                    isWithered.postValue(result.isWithered)
 
-                    fetchUserProfile() // refresh profile to get new total coins and level name
-                    fetchDailyTasks() // refresh list so the task shows as completed
+                    val currentTasks = tasks.value?.toMutableList() // get current list of tasks
+                    currentTasks?.find{ it.taskID == taskId }?.isCompleted = true
+                    // find the tasks we just finished and update it in memory
+
+                    tasks.postValue(currentTasks) // update UI so it shows "Completed"
+
+                    if (result.levelUp) levelUpEvent.postValue(true)
+
+                    fetchEarnedBadges()
+
+                    //Handler(Looper.getMainLooper()).postDelayed({
+                        // fetchDailyTasks()
+                    //}, 1500) // delay api calls
+                } else {
+                    errorMessage.postValue("Failed: $bodyString")
                 }
             }
-            override fun onFailure(call: Call, e: IOException) { e.printStackTrace() }
+
+            override fun onFailure(call: Call, e: IOException) {
+                isLoading.postValue(false)
+                errorMessage.postValue("Network error.")
+            }
         })
     }
 
@@ -235,6 +321,42 @@ class UserViewModel: ViewModel() {
                 }
             }
             override fun onFailure(call:Call, e:IOException) {e.printStackTrace()}
+        })
+    }
+
+    // check back again
+    fun redeemSkin(skinId:Int) {
+        val json = JSONObject().apply {
+            put("SkinID", skinId)
+        }
+
+        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+
+        val request = Request.Builder()
+            .url("$taskBaseUrl/RedeemSkinApi") //check again
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object:Callback {
+            override fun onResponse(call:Call, response:Response) {
+                if (response.isSuccessful) {
+                    val json = response.body?.string()
+                    val result = gson.fromJson(json, Map::class.java)
+
+                    val newBalance = (result["newCoins"] as Double).toInt()
+                    totalCoins.postValue(newBalance)
+
+                    redeemSuccessEvent.postValue("Skin redeemed successfully!")
+
+                    //fetchUserProfile()
+                } else {
+                    errorMessage.postValue("Insufficient coins or server error.")
+                }
+            }
+            override fun onFailure(call:Call, e:IOException) {
+                errorMessage.postValue("Network error.")
+            }
         })
     }
 

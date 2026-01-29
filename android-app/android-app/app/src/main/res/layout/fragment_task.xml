@@ -53,14 +53,23 @@
         android:padding="8dp"
         android:visibility="gone"/>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerViewTasks"
+    <!--to allow users to refresh the task lists if page seems to be hanging during image verification-->
+    <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
+        android:id="@+id/swipeRefresh"
         android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="2"
-        android:padding="8dp"/>
-    <!--acts as a container that will "inflate" and display-->
-    <!--multiple instances of item_task.xml (one for each task)-->
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewTasks"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:padding="8dp"/>
+        <!--acts as a container that will "inflate" and display-->
+        <!--multiple instances of item_task.xml (one for each task)-->
+
+    </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
+
 
     <LinearLayout
         android:id="@+id/loadingOverlay"

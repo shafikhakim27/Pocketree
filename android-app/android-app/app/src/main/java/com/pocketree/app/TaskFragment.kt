@@ -20,6 +20,7 @@ class TaskFragment: Fragment() {
 
     private val sharedViewModel: UserViewModel by activityViewModels()
     private var currentProcessingTaskId: Int? = null
+    private lateinit var taskAdapter: TaskAdapter
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -29,28 +30,25 @@ class TaskFragment: Fragment() {
         return binding.root
     }
 
-    private val getPhoto = registerForActivityResult(ActivityResultContracts
-        .TakePicturePreview()) { bitmap -> bitmap?.let { // camera returns a bitmap if photo is taken
-            val stream = ByteArrayOutputStream()
-            it.compress(Bitmap.CompressFormat.JPEG, 90, stream)
-            // converting the image taken into data (90 to balance quality and upload speed)
-            currentProcessingTaskId?.let{ id ->
-                sharedViewModel.submitTaskWithImage(id, stream.toByteArray())
-                // this part checks if there is an active task ID
-                // and converts that memory stream into a Byte Array and tells userViewModel to upload it
-            }
-        }
-    }
-
     override fun onViewCreated(view: View, savedInstanceState:Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // whenever the list changes in ViewModel, update UI
         // initialising task adapter and recycler view
-        val adapter = TaskAdapter(emptyList()) { task -> onTaskClick(task) }
+        taskAdapter = TaskAdapter(emptyList()) { task -> onTaskClick(task) }
         binding.recyclerViewTasks.layoutManager = LinearLayoutManager(context)
-        binding.recyclerViewTasks.adapter = adapter
+        binding.recyclerViewTasks.adapter = taskAdapter
 
+        // set up Swipe Refresh
+        binding.swipeRefresh.setOnRefreshListener {
+            sharedViewModel.fetchDailyTasks()
+            binding.swipeRefresh.isRefreshing = false
+        }
+
+        // start observers (update UI if anything in View Model changes)
+        observeViewModel()
+    }
+
+    private fun observeViewModel(){
         sharedViewModel.username.observe(viewLifecycleOwner) { name ->
             binding.accountInfo.text = "${name ?: "User"}"
         }
@@ -62,7 +60,9 @@ class TaskFragment: Fragment() {
 
         // observe the ViewModel and update the adapter when the list changes
         sharedViewModel.tasks.observe(viewLifecycleOwner) { tasks ->
-            adapter.updateTasks(tasks)
+            taskAdapter.updateTasks(tasks)
+
+            binding.swipeRefresh.isRefreshing = false // stop refresh animation
 
             if (tasks.isNotEmpty() && tasks.all { it.isCompleted }) {
                 binding.dailyStatusTv.text = "Daily tasks complete! Good job!"
@@ -74,6 +74,14 @@ class TaskFragment: Fragment() {
 
         sharedViewModel.isLoading.observe(viewLifecycleOwner){ loading ->
             binding.loadingOverlay.visibility = if (loading) View.VISIBLE else View.GONE
+        }
+
+        sharedViewModel.errorMessage.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                binding.swipeRefresh.isRefreshing = false // stop spinner on error
+                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                sharedViewModel.errorMessage.value = null
+            }
         }
 
         sharedViewModel.levelUpEvent.observe(viewLifecycleOwner) { levelUp ->
@@ -103,23 +111,29 @@ class TaskFragment: Fragment() {
                 // reset the event so the notice doesn't fire again
             }
         }
-
-        sharedViewModel.errorMessage.observe(viewLifecycleOwner) { message ->
-            message?.let {
-                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
-                sharedViewModel.errorMessage.value = null // clear message after showing
-            }
-        }
     }
 
     private fun onTaskClick(task: Task) {
-
         if (task.requiresEvidence) {
             currentProcessingTaskId = task.taskID
             getPhoto.launch(null) // opens camera
         } else {
             // no photo needed, just send completion into backend
-            sharedViewModel.completeTaskDirectly(task.taskID)
+            sharedViewModel.submitTask(task.taskID)
+        }
+    }
+
+    private val getPhoto = registerForActivityResult(ActivityResultContracts
+        .TakePicturePreview()) { bitmap -> bitmap?.let { // camera returns a bitmap if photo is taken
+            val stream = ByteArrayOutputStream()
+            it.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+            // converting the image taken into data (90 to balance quality and upload speed)
+
+            currentProcessingTaskId?.let{ id ->
+                sharedViewModel.submitTask(id, stream.toByteArray())
+                // this part checks if there is an active task ID
+                // and converts that memory stream into a Byte Array and tells userViewModel to upload it
+            }
         }
     }
 
