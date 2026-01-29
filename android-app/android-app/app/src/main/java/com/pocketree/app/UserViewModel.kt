@@ -3,7 +3,6 @@ package com.pocketree.app
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.gson.reflect.TypeToken
-import com.pocketree.app.NetworkClient.gson
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -38,8 +37,8 @@ class UserViewModel: ViewModel() {
     private val taskBaseUrl = "http://10.0.2.2:5042/api/Task"
     private val userBaseUrl = "http://10.0.2.2:5042/api/User"
 
+    // needed for updating whole UI (when task is completed, item redeemed etc)
     fun fetchUserProfile() {
-//        isLoading.postValue(true) // start loading
 
         val request = Request.Builder()
             .url("${userBaseUrl}/GetUserProfileApi")
@@ -48,20 +47,13 @@ class UserViewModel: ViewModel() {
 
         client.newCall(request).enqueue(object: Callback {
             override fun onResponse(call: Call, response: Response) {
-//                isLoading.postValue(false)
                 if (response.isSuccessful) {
                     val json = response.body?.string()
                     val user = gson.fromJson(json, User::class.java)
 
-                    // update all LiveData at once
-                    username.postValue(user.username)
-                    totalCoins.postValue(user.totalCoins)
-                    currentLevelID.postValue(user.currentLevelId)
-                    levelName.postValue(user.levelName)
-                    levelImageUrl.postValue(user.levelImageUrl)
-                    isWithered.postValue(user.isWithered)
+                    updateLiveData(user)
 
-                    // fetch tasks and badges after profile is loaded
+                    // fetch tasks and badges after user profile is loaded
                     fetchDailyTasks()
                     fetchEarnedBadges()
                 } else {
@@ -70,14 +62,45 @@ class UserViewModel: ViewModel() {
             }
 
             override fun onFailure(call: Call, e: okio.IOException) {
-//                isLoading.postValue(false)
                 e.printStackTrace()
             }
         })
     }
 
-    fun fetchDailyTasks(){
+    // helper function
+    private fun updateLiveData (user:User) {
+        // update all LiveData at once
+        username.postValue(user.username)
+        totalCoins.postValue(user.totalCoins)
+        currentLevelID.postValue(user.currentLevelId)
+        levelName.postValue(user.levelName)
+        levelImageUrl.postValue(user.levelImageUrl)
+        isWithered.postValue(user.isWithered)
+    }
 
+    // used for passing data when moving from Login to Main activity
+    fun updateUserData(
+        username: String,
+        totalCoins: Int,
+        currentLevelId: Int,
+        levelName: String,
+        isWithered: Boolean,
+        levelImageUrl: String?
+    ) {
+        // Push the values to LiveData
+        this.username.value = username
+        this.totalCoins.value = totalCoins
+        this.currentLevelID.value = currentLevelId
+        this.levelName.value = levelName
+        this.isWithered.value = isWithered
+        this.levelImageUrl.value = levelImageUrl ?: ""
+
+        // Now that the main profile is set, go get the rest
+        fetchDailyTasks()
+        fetchEarnedBadges()
+    }
+
+    fun fetchDailyTasks(){
         val emptyBody = "".toRequestBody("application/json".toMediaTypeOrNull())
 
         val request = Request.Builder()
@@ -160,43 +183,26 @@ class UserViewModel: ViewModel() {
             override fun onResponse(call: Call, response: Response) {
                 isLoading.postValue(false)
                 if (response.isSuccessful) {
-                    val jsonResponse = response.body?.string()
-                    val result = gson.fromJson(jsonResponse, Map::class.java)
-
                     // instant revival on UI if plant is withered
                     isWithered.postValue(false)
 
-                    // check for level up
-                    val isLevelUp = result["levelUp"] as? Boolean ?: false
-                    if (isLevelUp) {
+                    // handle level up event
+                    val jsonResponse = response.body?.string()
+                    val result = gson.fromJson(jsonResponse, Map::class.java)
+
+                    if (result["levelUp"]==true) {
                         levelUpEvent.postValue(true)
                     }
 
                     fetchUserProfile() // refresh profile to get new total coins and level name
                     fetchDailyTasks() // refresh list so the task shows as completed
                 }
-//                val responseBody = response.body
-//                try {
-//                    if (response.isSuccessful) {
-//                        val content = responseBody?.string() ?: ""
-//                        val jsonResponse = JSONObject(content)
-//                        val isLevelUp = jsonResponse.optBoolean("LevelUp", false)
-//                        val newCoinTotal = jsonResponse.optInt("TotalCoins", 0)
-//
-//                        handleTaskCompletion(isLevelUp, newCoinTotal)
-//                        fetchUserProfile() // refresh profile to get new total coins and level name
-//                        fetchDailyTasks() // refresh list so the task shows as completed
-//                    }
-//                } catch (e: Exception) {
-//                    e.printStackTrace()
-//                } finally {
-//                    responseBody?.close()
-//                }
             }
             override fun onFailure(call: Call, e: IOException) { e.printStackTrace() }
         })
     }
 
+    // needed for when levelling up - which badge and voucher is tied to which level
     fun getLevelDetails(): Triple<String, String, String>{
         return when (currentLevelID.value) {
             2 -> Triple ("Sapling", "Sapling Badge", "Voucher 1")
@@ -205,57 +211,10 @@ class UserViewModel: ViewModel() {
         }
     }
 
-    fun handleTaskCompletion(levelUp:Boolean, newCoinTotal:Int){
-        totalCoins.postValue(newCoinTotal)
-        if (levelUp) {
-            val nextLevel = (currentLevelID.value ?:1) + 1
-            currentLevelID.postValue(nextLevel)
-            levelUpEvent.postValue(true)
-        }
-    }
-
     // used for redemption of skins
     fun updateTotalCoins(newTotal:Int) {
         totalCoins.postValue(newTotal)
     }
-
-    // if we're putting the logic in frontend
-//    fun getRewardForLevel(levelId: Int): Reward? {
-//        return when (levelId) {
-//            2 -> Reward(
-//                levelName = "Sapling",
-//                badge = Badge(101, "Sapling Badge", "Level Up", "none", 0),
-//                voucher = Voucher(101, "Voucher 1", "none")
-//            )
-//
-//            3 -> Reward(
-//                levelName = "Mighty Oak",
-//                badge = Badge(102, "Oak Badge", "Level Up", "none", 0),
-//                voucher = Voucher(102, "Voucher 2", "none")
-//            )
-//            else -> null
-//        }
-//    }
-
-    // kiv remove
-//    fun fetchRecentBadges() {
-//        val request = Request.Builder()
-//            .url("$userBaseUrl/GetRecentBadgesApi")
-//            .get()
-//            .build()
-//
-//        client.newCall(request).enqueue(object: Callback {
-//            override fun onResponse(call: Call, response:Response) {
-//                if (response.isSuccessful) {
-//                    val json = response.body?.string()
-//                    val badgeListType = object: TypeToken<List<Badge>>() {}.type
-//                    val fetchedBadges: List<Badge> = gson.fromJson(json, badgeListType)
-//                    recentBadges.postValue(fetchedBadges)
-//                }
-//            }
-//            override fun onFailure(call:Call, e:IOException) {e.printStackTrace()}
-//        })
-//    }
 
     fun fetchEarnedBadges() {
         val request = Request.Builder()

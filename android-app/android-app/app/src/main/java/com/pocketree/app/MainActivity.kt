@@ -7,15 +7,11 @@ import android.content.IntentFilter
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.registerReceiver
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
-import androidx.navigation.NavController
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
-import com.google.gson.Gson
 import com.pocketree.app.databinding.ActivityMainBinding
 
 class MainActivity : AppCompatActivity() {
@@ -24,18 +20,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        // initialise NetworkClient context (safety net)
-        NetworkClient.context = this.applicationContext
-        val token = NetworkClient.loadToken(this)
-
-        // check login status
-        if (token.isNullOrEmpty() || token == "no_token") {
-            val intent = Intent(this, LoginActivity::class.java)
-            startActivity(intent)
-            finish()
-            return // stop execution here
-        }
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         enableEdgeToEdge()
@@ -48,9 +32,40 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel = ViewModelProvider(this).get(UserViewModel::class.java)
-        viewModel.fetchUserProfile()
-
+//        viewModel.fetchUserProfile()
+        initUser()
         setupNavigation()
+    }
+
+    private fun initUser(){
+        // initialise NetworkClient context (safety net)
+        NetworkClient.context = this.applicationContext
+        val token = NetworkClient.loadToken(this)
+
+        // check login status
+        if (token.isNullOrEmpty() || token == "no_token") {
+            val intent = Intent(this, LoginActivity::class.java)
+            startActivity(intent)
+            finish()
+            return // stop execution here
+        }
+
+        val username = intent.getStringExtra("username")
+        if (username != null) {
+            // manually push intent data into ViewModel
+            viewModel.updateUserData(
+                username = username,
+                totalCoins = intent.getIntExtra("totalCoins", 0),
+                currentLevelId = intent.getIntExtra("currentLevelId", 1),
+                levelName = intent.getStringExtra("levelName") ?: "Seedling",
+                isWithered = intent.getBooleanExtra("isWithered", false),
+                levelImageUrl = intent.getStringExtra("levelImageUrl")
+            )
+        } else {
+            // fallback - in case intent is empty (e.g. app was killed/restored),
+            // fetch fresh data from the server using the token
+            viewModel.fetchUserProfile()
+        }
     }
 
     private fun setupNavigation() {

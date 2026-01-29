@@ -1,7 +1,5 @@
 package com.pocketree.app
 
-import android.R.attr.bitmap
-import android.R.attr.password
 import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -13,21 +11,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.pocketree.app.Task
 import com.pocketree.app.databinding.FragmentTaskBinding
-import okhttp3.Call
-import okhttp3.Callback
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import okhttp3.Response
-import org.json.JSONObject
 import java.io.ByteArrayOutputStream
-import java.io.IOException
-import kotlin.math.PI
 
 class TaskFragment: Fragment() {
     private var _binding: FragmentTaskBinding? = null
@@ -128,7 +113,6 @@ class TaskFragment: Fragment() {
     }
 
     private fun onTaskClick(task: Task) {
-        val userId = 1 // logic to get the current user ID
 
         if (task.requiresEvidence) {
             currentProcessingTaskId = task.taskID

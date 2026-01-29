@@ -2,7 +2,9 @@ package com.pocketree.app
 
 import android.content.Context
 import android.content.Intent
+import com.google.gson.FieldNamingPolicy
 import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import okhttp3.OkHttpClient
 
 // interceptor object for Json Web Token
@@ -28,7 +30,11 @@ object NetworkClient {
             response
         }.build()
 
-    val gson = Gson()
+    // val gson = Gson()
+    // trial
+    val gson = GsonBuilder()
+        .setFieldNamingPolicy(FieldNamingPolicy.IDENTITY) // Or check if your backend is sending camelCase
+        .create()
 
     fun setToken(context:Context, token: String?) {
         userToken = token
