@@ -133,25 +133,33 @@ namespace ADproject.Controllers
         [HttpGet("GetUserProfileApi")]
         public async Task<IActionResult> GetUserProfileApi()
         {
-            var user = await db.Users
-                .Include(u => u.Trees) 
-                .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
-            if (user == null) return NotFound();
-            
-            // Get active tree
-            var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
+            var userData = await db.Users
+                    .AsNoTracking()
+                    .Where(u => u.Username == User.Identity.Name)
+                    .Select(u => new
+                    {
+                        u.Username,
+                        u.TotalCoins,
+                        u.CurrentLevelID,
+                        LevelName = u.CurrentLevel.LevelName,
+                        LevelImageURL = u.CurrentLevel.LevelImageURL,
+                        ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted), // Get active tree
+                    })
+                    .FirstOrDefaultAsync();
+
+            if (userData == null) return NotFound();
 
             var userProfile = new UserProfileViewModel
             {
-                Username = user.Username,
-                TotalCoins = user.TotalCoins,
-                LevelName = user.CurrentLevel?.LevelName ?? "Seedling",
-                LevelID = user.CurrentLevelID,
-                LevelImageURL = user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png",
-                IsWithered = activeTree?.IsWithered ?? false 
+                Username = userData.Username,
+                TotalCoins = userData.TotalCoins,
+                LevelName = userData.LevelName ?? "Seedling",
+                LevelID = userData.CurrentLevelID,
+                LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
+                IsWithered = userData.ActiveTree?.IsWithered ?? false
             };
 
-            return Ok(userProfile);
+            return Ok(new { User = userProfile });
         }
 
         [Authorize]
@@ -159,11 +167,17 @@ namespace ADproject.Controllers
         public async Task<IActionResult> GetLatestBadgesApi()
         {
             var username = User.Identity?.Name;
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == username);
-            if (user == null) return Unauthorized();
+            var userId = await db.Users
+                .AsNoTracking()
+                .Where(u => u.Username == username)
+                .Select(u => u.UserID)
+                .FirstOrDefaultAsync();
+
+            if (userId == 0) return Unauthorized();
 
             var latestBadges = await db.UserBadges
-                .Where(ub => ub.UserID == user.UserID)
+                .AsNoTracking()
+                .Where(ub => ub.UserID == userId)
                 .OrderByDescending(ub => ub.DateEarned) // From latest to oldest
                 .Take(3) // For now Android just display 3 latest badges
                 .Select(ub => new

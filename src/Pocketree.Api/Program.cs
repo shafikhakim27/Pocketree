@@ -173,6 +173,13 @@ async System.Threading.Tasks.Task initDB(IServiceProvider services)
                 new Badge { BadgeID = 5, BadgeName = "Eco Warrior", Description = "This badge is awarded to player who completed 10 Hard tasks", BadgeImageURL = "", CriteriaType = "TaskCount", RequiredDifficulty = "Hard", RequiredCount = 10 }
             );
 
+            // Add Skins
+            ctx.Skins.AddRange(
+                new Skin { SkinID = 1, SkinName = "Item1", SkinPrice = 10, ImageURL = "" },
+                new Skin { SkinID = 2, SkinName = "Item2", SkinPrice = 20, ImageURL = "" },
+                new Skin { SkinID = 3, SkinName = "Item3", SkinPrice = 30, ImageURL = "" }
+            );
+
             // Add initial Test User 
             ctx.Users.Add(new User
             {

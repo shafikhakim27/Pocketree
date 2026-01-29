@@ -1,10 +1,17 @@
 package com.pocketree.app
 
+import android.R.attr.data
+import android.R.attr.password
+import android.R.attr.text
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log.e
+import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doAfterTextChanged
@@ -112,21 +119,18 @@ class LoginActivity: AppCompatActivity() {
                         // get information of user from database
                         val loginData = gson.fromJson(responseBody, LoginResponse::class.java)
 
-                        if (loginData?.user != null) {
-                            // save the token to the Singleton so the Interceptor can find it
-                            NetworkClient.setToken(NetworkClient.context, loginData.token)
+                        // save the token to the Singleton so the Interceptor can find it
+                        // NetworkClient.setToken(NetworkClient.context, loginData.token ?: "")
 
-                            runOnUiThread {
-                                loginUser(loginData.user)
-                            }
-                        } else {
-                            runOnUiThread {
-                                Toast.makeText(this@LoginActivity,
-                                    "Login failed: User data not found",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                            }
+                        // trial
+                        NetworkClient.setToken(NetworkClient.context, loginData.token)
+
+                        runOnUiThread {
+                            loginUser(loginData.user)
                         }
+                        // then jump direct to the catch(e:Exception) line!
+                        fetchUserProfile()
+                        // end of trial
                     } catch (e: Exception) {
                         runOnUiThread {
                             Toast.makeText(
@@ -141,9 +145,48 @@ class LoginActivity: AppCompatActivity() {
                         // user not authorised or not found
                         Toast.makeText(
                             this@LoginActivity,
-                            "Invalid username or password",
+                            "Invalid username or password, please try again",
                             Toast.LENGTH_SHORT
                         ).show()
+                    }
+                }
+            }
+        })
+    }
+
+    private fun fetchUserProfile() {
+        val token = NetworkClient.loadToken(this)
+
+        val request = Request.Builder()
+            .url("$baseUrl/GetUserProfileApi")
+            .addHeader("Authorization", "Bearer $token")
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                Toast.makeText(this@LoginActivity,
+                    "Network error",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                if (response.isSuccessful && responseBody != null) {
+                    try {
+                        // Map the response to your User data class
+                        val userProfile = gson.fromJson(responseBody, User::class.java)
+                        runOnUiThread {
+                            loginUser(userProfile)
+                        }
+                    } catch (e:Exception) {
+                        runOnUiThread {
+                            Toast.makeText(this@LoginActivity,
+                                "Error in server response",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
                     }
                 }
             }
@@ -160,10 +203,10 @@ class LoginActivity: AppCompatActivity() {
             putExtra("isWithered", user.isWithered)
             putExtra("levelImageUrl", user.levelImageUrl)
         }
-        Toast.makeText(this@LoginActivity,
-            "Welcome ${user.username}!",
-            Toast.LENGTH_SHORT
-        ).show()
+//        Toast.makeText(this@LoginActivity,
+//            "Welcome ${user.username}!",
+//            Toast.LENGTH_SHORT
+//        ).show()
         startActivity(intent)
         finish() // close LoginActivity so user can't go back
     }
@@ -186,3 +229,7 @@ class LoginActivity: AppCompatActivity() {
         }
     }
 }
+
+
+
+// add logic later on for wrong password to show error message instead of toast also

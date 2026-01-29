@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration.UserSecrets;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.Eventing.Reader;
 using System.Threading.Tasks;
 using Task = ADproject.Models.Entities.Task;
@@ -29,7 +30,7 @@ namespace ADproject.Controllers
         }
 
         [Authorize]
-        [HttpPost("GetDailyTasksApi")]
+        [HttpGet("GetDailyTasksApi")]
         public async Task<IActionResult> GetDailyTasksApi()
         {
             var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
@@ -136,23 +137,38 @@ namespace ADproject.Controllers
             using var stream = photo.OpenReadStream();
             bool isVerified = await mlService.ClassifyImageAsync(stream, task.Keyword);
 
-            if (isVerified)
-            {
-                return Ok(new { success = "true" }); 
-            }
-            return BadRequest("Verification failed. Please try again.");
+            return Ok(new { success = isVerified }); 
         }
 
         [Authorize]
-        [HttpPost("UpdateCoinsApi")]
-        public async Task<IActionResult> UpdateCoinsApi([FromBody] int CoinsBalance)
+        [HttpPost("RedeemSkinApi")]
+        public async Task<IActionResult> RedeemSkinApi([FromBody] int skinId)
         {
-            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            var user = await db.Users
+                 .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
             if (user == null) return Unauthorized();
 
-            user.TotalCoins = CoinsBalance;
+            var skin = await db.Skins.FindAsync(skinId);
+            if (skin == null) return BadRequest("Requested skin cannot be found.");
+
+            if (user.TotalCoins < skin.SkinPrice) return BadRequest("Insufficient coins.");
+
+            // Redemption takes place
+            user.TotalCoins -= skin.SkinPrice;
+
+            // Update UserSkins 
+            var userSkinEntry = new UserSkin
+                {
+                    UserID = user.UserID,
+                    SkinID = skinId,
+                    RedemptionDate = DateTime.UtcNow,
+                    IsEquipped = true
+                };
+
+            db.UserSkins.Add(userSkinEntry);
             await db.SaveChangesAsync();
-            return Ok(new { CoinsUpdated = "true" });
+
+            return Ok(new { NewCoins = user.TotalCoins });
         }
 
         // Private function (not API) for backend use
