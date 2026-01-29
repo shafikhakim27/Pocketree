@@ -5,6 +5,7 @@ import android.R.attr.password
 import android.R.attr.text
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log.e
 import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
@@ -119,9 +120,17 @@ class LoginActivity: AppCompatActivity() {
                         val loginData = gson.fromJson(responseBody, LoginResponse::class.java)
 
                         // save the token to the Singleton so the Interceptor can find it
-                        NetworkClient.setToken(NetworkClient.context, loginData.token ?: "")
+                        // NetworkClient.setToken(NetworkClient.context, loginData.token ?: "")
 
-                        fetchUserProfile()
+                        // trial
+                        NetworkClient.setToken(NetworkClient.context, loginData.token)
+
+                        runOnUiThread {
+                            loginUser(loginData.user)
+                        }
+                        // then jump direct to the catch(e:Exception) line!
+                        // fetchUserProfile()
+                        // end of trial
                     } catch (e: Exception) {
                         runOnUiThread {
                             Toast.makeText(
@@ -221,85 +230,6 @@ class LoginActivity: AppCompatActivity() {
     }
 }
 
-//    private fun observeViewModel() {
-//        sharedViewModel.username.observe(this) { username ->
-//            if (!username.isNullOrEmpty()) {
-//                Toast.makeText(this, "Welcome, $username!", Toast.LENGTH_SHORT).show()
-//                startActivity(Intent(this, MainActivity::class.java))
-//                finish()
-//            }
-//        }
-//    }
-
-//    private fun sendLoginRequest(username:String, password:String) {
-//        // create request body
-//        val json = JSONObject().apply{
-//            put("username", username)
-//            put("password", password)
-//        }
-//
-//        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-//
-//        // build the request
-//        val request= okhttp3.Request.Builder()
-//            .url("http://10.0.2.2:5000/api/User/LoginApi")
-//            .post(body)
-//            .build()
-//
-//        // execute asynchronously
-//        client.newCall(request).enqueue(object : Callback {
-//            override fun onFailure(call: Call, e: IOException) {
-//                // handle network failure ie no internet
-//                runOnUiThread {
-//                    Toast.makeText(this@LoginActivity,
-//                        "Network error",
-//                        Toast.LENGTH_LONG
-//                    ).show()
-//                }
-//            }
-//
-//            override fun onResponse(call: Call, response: Response) {
-//                val responseBody = response.body?.string()
-//
-//                runOnUiThread {
-//                    // login successful
-//                    if (response.isSuccessful && !responseBody.isNullOrEmpty()) {
-//                        try {
-//                            // get information of user from database
-//                            val loginData = Gson().fromJson(responseBody, LoginResponse::class.java)
-//
-//                            NetworkClient.setToken(this@LoginActivity, loginData.token)
-//
-//                            Toast.makeText(
-//                                this@LoginActivity,
-//                                "Welcome, ${loginData.user.username}!",
-//                                Toast.LENGTH_SHORT
-//                            ).show()
-//
-//                            val intent = Intent(this@LoginActivity, MainActivity::class.java).apply{
-//                                putExtra("USERNAME", loginData.user.username)
-//                            }
-//                            startActivity(intent)
-//                            finish() // close LoginActivity so user can't go back
-//                        } catch (e: Exception) {
-//                            // handle server error
-//                            Toast.makeText(this@LoginActivity,
-//                                "Error in server response",
-//                                Toast.LENGTH_SHORT
-//                            ).show()
-//                        }
-//                    } else {
-//                        // user not authorised or not found
-//                        Toast.makeText(
-//                            this@LoginActivity,
-//                            "Invalid username or password, please try again",
-//                            Toast.LENGTH_SHORT
-//                        ).show()
-//                    }
-//                }
-//            }
-//        });
-//    }
 
 
 // add logic later on for wrong password to show error message instead of toast also

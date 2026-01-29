@@ -3,13 +3,13 @@ package com.pocketree.app
 import com.google.gson.annotations.SerializedName
 
 data class LoginResponse (
-    @SerializedName("Token") val token: String?,
-    @SerializedName("UserID") val userID: Int
+    val token: String, // needed for interceptor to work
+    val user: User
 )
 
-    // shir og version
-//    val token: String, // needed for interceptor to work
-//    val user: User
+// bring back if needed
+//@SerializedName("Token") val token: String?,
+//@SerializedName("UserID") val userID: Int
 
     // fres version
 //    val userID: Int,
