@@ -101,7 +101,7 @@ class LoginActivity: AppCompatActivity() {
         if (isLoading) {
             binding.loadingProgressBar.visibility = android.view.View.VISIBLE
             binding.loginButton.isEnabled = false
-            binding.createAccountButton.isEnabled = false // Also disable register / 同时禁用注册按钮
+            binding.createAccountButton.isEnabled = false // Also disable register
             binding.loginButton.text = "Logging in..."
         } else {
             binding.loadingProgressBar.visibility = android.view.View.GONE
@@ -122,7 +122,7 @@ class LoginActivity: AppCompatActivity() {
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
-                    // 2. Hide Loading on Failure / 失败时隐藏加载
+                    // 2. Hide Loading on Failure
                     setLoadingState(false)
                     android.util.Log.e("LoginError", "Connection failed: ${e.message}")
                     Toast.makeText(this@LoginActivity, "Connection failed", Toast.LENGTH_SHORT).show()
@@ -188,7 +188,7 @@ class LoginActivity: AppCompatActivity() {
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
-                    setLoadingState(false) // Stop loading on error / 出错停止加载
+                    setLoadingState(false) // Stop loading on error
                     Toast.makeText(this@LoginActivity, "Network error fetching profile", Toast.LENGTH_SHORT).show()
                 }
             }
