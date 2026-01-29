@@ -25,7 +25,7 @@ class RedeemAdapter(
         holder.binding.itemPrice.visibility = View.VISIBLE
         holder.binding.itemStatus.visibility = View.GONE // shirley: i've changed this portion!
         // holder.binding.itemStatus.text = ""
-        holder.binding.root.alpha = 0.5f
+        // holder.binding.root.alpha = 0.5f - remove
 
         if (item is Skin){
             val skin = item

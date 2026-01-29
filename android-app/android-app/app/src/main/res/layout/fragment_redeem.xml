@@ -9,14 +9,16 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:padding="16dp">
 
         <TextView
             android:id="@+id/accountInfo"
-            android:layout_width="wrap_content"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:text="@string/account_info"
-            android:textSize="40sp"/>
+            android:textSize="24sp"/>
 
         <TextView
             android:id="@+id/coinDisplay"
@@ -32,7 +34,7 @@
         android:text="@string/redeem_header"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:layout_marginBottom="8dp"/>
+        android:padding="8dp" />
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -43,13 +45,14 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical">
+            android:orientation="vertical"
+            android:padding="8dp">
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Skins"
-                android:textSize="20sp"
+                android:text="@string/skins"
+                android:textSize="18sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp"/>
 
@@ -63,8 +66,8 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Vouchers"
-                android:textSize="20sp"
+                android:text="@string/vouchers"
+                android:textSize="18sp"
                 android:textStyle="bold"
                 android:layout_marginBottom="8dp"/>
 
@@ -77,13 +80,4 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
-    <!-- Shirley's portion, before 1.29-->
-
-<!--    <androidx.recyclerview.widget.RecyclerView-->
-<!--        android:id="@+id/recyclerViewRedeem"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="0dp"-->
-<!--        android:layout_weight="1.5"/>-->
-
 </LinearLayout>
