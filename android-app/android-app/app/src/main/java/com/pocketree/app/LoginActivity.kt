@@ -84,15 +84,33 @@ class LoginActivity: AppCompatActivity() {
                     put("Username", username)
                     put("Password", password)
                 }
+                // 1. Show Loading and Disable Button / 显示加载并禁用按钮
+                setLoadingState(true)
                 sendLoginRequest(credentials)
                 // sendLoginRequest(username, password)
             }
             if (hasError) return@setOnClickListener
         }
 
+
         binding.createAccountButton.setOnClickListener {
             val intent = Intent(this, CreateUserActivity::class.java)
             startActivity(intent)
+        }
+    }
+    // Helper function to handle UI state
+    // 辅助函数：统一管理加载状态
+    private fun setLoadingState(isLoading: Boolean) {
+        if (isLoading) {
+            binding.loadingProgressBar.visibility = android.view.View.VISIBLE
+            binding.loginButton.isEnabled = false
+            binding.createAccountButton.isEnabled = false // Also disable register / 同时禁用注册按钮
+            binding.loginButton.text = "Logging in..."
+        } else {
+            binding.loadingProgressBar.visibility = android.view.View.GONE
+            binding.loginButton.isEnabled = true
+            binding.createAccountButton.isEnabled = true
+            binding.loginButton.text = "Login"
         }
     }
 
@@ -107,6 +125,9 @@ class LoginActivity: AppCompatActivity() {
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
+                    // 2. Hide Loading on Failure / 失败时隐藏加载
+                    setLoadingState(false)
+                    android.util.Log.e("LoginError", "Connection failed: ${e.message}")
                     Toast.makeText(this@LoginActivity, "Connection failed", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -118,6 +139,14 @@ class LoginActivity: AppCompatActivity() {
                     try {
                         // get information of user from database
                         val loginData = gson.fromJson(responseBody, LoginResponse::class.java)
+
+                        // Check: Is token null?
+                        if (loginData.token.isNullOrEmpty()) {
+                            runOnUiThread {
+                                Toast.makeText(this@LoginActivity, "Login failed: Token missing", Toast.LENGTH_SHORT).show()
+                            }
+                            return
+                        }
 
                         // save the token to the Singleton so the Interceptor can find it
                         // NetworkClient.setToken(NetworkClient.context, loginData.token ?: "")
@@ -133,6 +162,7 @@ class LoginActivity: AppCompatActivity() {
                         // end of trial
                     } catch (e: Exception) {
                         runOnUiThread {
+                            setLoadingState(false) // Stop loading
                             Toast.makeText(
                                 this@LoginActivity,
                                 "Error in server response",
@@ -143,6 +173,7 @@ class LoginActivity: AppCompatActivity() {
                 } else {
                     runOnUiThread{
                         // user not authorised or not found
+                        setLoadingState(false) // Stop loading
                         Toast.makeText(
                             this@LoginActivity,
                             "Invalid username or password, please try again",
@@ -165,10 +196,10 @@ class LoginActivity: AppCompatActivity() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
-                Toast.makeText(this@LoginActivity,
-                    "Network error",
-                    Toast.LENGTH_SHORT
-                ).show()
+                runOnUiThread {
+                    setLoadingState(false) // Stop loading on error / 出错停止加载
+                    Toast.makeText(this@LoginActivity, "Network error fetching profile", Toast.LENGTH_SHORT).show()
+                }
             }
 
             override fun onResponse(call: Call, response: Response) {
@@ -182,6 +213,7 @@ class LoginActivity: AppCompatActivity() {
                         }
                     } catch (e:Exception) {
                         runOnUiThread {
+                            setLoadingState(false)
                             Toast.makeText(this@LoginActivity,
                                 "Error in server response",
                                 Toast.LENGTH_SHORT
@@ -228,6 +260,9 @@ class LoginActivity: AppCompatActivity() {
             }
         }
     }
+
+
+
 }
 
 
