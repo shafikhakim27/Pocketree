@@ -38,11 +38,19 @@ class TaskAdapter(
             holder.actionButton.isEnabled = false
             holder.itemView.alpha = 0.5f // visual "checked off" state
         } else {
-            holder.actionButton.text = if (task.requiresEvidence) "Upload a photo" else "Let's do it!"
+            holder.actionButton.text = if (task.requiresEvidence) "Upload a photo" else "Let's go!"
             holder.actionButton.isEnabled = true
             holder.itemView.alpha = 1.0f
-            holder.actionButton.setOnClickListener { onTaskClick(task) }
+            holder.actionButton.setOnClickListener {
+                // complete tasks that don't require evidence
+                if (!task.requiresEvidence) {
+                    task.isCompleted = true
+                    notifyItemChanged(position)
+                }
+                onTaskClick(task)
+            }
         }
+
     }
 
     override fun getItemCount() = taskList.size

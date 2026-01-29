@@ -29,23 +29,22 @@ class LoginActivity: AppCompatActivity() {
     private val client = NetworkClient.okHttpClient
     private val baseUrl = "http://10.0.2.2:5042/api/User"
 
-//    private val sharedViewModel: UserViewModel by viewModels()
-    // activityViewModels() is used by Fragments to share a viewModel with parent Activity
-
     override fun onCreate(savedInstanceState: Bundle?) {
-        enableEdgeToEdge()
-        super.onCreate(savedInstanceState)
-
         // initialise NetworkClient context
         NetworkClient.context = this.applicationContext
 
         // check for existing token
         val existingToken = NetworkClient.loadToken(this)
         if (!existingToken.isNullOrEmpty() && existingToken != "no_token") {
-            startActivity(Intent(this, MainActivity::class.java))
+            val intent = Intent(this, MainActivity::class.java)
+            intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(intent)
             finish()
             return
         }
+
+        enableEdgeToEdge()
+        super.onCreate(savedInstanceState)
 
         binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -58,7 +57,6 @@ class LoginActivity: AppCompatActivity() {
 
         setupValidation()
         initButtons()
-        // observeViewModel()
     }
 
     private fun initButtons() {
@@ -85,7 +83,6 @@ class LoginActivity: AppCompatActivity() {
                     put("Password", password)
                 }
                 sendLoginRequest(credentials)
-                // sendLoginRequest(username, password)
             }
             if (hasError) return@setOnClickListener
         }
@@ -120,17 +117,11 @@ class LoginActivity: AppCompatActivity() {
                         val loginData = gson.fromJson(responseBody, LoginResponse::class.java)
 
                         // save the token to the Singleton so the Interceptor can find it
-                        // NetworkClient.setToken(NetworkClient.context, loginData.token ?: "")
-
-                        // trial
                         NetworkClient.setToken(NetworkClient.context, loginData.token)
 
                         runOnUiThread {
                             loginUser(loginData.user)
                         }
-                        // then jump direct to the catch(e:Exception) line!
-                        fetchUserProfile()
-                        // end of trial
                     } catch (e: Exception) {
                         runOnUiThread {
                             Toast.makeText(
@@ -203,10 +194,10 @@ class LoginActivity: AppCompatActivity() {
             putExtra("isWithered", user.isWithered)
             putExtra("levelImageUrl", user.levelImageUrl)
         }
-//        Toast.makeText(this@LoginActivity,
-//            "Welcome ${user.username}!",
-//            Toast.LENGTH_SHORT
-//        ).show()
+        Toast.makeText(this@LoginActivity,
+            "Welcome ${user.username}!",
+            Toast.LENGTH_SHORT
+        ).show()
         startActivity(intent)
         finish() // close LoginActivity so user can't go back
     }
@@ -229,7 +220,3 @@ class LoginActivity: AppCompatActivity() {
         }
     }
 }
-
-
-
-// add logic later on for wrong password to show error message instead of toast also

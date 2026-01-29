@@ -7,11 +7,12 @@ import com.google.gson.annotations.SerializedName
 //}
 
 data class Task (
-    @SerializedName("TaskId") val taskID: Int,
-    @SerializedName("Description") val description: String,
-    @SerializedName("IsCompleted") val isCompleted:Boolean,
-    val difficulty: String,
-    @SerializedName("CoinReward") var coinReward: Int,
-    @SerializedName("RequiresEvidence") val requiresEvidence: Boolean,
-    val keyword: String?
+    @SerializedName("taskID") val taskID: Int,
+    @SerializedName("description") val description: String,
+    @SerializedName("isCompleted") var isCompleted:Boolean,
+    @SerializedName("difficulty") val difficulty: String,
+    @SerializedName("coinReward") var coinReward: Int,
+    @SerializedName("requiresEvidence") val requiresEvidence: Boolean,
+    @SerializedName("keyword") val keyword: String?, //for ML
+    @SerializedName("category") val category: String? // for ML
     )

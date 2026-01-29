@@ -52,6 +52,7 @@ dependencies {
     implementation("androidx.navigation:navigation-fragment-ktx:2.8.3")
     implementation("androidx.navigation:navigation-ui-ktx:2.8.5")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+    implementation("androidx.swiperefreshlayout:swiperefreshlayout:1.1.0")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
