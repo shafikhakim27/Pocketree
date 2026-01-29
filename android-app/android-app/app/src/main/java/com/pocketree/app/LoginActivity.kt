@@ -96,7 +96,6 @@ class LoginActivity: AppCompatActivity() {
         }
     }
     // Helper function to handle UI state
-    // 辅助函数：统一管理加载状态
     private fun setLoadingState(isLoading: Boolean) {
         if (isLoading) {
             binding.loadingProgressBar.visibility = android.view.View.VISIBLE
