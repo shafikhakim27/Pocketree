@@ -4,6 +4,7 @@ using ADproject.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 using System.Collections.Generic;
 using System.Security.Claims;

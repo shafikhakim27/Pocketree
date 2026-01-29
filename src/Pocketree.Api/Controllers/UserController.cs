@@ -66,20 +66,35 @@ namespace ADproject.Controllers
         [HttpPost("LoginApi")]
         public async Task<IActionResult> LoginApi([FromBody] UserLoginDto dto)
         {
-            var user = await db.Users
-                .Include(u => u.Trees) // For checking the tree status later
-                .FirstOrDefaultAsync(u => u.Username == dto.Username);
+            var userData = await db.Users
+                .Where(u => u.Username == dto.Username)
+                .Select(u => new
+                {
+                    User = u,
+                    ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted),
+                    LevelName = u.CurrentLevel.LevelName
+                })
+                .FirstOrDefaultAsync();
 
-            if (user == null) return Unauthorized("Invalid credentials.");
+            if (userData == null) return Unauthorized("Invalid credentials.");
 
+            var user = userData.User;
             var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
 
             if (result == PasswordVerificationResult.Success)
             {
-                UpdateTreeStatus(user);
+                // Set tree status
+                if (user.LastLoginDate.HasValue)
+                {
+                    var daysAway = (DateTime.UtcNow - user.LastLoginDate.Value).TotalDays;
+                    if (daysAway > witheringThreshold && userData.ActiveTree != null)
+                    {
+                        userData.ActiveTree.IsWithered = true;
+                    }
+                }
 
+                var userProfile = GetUserProfile(user, userData.ActiveTree, userData.LevelName);
                 user.LastLoginDate = DateTime.UtcNow; // Update LastLoginDate
-                db.Users.Update(user);
                 await db.SaveChangesAsync();
 
                 // GenerateJwtToken
@@ -89,8 +104,7 @@ namespace ADproject.Controllers
                 };
 
                 var token = GenerateJwtToken(claims);
-
-                return Ok(new { Token = token, user.UserID });
+                return Ok(new { Token = token, User = userProfile });
             }
 
             return Unauthorized("Invalid credentials.");
@@ -164,6 +178,20 @@ namespace ADproject.Controllers
         }
 
         // Private function (not API) for backend use
+        private UserProfileViewModel GetUserProfile(User user, Tree? activeTree, string levelName)
+        {
+            return new UserProfileViewModel
+            {
+                Username = user.Username,
+                TotalCoins = user.TotalCoins,
+                LevelName = levelName ?? "Seedling",
+                LevelID = user.CurrentLevelID,
+                LevelImageURL = user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png",
+                IsWithered = activeTree?.IsWithered ?? false
+            };
+        }
+
+        // Private function (not API) for backend use
         private string GenerateJwtToken(Claim[] claims)
         {
             // Get secret key from appsettings.json
@@ -204,6 +232,7 @@ namespace ADproject.Controllers
             return false;
         }
 
+        /*
         // Private function (not API) for backend use
         private void UpdateTreeStatus (User user)
         {
@@ -219,7 +248,7 @@ namespace ADproject.Controllers
                 }
             }
         }
-
+        */
 
         /**********************
           For all Web actions
@@ -330,7 +359,18 @@ namespace ADproject.Controllers
             {
                 // Get active tree and update tree status
                 var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
-                if (activeTree != null) UpdateTreeStatus(user);
+                if (activeTree != null)
+                {
+                    // Update tree status
+                    if (user.LastLoginDate.HasValue)
+                    {
+                        var daysAway = (DateTime.UtcNow - user.LastLoginDate.Value).TotalDays;
+                        if (daysAway > witheringThreshold)
+                        {
+                            activeTree.IsWithered = true;
+                        }
+                    }
+                }
 
                 // Get the history of tasks performed by user
                 var history = await db.UserTaskHistory
@@ -359,6 +399,9 @@ namespace ADproject.Controllers
                     },
                     TaskHistory = history
                 };
+
+                user.LastLoginDate = DateTime.UtcNow; // Update latest LastLoginDate
+                await db.SaveChangesAsync();
 
                 return View(compositeViewModel);
             }
