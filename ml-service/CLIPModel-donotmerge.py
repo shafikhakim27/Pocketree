@@ -1,99 +1,63 @@
-import mysql.connector
-from flask import Flask, request, jsonify
+from fastapi import FastAPI, File, UploadFile, Form
+from pydantic import BaseModel
+from typing import List
 import torch
 from PIL import Image
 import io
 from transformers import CLIPProcessor, CLIPModel
 
-app = Flask(__name__)
+app = FastAPI()
 
-# 1. Load CLIP once on your MacBook's GPU (MPS)
-model = CLIPModel.from_pretrained("openai/clip-vit-base-patch32")
-processor = CLIPProcessor.from_pretrained("openai/clip-vit-base-patch32")
+# --- Load CLIP on MacBook GPU (MPS) ---
+model_name = "openai/clip-vit-base-patch32"
+model = CLIPModel.from_pretrained(model_name)
+processor = CLIPProcessor.from_pretrained(model_name)
 device = "mps" if torch.backends.mps.is_available() else "cpu"
 model.to(device)
 
-# Add this above your @app.route('/predict')
-@app.route('/')
-def home():
-    return "<h1>Flask AI Server is Running!</h1><p>Ready for Android connections.</p>"
+# --- 1. IMAGE VERIFICATION ---
+# Matches: MlService:Url -> "http://127.0.0.1:5000/classify"
+@app.post("/classify")
+async def classify(keyword: str = Form(...), file: UploadFile = File(...)):
+    contents = await file.read()
+    img = Image.open(io.BytesIO(contents)).convert("RGB")
 
-@app.route('/predict', methods=['POST'])
-def predict():
-    file = request.files.get('image')
-    # Receive the keyword from Android
-    keyword = request.form.get('keyword', 'object') 
-
-    img = Image.open(io.BytesIO(file.read()))
-
-    # Dynamic labels based on the DB keyword
-    labels = [f"a {keyword}", "background", "something else"]
+    # TRANSFORM THE KEYWORD HERE
+    # Even if C# sends "bottle", Python turns it into a descriptive prompt
+    ai_prompt = f"a {keyword}"
+    
+    labels = [ai_prompt, "a blurry background", "a random object"]
     
     inputs = processor(text=labels, images=img, return_tensors="pt", padding=True).to(device)
     
     with torch.no_grad():
         outputs = model(**inputs)
     
-    probs = outputs.logits_per_image.softmax(dim=1)
-    max_prob, best_idx = torch.max(probs, dim=1)
+    probs = outputs.logits_per_image.softmax(dim=1).cpu().numpy()[0]
     
-    # Verify only if the top match is the keyword and confidence is high
-    if best_idx.item() == 0 and max_prob.item() >= 0.85:
-        return jsonify({"status": "verified"})
-    else:
-        return jsonify({"status": "non-verified"})
+    # --- DEBUG: Print scores to your Mac Terminal ---
+    print(f"\n--- New Verification Request: {keyword} ---")
+    for label, prob in zip(labels, probs):
+        print(f"Label: {label: <30} Confidence: {prob*100:.2f}%")
 
-@app.route('/get-task', methods=['GET'])
-def get_task():
-    try:
-        # Use the full name here: mysql.connector.connect
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="admin",
-            password="frescyliafrida",
-            database="game"
-        )
-        cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT keyword FROM active_tasks ORDER BY RAND() LIMIT 1")
-        result = cursor.fetchone()
-        
-        cursor.close()
-        conn.close()
-
-        if result:
-            return jsonify(result) 
-        return jsonify({"error": "No tasks found"}), 404
-    except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({"error": str(e)}), 500
+    best_idx = probs.argmax()
+    max_prob = probs[best_idx]
     
-@app.route('/update-points', methods=['POST'])
-def update_points():
-    try:
-        # Get data from the Android request
-        data = request.get_json()
-        user_id = data.get('user_id')
+    verified = bool(best_idx.item() == 0 and max_prob.item() >= 0.80)
+    print(f"VERIFIED: {verified}")
+    
+    return {"Verified": verified}
 
-        conn = mysql.connector.connect(
-            host="localhost",
-            user="admin",
-            password="frescyliafrida",
-            database="game"
-        )
-        cursor = conn.cursor()
-        
-        # Update the points
-        query = "UPDATE users SET points = points + 10 WHERE id = %s"
-        cursor.execute(query, (user_id,))
-        conn.commit()
-        
-        cursor.close()
-        conn.close()
-        
-        return jsonify({"status": "success", "message": "Points added!"}), 200
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+# --- 2. RECOMMENDATION ---
+# Matches: ML_Consultant BaseAddress -> "http://localhost:5000/predict"
+@app.post("/predict")
+async def predict(payload: dict):
+    # This receives the user preferences and task list from ASP.NET
+    tasks = payload.get("tasks", [])
+    # Returning top 3 TaskIDs back to ASP.NET
+    return [t["TaskID"] for t in tasks[:3]]
 
-if __name__ == '__main__':
-    # host='0.0.0.0' allows your Android phone to connect via your laptop's IP
-    app.run(host='0.0.0.0', port=5000)
+if __name__ == "__main__":
+    import uvicorn
+    # Port 5000 to match your appsettings and Program.cs
+    uvicorn.run(app, host="0.0.0.0", port=5000)
