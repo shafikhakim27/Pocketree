@@ -33,8 +33,8 @@ class RedeemFragment: Fragment() {
         Skin(3, "Item3", 30, R.drawable.redeem_item_3, false, false)
     )
     private val voucherList = listOf(
-        Voucher(4, "Voucher 1", "none", true),
-        Voucher(5, "Voucher 2", "none", false)
+        Voucher(4, "Voucher 1", "none", true, false),
+        Voucher(5, "Voucher 2", "none", false, false)
     )
 
     override fun onCreateView(
@@ -72,7 +72,7 @@ class RedeemFragment: Fragment() {
         binding.recyclerViewVoucher.layoutManager = GridLayoutManager(context, 3)
         binding.recyclerViewVoucher.adapter = RedeemAdapter(voucherList) { item ->
             if (item is Voucher) {
-                if (item.isUsable) {
+                if (item.isValid) {
                     showVoucherConfirmDialog(item)
                 }
             }
@@ -109,7 +109,7 @@ class RedeemFragment: Fragment() {
             .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
             .setPositiveButton("Confirm") { dialog, _ ->
                 preRedeem(skin)
-                dialog.dismiss()
+                // dialog.dismiss() - not required here!
             }
             .setNegativeButton("Cancel") { dialog, _ ->
                 dialog.dismiss()
