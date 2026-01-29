@@ -82,7 +82,7 @@ class LoginActivity: AppCompatActivity() {
                     put("Username", username)
                     put("Password", password)
                 }
-                // 1. Show Loading and Disable Button / 显示加载并禁用按钮
+                // 1. Show Loading and Disable Button
                 setLoadingState(true)
                 sendLoginRequest(credentials)
             }
