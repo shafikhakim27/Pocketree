@@ -10,9 +10,9 @@ namespace ADproject.Models.Entities
         public int UserID { get; set; }
         [ForeignKey("VoucherID")]
         public int VoucherID { get; set; }
-        [ForeignKey("LevelReachedID")]
-        public int LevelReachedID { get; set; }
         [Required, StringLength(20)]
         public string RedemptionCode { get; set; }
+        public DateTime RedemptionDate { get; set; }
+        public bool IsRedeemed { get; set; } = false;
     }
 }

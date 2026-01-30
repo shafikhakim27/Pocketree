@@ -111,7 +111,6 @@ namespace ADproject.Controllers
         }
 
         [Authorize]
-        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePasswordApi([FromBody] ChangePasswordDto dto)
         {
@@ -131,7 +130,6 @@ namespace ADproject.Controllers
         }
 
         [Authorize]
-        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetUserProfileApi")]
         public async Task<IActionResult> GetUserProfileApi()
         {
@@ -165,7 +163,6 @@ namespace ADproject.Controllers
         }
 
         [Authorize]
-        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetLatestBadgesApi")]
         public async Task<IActionResult> GetLatestBadgesApi()
         {

@@ -17,8 +17,12 @@ namespace ADproject.Models.Entities
         public int CurrentLevelID { get; set; }
         public DateTime? LastLoginDate { get; set; }
         public DateTime? LastActivityDate { get; set; }
+        [Required, StringLength(100)]
         public string Email { get; set; }
-        
+        public int UncompletedTaskCount { get; set; } = 0;
+        public int NotAttemptedTaskCount { get; set; } = 0;
+        public int FailedVerificationCount { get; set; } = 0;
+
         // Navigation Properties
         [ForeignKey("CurrentLevelID")]
         public virtual Level CurrentLevel { get; set; }

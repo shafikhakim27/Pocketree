@@ -11,6 +11,6 @@ namespace ADproject.Models.Entities
         [ForeignKey("SkinID")]
         public int SkinID { get; set; }
         public DateTime RedemptionDate { get; set; }
-        public bool IsEquipped { get; set; }
+        public bool IsEquipped { get; set; } = false;
     }
 }

@@ -36,16 +36,80 @@ namespace ADproject.Controllers
             var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
             if (user == null) return Unauthorized();
 
-            // Check user settings
+            // Perform cleanup of tasks assigned on the day before
+            await CleanupOldTasks(user);
+
+            // Check if there are already existing tasks given
+            var today = DateTime.UtcNow.Date;
+            var currentDailyTasks = await db.UserTaskHistory
+                .Where(h => h.UserID == user.UserID && h.CompletionDate >= today)
+                .Include(h => h.Task)
+                .ToListAsync();
+
+            if (currentDailyTasks.Any())
+            {
+                if (currentDailyTasks.Count(t => t.Status == "Completed") >= 3)
+                    return Ok(new { Message = "All tasks completed for the day!" });
+
+                return Ok(currentDailyTasks.Select(h => h.Task));
+            }
+
+            // First time receiving the tasks for the day
+            List<Task> dailyTasks = await FetchNewTasks(user); 
+
+            // Create a record in the UserTaskHistory table for the tasks given for the day 
+            foreach(var t in dailyTasks)
+            {
+                db.UserTaskHistory.Add(new UserTaskHistory
+                {
+                    UserID = user.UserID,
+                    TaskID = t.TaskID,
+                    Status = "Assigned",
+                    CompletionDate = DateTime.UtcNow
+                });
+            }
+
+            // Update the number of uncompleted tasks assigned
+            user.UncompletedTaskCount += 3;
+            await db.SaveChangesAsync();
+
+            return Ok(dailyTasks); // Sends JSON to Android
+        }
+
+        // Private helper function (do not make an API call to this)
+        private async System.Threading.Tasks.Task CleanupOldTasks(User user)
+        {
+            var today = DateTime.UtcNow.Date;
+
+            var previousDayTasks = await db.UserTaskHistory
+                    .Where(h => h.UserID == user.UserID &&
+                                h.Status == "Assigned" &&
+                                h.CompletionDate < today)
+                    .ToListAsync();
+
+            if (previousDayTasks.Any())
+            {
+                user.NotAttemptedTaskCount += previousDayTasks.Count;   // Update the historical task counter
+                user.UncompletedTaskCount -= previousDayTasks.Count;    // Update the daily active task counter
+
+                db.UserTaskHistory.RemoveRange(previousDayTasks);
+                await db.SaveChangesAsync();
+            }
+        }
+
+        // Private helper function (do not make an API call to this)
+        private async Task<List<Task>> FetchNewTasks(User user)
+        {
+            // Check user settings to determine ML recommended tasks or random tasks to be assigned
             var settings = await db.UserSettings
                 .FirstOrDefaultAsync(s => s.UserID == user.UserID);
 
-            List<Task> dailyTasks;
+            List<Task> newTasks;
 
             // Use ML recommended tasks
             if (settings != null && settings.UseMlRecommendation)
             {
-                dailyTasks = await mlService.GetRecommendedTasks(user.UserID);
+                newTasks = await mlService.GetRecommendedTasks(user.UserID);
             }
             // Else fetch 1 task from each difficulty level randomly
             else
@@ -66,38 +130,73 @@ namespace ADproject.Controllers
                     .FirstOrDefaultAsync();
 
                 // Combine into a list of Tasks to send to Android
-                dailyTasks = new List<Task> { easyTask, normalTask, hardTask };
+                newTasks = new List<Task> { easyTask, normalTask, hardTask };
             }
-            
-            return Ok(dailyTasks); // Sends JSON to Android
+
+            return newTasks;
         }
 
         [Authorize]
         [HttpPost("RecordTaskCompletionApi")]
-        public async Task<IActionResult> RecordTaskCompletionApi([FromBody] TaskIdDto dto)
+        public async Task<IActionResult> RecordTaskCompletionApi([FromForm] TaskIdDto dto, IFormFile? photo)
         {
             var user = await db.Users
                 .Include(u => u.Trees)
                 .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
-            if (user == null) return Unauthorized();
 
             // Get the task details 
             var task = await db.Tasks.FindAsync(dto.TaskId);
-            if (task == null) return BadRequest("Invalid Task");
+            if (user == null || task == null) return BadRequest("Invalid User or Task.");
 
+            // Perform verification check only for "Hard" tasks
+            if (task.Difficulty == "Hard")
+            {
+                if (photo == null) return BadRequest("Photo evidence required for task.");
+                using var stream = photo.OpenReadStream();
+                if (!await mlService.ClassifyImageAsync(stream, task.Keyword)) // Reject submitted evidence after verification 
+                {
+                    user.FailedVerificationCount += 1;
+                    await db.SaveChangesAsync();
+                    return Ok(new { success = false });
+                }
+            }
+
+            var result = await ProcessTaskCompletion(user, task); // Process task completion regardless of difficulty level
+            return Ok(result);
+        } 
+        
+        // Private helper function (do not make an API call to this)
+        private async Task<object> ProcessTaskCompletion(User user, Task task)
+        {
             // Start a transaction to update user task history, tree status, user total coins and new level if reached
             using var transaction = await db.Database.BeginTransactionAsync();
             try
             {
-                var taskHistoryEntry = new UserTaskHistory
-                {
-                    UserID = user.UserID,
-                    TaskID = task.TaskID,
-                    Status = "Completed",
-                    CompletionDate = DateTime.UtcNow
-                };
-                db.UserTaskHistory.Add(taskHistoryEntry);
+                // Search for the existing assigned record for today
+                var today = DateTime.UtcNow.Date;
+                var existingRecord = await db.UserTaskHistory
+                    .FirstOrDefaultAsync(h => h.UserID == user.UserID &&
+                                         h.TaskID == task.TaskID &&
+                                         h.CompletionDate >= today &&
+                                         h.Status == "Assigned");
 
+                if (existingRecord != null)
+                {
+                    existingRecord.Status = "Completed";
+                    existingRecord.CompletionDate = DateTime.UtcNow;
+                }
+                else
+                {
+                    // If no existing assigned record is found
+                    db.UserTaskHistory.Add(new UserTaskHistory
+                    {
+                        UserID = user.UserID,
+                        TaskID = task.TaskID,
+                        Status = "Completed",
+                        CompletionDate = DateTime.UtcNow
+                    });
+                }  
+                
                 // Update tree status
                 var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
                 if (activeTree != null && activeTree.IsWithered)
@@ -105,39 +204,32 @@ namespace ADproject.Controllers
                     activeTree.IsWithered = false; // Tree is revived after the task completion
                 }
                 user.LastActivityDate = DateTime.UtcNow; // Update the activity date
+                
+                // Update user's uncompleted task count for the completed task
+                user.UncompletedTaskCount -= 1;
 
+                // Check and update level, coins and badges
                 bool levelUp = await UpdateLevelAndCoins(user, task);
-
                 await CheckAndAwardBadges(user);
 
                 await db.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 // Send LevelUp, Coin balance, level and tree status to Android device              
-                return Ok(new { 
+                return new
+                {
+                    success = true,
                     LevelUp = levelUp,
                     NewCoins = user.TotalCoins,
                     NewLevel = user.CurrentLevelID,
-                    IsWithered = activeTree?.IsWithered?? false
-                });
+                    IsWithered = activeTree?.IsWithered ?? false
+                };
             }
             catch (Exception)
             {
                 await transaction.RollbackAsync();
-                return BadRequest("Task not updated.");
+                throw;
             }
-        }
-
-        [Authorize]
-        [HttpPost("SubmitTaskApi")]
-        public async Task<IActionResult> SubmitTaskApi([FromForm] TaskIdDto dto, IFormFile photo)
-        {
-            var task = await db.Tasks.FindAsync(dto.TaskId);
-            // Trigger ML to run verification
-            using var stream = photo.OpenReadStream();
-            bool isVerified = await mlService.ClassifyImageAsync(stream, task.Keyword);
-
-            return Ok(new { success = isVerified }); 
         }
 
         [Authorize]
@@ -169,6 +261,45 @@ namespace ADproject.Controllers
             await db.SaveChangesAsync();
 
             return Ok(new { NewCoins = user.TotalCoins });
+        }
+
+        [Authorize]
+        [HttpPost("RedeemVoucherApi")]
+        public async Task<IActionResult> RedeemVoucherApi([FromBody] int VoucherId)
+        {
+            var user = await db.Users
+                 .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            if (user == null) return Unauthorized();
+
+            var voucher = await db.Vouchers.FindAsync(VoucherId);
+            if (voucher == null) return BadRequest("Requested voucher cannot be found.");
+
+            // Update UserVouchers 
+            var userVoucherEntry = new UserVoucher
+            {
+                UserID = user.UserID,
+                VoucherID = VoucherId,
+                RedemptionCode = GenerateRedemptionCode(),    // To be filled up later
+                RedemptionDate = DateTime.UtcNow,
+                IsRedeemed = true
+            };
+
+            db.UserVouchers.Add(userVoucherEntry);
+            await db.SaveChangesAsync();
+
+            return Ok(new { IsRedeemed = true });
+        }
+
+        // Private function (not API) for backend use
+        private string GenerateRedemptionCode()
+        {
+            // Define the pool of characters to ensure the code is readable and unique
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+
+            // Return a 20-character random character string
+            return new string(Enumerable.Repeat(chars, 20)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         // Private function (not API) for backend use

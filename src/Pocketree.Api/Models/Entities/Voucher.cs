@@ -9,5 +9,7 @@ namespace ADproject.Models.Entities
         public string VoucherName { get; set; }
         [Required]
         public string Description { get; set; }
+        [Required]
+        public int MinRedemptionLevel { get; set; }
     }
 }

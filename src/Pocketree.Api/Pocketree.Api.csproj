@@ -24,6 +24,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Controllers\NewFolder\" />
     <Folder Include="Views\Task\" />
     <Folder Include="wwwroot\uploads\" />
   </ItemGroup>

@@ -99,30 +99,6 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"])),
         NameClaimType = ClaimTypes.Name
     };
-
-    // ¡ý¡ý¡ý¡ý¡ý¡ý DEBUG ONLY ¡ý¡ý¡ý¡ý¡ý¡ý
-    options.Events = new JwtBearerEvents
-    {
-        OnAuthenticationFailed = context =>
-        {
-            // print the changing pwd failure reason
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.WriteLine($"[Auth Failed]: {context.Exception.Message}");
-            // print the Token leads to failure
-            var token = context.Request.Headers["Authorization"].ToString();
-            System.Diagnostics.Debug.WriteLine($"[Bad Token Received]: {token}");
-            Console.ResetColor();
-            return System.Threading.Tasks.Task.CompletedTask;
-        },
-        OnTokenValidated = context =>
-        {
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine($"[Auth Success]: User {context.Principal.Identity.Name} authorized.");
-            Console.ResetColor();
-            return System.Threading.Tasks.Task.CompletedTask;
-        }
-    };
-    // ¡ü¡ü¡ü¡ü¡ü¡ü DEBUG ENDS ¡ü¡ü¡ü¡ü¡ü¡ü
 });
 
 var app = builder.Build();
