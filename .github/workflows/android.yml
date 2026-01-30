@@ -1,0 +1,87 @@
+name: 📱 Android CI/CD
+
+on:
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'android/**'
+      - '.github/workflows/android.yml'
+
+jobs:
+  # 🏗️ JOB 1: BUILD & UNIT TEST
+  build-android:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./android
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x gradlew  
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build APK (Debug)
+        run: ./gradlew assembleDebug
+
+      # Uploads the APK so the next job can download it
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pocketree-debug.apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+
+  # 🤖 JOB 2: MAESTRO UI TESTS
+  ui-test:
+    needs: build-android # Waits for the build to finish
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./android
+    strategy:
+      matrix:
+        api-level: [29] # Android 10 (Fast & Stable for CI)
+        target: [default]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Download the APK (Using the name you defined above)
+      - name: Download APK
+        uses: actions/download-artifact@v4
+        with:
+          name: pocketree-debug.apk # Must match the upload name
+          path: android/app/build/outputs/apk/debug/
+
+      # 2. Install Maestro
+      - name: Install Maestro
+        run: |
+          curl -Ls "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
+      # 3. Spin up Emulator & Run Tests
+      - name: Run Maestro Flows
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          profile: Nexus 6
+          script: |
+            # Install the app (Path reconstructed by the download step)
+            adb install android/app/build/outputs/apk/debug/app-debug.apk
+            
+            # Run the flow (Looks for android/.maestro/flow.yaml)
+            maestro test .maestro/flow.yaml

@@ -1,0 +1,53 @@
+name: 🧠 ML Service Ops
+
+on:
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'ml-service/**'
+      - '.github/workflows/ml-ops.yml'
+  workflow_dispatch:
+
+jobs:
+  test-and-deploy-ml:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./ml-service
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      # 🛡️ Snyk Security Scan (Python Dependencies)
+      - name: 🛡️ Snyk Python Scan
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=ml-service/requirements.txt --severity-threshold=high
+
+      # 🐍 Bandit Security Scan (Python Code SAST)
+      - name: 🐍 Run Bandit
+        run: |
+          pip install bandit
+          bandit -r . -ll
+
+      - name: Install Railway CLI
+        run: |
+          cd .. 
+          npm install -g @railway/cli
+
+      - name: Deploy to Railway 🚂
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: railway up --service pocketree-ml-service --detach

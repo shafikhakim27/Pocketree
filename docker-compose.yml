@@ -1,0 +1,80 @@
+services:
+  # 1. DATABASE (MySQL)
+  pocketree-db:
+    image: mysql:8.0
+    container_name: pocketree-db
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD:-password}
+      - MYSQL_DATABASE=${DB_NAME:-pocketree}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - pocketree-net
+  healthcheck:
+    # -p${MYSQL_ROOT_PASSWORD} ensures it checks if it can actually log in
+    test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${DB_PASSWORD:-password}"]
+    timeout: 20s
+    retries: 10
+
+  # 2. BACKEND API (.NET)
+  pocketree-api:
+    build:
+      context: .
+      dockerfile: api/Pocketree.Api/Dockerfile
+    container_name: pocketree-api
+    restart: always
+    ports:
+      - "${API_PORT:-5080}:8080"
+    environment:
+      # Connection string uses the internal container name "pocketree-db"
+      - ConnectionStrings__DefaultConnection=Server=pocketree-db;Port=3306;Database=pocketree;User=root;Password=${DB_PASSWORD:-rootpassword};
+      # Points to the container name "ml-service"
+      - ML_SERVICE_URL=http://ml-service:5000
+      - ASPNETCORE_ENVIRONMENT=Development
+    volumes:
+      - dataprotection-keys:/root/.aspnet/DataProtection-Keys
+    depends_on:
+      pocketree-db:
+        condition: service_healthy
+      ml-service:
+        condition: service_started
+    networks:
+      - pocketree-net
+    # 👇 NEW: AUTO-HEALING HEALTH CHECK
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # 3. ML SERVICE (Python)
+  ml-service:
+    build:
+      context: ml-service
+      dockerfile: Dockerfile
+    container_name: ml-service
+    restart: always
+    ports:
+      - "${ML_PORT:-5000}:5000"
+    environment:
+      - DB_HOST=pocketree-db
+      - DB_PORT=3306
+      - DB_NAME=${DB_NAME:-pocketree}
+      - DB_USER=root
+      - DB_PASSWORD=${DB_PASSWORD:-password}
+      - BACKEND_API_URL=http://pocketree-api:8080
+    networks:
+      - pocketree-net
+
+volumes:
+  db_data:
+  dataprotection-keys:
+
+networks:
+  pocketree-net:
+    name: fixed-pocketree-network
+    driver: bridge

@@ -1,104 +1,156 @@
 # 🌳 Pocketree - Development Branch
 
+![API Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/backend-api.yml/badge.svg)
+![ML Ops Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/ml-ops.yml/badge.svg)
+![Android Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/android.yml/badge.svg)
+
 Welcome to **Pocketree**, a full-stack sustainability application designed to track and encourage eco-friendly habits.
-This repository operates as a **Monorepo**, containing the Backend API, Android Mobile App, and the necessary development infrastructure.
+This repository operates as a **Monorepo**, containing the Backend API, Android Mobile App, Python ML Service, and the necessary DevOps infrastructure, orchestrating the Mobile App, Backend API, and AI Service into a unified ecosystem.
 
 ## 🏗️ Architecture & Tech Stack
 
-* **Backend:** ASP.NET Core Web API 9.0 (C#)
-* **Frontend:** Native Android (Kotlin/Jetpack Compose)
-* **Database:** MySQL 8.0
+The system is composed of three primary services orchestrated via Docker.
+
+* **📱 Frontend:** Native Android (Kotlin / Jetpack Compose)
+* **⚙️ Backend:** ASP.NET Core Web API 9.0 (C#)
+* **🧠 Machine Learning:** Python Service (Flask/FastAPI)
+* **🗄️ Database:** MySQL 8.0
+* **🐳 Infrastructure:** Docker Compose
 
 ---
 
-## 💻 Prerequisites (Required Software)
+## 💻 Prerequisites
 
-Before you start, ensure you have the following installed on your machine:
+1. Git & Docker Desktop (Essential)
 
-1. **Git** - [Download](https://git-scm.com/downloads)
-2. **Visual Studio/VS Code** (For Backend) - [Download](https://code.visualstudio.com/)
-* *Extension Recommended:* C# Dev Kit
-3. **.NET 9.0 SDK** - [Download](https://dotnet.microsoft.com/en-us/download/dotnet/9.0)
-4. **Android Studio** (For Frontend) - [Download](https://developer.android.com/studio)
+2. .NET 9.0 SDK & Visual Studio 2022
+
+3. Android Studio (Ladybug or newer)
+
+4. Maestro CLI (For UI Testing) - curl -fsSL https://get.maestro.mobile.dev | bash
+
+
 
 ---
 
 ## 📂 Repository Structure
 
-```text
+```
 Pocketree/
-├── .github/                  # GitHub specific settings
-├── android-app/              # 📱 Android Source Code (Kotlin)
-├── ml-service/               # 🧠 Python Machine Learning API
-├── src/                      # ⚙️ Backend Source Code (.NET)
-│   ├── Pocketree.Api/        # The Main API Project
-│   └── Pocketree.Api.Tests/  # Unit Tests
-|____ .gitignore
-├── Pocketree.sln             # Visual Studio Solution File
-└── README.md                 # This Documentation
+├── .github/workflows/        # 🤖 CI/CD Pipelines (GitHub Actions)
+├── android/                  # 📱 Android Source Code (Kotlin)
+│   └── .maestro/             #    └── UI Automation Tests
+├── api/                      # ⚙️ Backend Source Code (.NET 9.0)
+│   ├── Pocketree.Api/        #    └── Main Web Api
+│   └── Pocketree.Api.Tests/  #    └── Integration & Unit Tests
+├── ml-service/               # 🧠 Python Machine Learning Service
+├── docker-compose.yml        # 🐳 Orchestration for API, DB, and ML
+└── README.md                 # Local Infra Blueprint
 
 ```
 
 ---
 
-## 🔄 Git Workflow (How We Collaborate)
+## 🔄 Git Workflow
 
-### **1. Start a New Task**
+We utilize a simplified **Git Flow** strategy:
 
-Always pull the latest changes before starting work.
+* **`develop`**: The main working branch. All features are merged here.
+* **`main`**: The stable production release. Merging here triggers deployment.
 
+### **How to Contribute**
+
+1. **Pull Latest Changes:**
 ```bash
-# Update your local code first
 git checkout develop
 git pull origin develop
 
 ```
 
-### **2. Save/Share Your Work**
-
+2. **Commit Your Work:**
 ```bash
 git add .
-git commit -m "Added login button and styled the header"
+git commit -m "feat: added login screen"
 git push origin develop
 
 ```
 
-> **Note:** Commits to `develop` will be reviewed.
 
 ---
 
-## 🚀 Step 1: Clone & Database Setup
+## 🚀 CI/CD Pipelines (GitHub Actions)
 
-1. **Clone the Repository**
-Open your terminal/command prompt:
+We have implemented fully automated pipelines to ensure code quality and security.
+
+### **1. 📱 Android Pipeline (`android.yml`)**
+
+* **Trigger:** Pushes to `android/**`
+* **Build:** Compiles the APK (Debug).
+* **Unit Tests:** Runs JUnit tests via Gradle.
+* **UI Automation:** Uses **Maestro** to spin up an emulator and simulate user interactions (Login, Navigation).
+* **Artifacts:** Uploads the `.apk` file to GitHub Actions for download.
+
+### **2. ☁️ Backend API Pipeline (`backend-api.yml`)**
+
+* **Trigger:** Pushes to `api/**`
+* **Optimization:** Uses Smart Tagging (SHA & Branch) and Docker Layer Caching.
+* **Security:** Snyk Security: Scans NuGet packages for vulnerabilities. Runs **Trivy** to scan the container for vulnerabilities (High/Critical). Trivy: Scans the final Docker image for OS-level threats.
+* **Docker Build:** Builds the production container image. 
+* **Deploy:** Pushes to Docker Hub & deploys to **Azure Web App** (Production).
+
+### **3. 🧠 ML Service (`ml-ops.yml`)**
+Bandit: Performs security "SAST" scanning on Python logic.
+
+Snyk: Checks Python dependencies (pip) for known exploits.
+
+Deploy: Auto-deploys to Railway/Azure Container Apps.
+---
+
+## 🛠️ Docker - Local Development Setup
+
+### **Step 1: Start Infrastructure (Docker)**
+
+Instead of installing MySQL manually, we use Docker to spin up the Database, API, and ML Service together.
+
 ```bash
-git clone https://github.com/shafikhakim27/Pocketree.git
-cd Pocketree
+# In the root folder:
+docker-compose up --build
 
 ```
----
 
-## ⚙️ Step 2: Backend Development (.NET)
+* **API:** `http://localhost:8080` (Health Check: `/api/health/live`)
+* **ML Service:** `http://localhost:5000`
+* **Database:** `localhost:3306`
 
-1. Open the **root** `Pocketree` folder in **VS Code**.
-2. Open the integrated terminal (`Ctrl + ~`).
-3. Navigate to the API folder and run the app:
+### **Step 2: Backend Development (.NET)**
+
+If you want to run the API *outside* of Docker for debugging:
+
+1. Open `api/Pocketree.Api/appsettings.json` and ensure the connection string points to `localhost`.
+2. Run the app:
 ```bash
-cd src/Pocketree.Api
+cd api/Pocketree.Api
 dotnet run
 
-4. **Access the API:**
-* **Swagger Docs:** [http://localhost:5042/swagger](https://www.google.com/search?q=http://localhost:5042/swagger)
-* **API Root:** [http://localhost:5042](https://www.google.com/search?q=http://localhost:5042)
+```
 
----
+3. **Scalar UI:** http://localhost:5042/scalar/v1
+   **Swagger Docs:** http://localhost:5042/swagger
 
-## 📱 Step 3: Frontend Development (Android)
+
+### **Step 3: Frontend Development (Android)**
 
 1. Open **Android Studio**.
-2. Select **File > Open**.
-3. **Crucial:** Navigate to the `Pocketree/android-app` subfolder and select that. (Do not open the root repo folder in Android Studio).
-4. Wait for the Gradle Sync to finish (bottom bar).
-5. Select your emulator or physical device and click the **Green Run Arrow (▶)**.
+2. **Crucial:** Select **Open** and choose the `Pocketree/android` subfolder.
+3. Wait for Gradle Sync.
+4. Run on Emulator (configured to talk to `http://10.0.2.2:8080` for Docker API).
 
-> **Note for Emulator:** The Android app is configured to look for the API at `http://10.0.2.2:5042` (which is the emulator's way of talking to your localhost).
+### **Step 4: Running UI Tests Locally (Maestro)**
+
+To run the robot tests on your machine:
+
+```bash
+# Ensure emulator is running, then:
+maestro test android/.maestro/flow.yaml
+
+```

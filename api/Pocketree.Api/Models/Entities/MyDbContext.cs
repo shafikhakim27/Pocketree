@@ -6,14 +6,25 @@ namespace ADproject.Models.Entities
 {
     public class MyDbContext : DbContext
     {
-        public MyDbContext() { }
+      
+        // Constructor for dependency injection
+        public MyDbContext(DbContextOptions<MyDbContext> options) : base(options)
+        {
+        }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseMySql(
-            // provides database connection-string
-            "server=localhost;user=root;password=password;database=pocketree_db;",
-            new MySqlServerVersion(new Version(8, 0, 43))
-            );
+            // Only configure if not already configured (for EF migrations/tooling)
+            if (!optionsBuilder.IsConfigured)
+            {
+                // Fallback connection for migrations - should not be used in runtime
+                optionsBuilder.UseMySql(
+                    "server=localhost;user=root;password=password;database=pocketree_db;",
+                    new MySqlServerVersion(new Version(8, 0, 43))
+                );
+            }
+            
+            // Lazy loading is always enabled
             optionsBuilder.UseLazyLoadingProxies();
         }
 
