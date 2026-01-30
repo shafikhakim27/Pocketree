@@ -48,15 +48,6 @@ async def classify(keyword: str = Form(...), file: UploadFile = File(...)):
     
     return {"Verified": verified}
 
-# --- 2. RECOMMENDATION ---
-# Matches: ML_Consultant BaseAddress -> "http://localhost:5000/predict"
-@app.post("/predict")
-async def predict(payload: dict):
-    # This receives the user preferences and task list from ASP.NET
-    tasks = payload.get("tasks", [])
-    # Returning top 3 TaskIDs back to ASP.NET
-    return [t["TaskID"] for t in tasks[:3]]
-
 if __name__ == "__main__":
     import uvicorn
     # Port 5000 to match your appsettings and Program.cs
