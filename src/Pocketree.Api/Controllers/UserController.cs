@@ -110,8 +110,8 @@ namespace ADproject.Controllers
             return Unauthorized("Invalid credentials.");
         }
 
-        //[Authorize]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePasswordApi([FromBody] ChangePasswordDto dto)
         {
@@ -130,8 +130,8 @@ namespace ADproject.Controllers
             return BadRequest("Current password is incorrect.");
         }
 
-        //[Authorize]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetUserProfileApi")]
         public async Task<IActionResult> GetUserProfileApi()
         {
@@ -164,8 +164,8 @@ namespace ADproject.Controllers
             return Ok(new { User = userProfile });
         }
 
-        //[Authorize]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize]
+        //[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetLatestBadgesApi")]
         public async Task<IActionResult> GetLatestBadgesApi()
         {
