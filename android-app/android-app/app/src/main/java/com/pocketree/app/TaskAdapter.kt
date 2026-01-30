@@ -17,7 +17,7 @@ class TaskAdapter(
 
     fun updateTasks(newTasks:List<Task>) {
         this.taskList = newTasks
-        notifyDataSetChanged()
+        notifyDataSetChanged() // redraw the visible views
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): TaskViewHolder {
@@ -33,24 +33,48 @@ class TaskAdapter(
         holder.description.text = task.description
         holder.reward.text = "${task.coinReward} coins"
 
-        if (task.isCompleted) {
-            holder.actionButton.text = "Completed!"
-            holder.actionButton.isEnabled = false
-            holder.itemView.alpha = 0.5f // visual "checked off" state
-        } else {
-            holder.actionButton.text = if (task.requiresEvidence) "Upload a photo" else "Let's go!"
-            holder.actionButton.isEnabled = true
-            holder.itemView.alpha = 1.0f
-            holder.actionButton.setOnClickListener {
-                // complete tasks that don't require evidence
-                if (!task.requiresEvidence) {
-                    task.isCompleted = true
+        // reset visibility and state for recycled holders
+        holder.actionButton.visibility = View.VISIBLE
+        holder.passButton.visibility = View.VISIBLE
+        holder.actionButton.isEnabled = true
+        holder.passButton.isEnabled = true
+        holder.itemView.alpha = 1.0f
+
+        when {
+            // task is completed
+            !task.isPassed && task.isCompleted -> {
+                holder.actionButton.text = "Completed!"
+                holder.actionButton.isEnabled = false
+                holder.passButton.visibility = View.GONE
+                holder.itemView.alpha = 0.5f // visual "checked off" state
+            }
+            // task is passed
+            task.isPassed && !task.isCompleted -> {
+                holder.passButton.text = "Passed!"
+                holder.passButton.isEnabled = false
+                holder.actionButton.visibility = View.GONE
+                holder.itemView.alpha = 0.5f
+            }
+
+            else -> {
+                holder.actionButton.text =
+                    if (task.requiresEvidence) "Take a photo" else "Let's go!"
+
+                holder.passButton.setOnClickListener {
+                    task.isPassed = true
                     notifyItemChanged(position)
                 }
-                onTaskClick(task)
+
+                holder.actionButton.setOnClickListener {
+                    // complete tasks that don't require evidence
+                    if (!task.requiresEvidence) {
+                        task.isCompleted = true
+                        notifyItemChanged(position)
+                    }
+                    onTaskClick(task)
+                }
             }
         }
-
     }
 
     override fun getItemCount() = taskList.size
@@ -59,5 +83,6 @@ class TaskAdapter(
         val description: TextView = itemView.findViewById(R.id.descriptionTv)
         val reward: TextView = itemView.findViewById(R.id.rewardTv)
         val actionButton: Button = itemView.findViewById(R.id.actionBtn)
+        val passButton: Button = itemView.findViewById(R.id.passBtn)
     }
 }

@@ -48,12 +48,12 @@ class RedeemFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
-        sharedViewModel.username.observe(viewLifecycleOwner) { name ->
-            binding.accountInfo.text = "${name ?: "User"}"
-        }
-        // observe coins to update coinDisplay TextView
-        sharedViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
-            binding.coinDisplay.text = "$coins coins"
+
+        // observe consolidated userState
+        sharedViewModel.userState.observe(viewLifecycleOwner) { state ->
+            // update UI using properties of state object
+            binding.accountInfo.text = state.username
+            binding.coinDisplay.text="${state.totalCoins} coins"
         }
     }
 
@@ -126,7 +126,7 @@ class RedeemFragment: Fragment() {
             return
         }
 
-        val currentCoins = sharedViewModel.totalCoins.value ?: 0
+        val currentCoins = sharedViewModel.userState.value?.totalCoins ?: 0
         if (currentCoins >= skin.skinPrice) {
             processRedemption(skin)
         } else {
@@ -140,47 +140,47 @@ class RedeemFragment: Fragment() {
 
 
     private fun processRedemption(skin: Skin){
-        val currentCoins = sharedViewModel.totalCoins.value ?: 0
-        deductCoins(currentCoins - skin.skinPrice, skin)
+        val currentCoins = sharedViewModel.userState.value?.totalCoins ?: 0
+        // deductCoins(currentCoins - skin.skinPrice, skin) - will have error
         showSuccessDialog(skin.skinName)
     }
 
-
-    private fun deductCoins(newTotal:Int, skin: Skin){
-        val json = JSONObject().apply{
-            put("TotalCoins", newTotal)
-        }
-
-        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-
-        val request = okhttp3.Request.Builder()
-            .url("$baseUrl/UpdateCoinsApi")
-            .post(body)
-            .build()
-
-        client.newCall(request).enqueue(object: Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                activity?.runOnUiThread {
-                    Toast.makeText(context, "Network error", Toast.LENGTH_LONG).show()
-                }
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                if (response.isSuccessful) {
-                    activity?.runOnUiThread {
-                        sharedViewModel.updateTotalCoins(newTotal)
-                        skin.isRedeemed = true
-                        Toast.makeText(context, "Redeemed ${skin.skinName}!", Toast.LENGTH_SHORT).show()
-                    }
-                } else {
-                    activity?.runOnUiThread {
-                        Toast.makeText(context, "Error in server response", Toast.LENGTH_SHORT)
-                            .show()
-                    }
-                }
-            }
-        })
-    }
+// hello chenyu this one need to remove (no more UpdateCoins Api) - so please relook at your fragment thanks
+//    private fun deductCoins(newTotal:Int, skin: Skin){
+//        val json = JSONObject().apply{
+//            put("TotalCoins", newTotal)
+//        }
+//
+//        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+//
+//        val request = okhttp3.Request.Builder()
+//            .url("$baseUrl/UpdateCoinsApi")
+//            .post(body)
+//            .build()
+//
+//        client.newCall(request).enqueue(object: Callback {
+//            override fun onFailure(call: Call, e: IOException) {
+//                activity?.runOnUiThread {
+//                    Toast.makeText(context, "Network error", Toast.LENGTH_LONG).show()
+//                }
+//            }
+//
+//            override fun onResponse(call: Call, response: Response) {
+//                if (response.isSuccessful) {
+//                    activity?.runOnUiThread {
+//                        sharedViewModel.updateTotalCoins(newTotal)
+//                        skin.isRedeemed = true
+//                        Toast.makeText(context, "Redeemed ${skin.skinName}!", Toast.LENGTH_SHORT).show()
+//                    }
+//                } else {
+//                    activity?.runOnUiThread {
+//                        Toast.makeText(context, "Error in server response", Toast.LENGTH_SHORT)
+//                            .show()
+//                    }
+//                }
+//            }
+//        })
+//    }
 
 
     private fun showSuccessDialog(itemName: String) {

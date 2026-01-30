@@ -18,6 +18,7 @@
     <string name="current_level">Current Level</string>
     <string name="redeem_header">Redeem Items</string>
     <string name="skins">Skins</string>
+    <string name="pass_task">Pass</string>
     <string name="vouchers">Vouchers</string>
     <string name="item_to_redeem">Item to Redeem</string>
     <string name="price_to_redeem">100 coins</string>

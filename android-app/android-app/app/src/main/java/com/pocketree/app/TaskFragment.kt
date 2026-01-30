@@ -1,5 +1,6 @@
 package com.pocketree.app
 
+import android.R.id.message
 import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -8,6 +9,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -38,31 +40,24 @@ class TaskFragment: Fragment() {
         binding.recyclerViewTasks.layoutManager = LinearLayoutManager(context)
         binding.recyclerViewTasks.adapter = taskAdapter
 
-        // set up Swipe Refresh
-        binding.swipeRefresh.setOnRefreshListener {
-            sharedViewModel.fetchDailyTasks()
-            binding.swipeRefresh.isRefreshing = false
-        }
-
         // start observers (update UI if anything in View Model changes)
         observeViewModel()
     }
 
-    private fun observeViewModel(){
-        sharedViewModel.username.observe(viewLifecycleOwner) { name ->
-            binding.accountInfo.text = "${name ?: "User"}"
+    private fun observeViewModel() {
+        // observe consolidated state object
+        sharedViewModel.userState.observe(viewLifecycleOwner) { state ->
+            state?.let {
+                binding.accountInfo.text = state.username
+                binding.coinDisplay.text = "${state.totalCoins} coins"
+            }
         }
 
-        // observe coins to update coinDisplay TextView
-        sharedViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
-            binding.coinDisplay.text = "$coins coins"
-        }
-
-        // observe the ViewModel and update the adapter when the list changes
+        // observe tasks list
         sharedViewModel.tasks.observe(viewLifecycleOwner) { tasks ->
-            taskAdapter.updateTasks(tasks)
+            if (tasks == null || _binding == null) return@observe
 
-            binding.swipeRefresh.isRefreshing = false // stop refresh animation
+            taskAdapter.updateTasks(tasks)
 
             if (tasks.isNotEmpty() && tasks.all { it.isCompleted }) {
                 binding.dailyStatusTv.text = "Daily tasks complete! Good job!"
@@ -72,40 +67,23 @@ class TaskFragment: Fragment() {
             }
         }
 
-        sharedViewModel.isLoading.observe(viewLifecycleOwner){ loading ->
+        sharedViewModel.isLoading.observe(viewLifecycleOwner) { loading ->
             binding.loadingOverlay.visibility = if (loading) View.VISIBLE else View.GONE
         }
 
         sharedViewModel.errorMessage.observe(viewLifecycleOwner) { message ->
             message?.let {
-                binding.swipeRefresh.isRefreshing = false // stop spinner on error
-                Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
-                sharedViewModel.errorMessage.value = null
+
+                context?.let { ctx ->
+                    Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
+                    sharedViewModel.errorMessage.value = null
+                }
             }
         }
 
         sharedViewModel.levelUpEvent.observe(viewLifecycleOwner) { levelUp ->
-            if (levelUp == true) {
-                val (levelName, badgeName, voucherName) = sharedViewModel.getLevelDetails()
-                AlertDialog.Builder(requireContext())
-                    // returns non-null Context associated with fragment's current host (activity)
-                    .setTitle("Level Up!")
-                    .setMessage("Good job! You have progressed to the $levelName stage!")
-                    .setPositiveButton("Yay!") { _, _ ->
-
-                        // chain to badge dialog
-                        AlertDialog.Builder(requireContext())
-                            .setTitle("Badge Obtained!")
-                            .setMessage("You have earned the $badgeName badge! View it under the Home tab.")
-                            .setPositiveButton("Got it!") { _, _ ->
-
-                                AlertDialog.Builder(requireContext())
-                                    .setTitle("Voucher Obtained!")
-                                    .setMessage("You have earned a voucher! Check the Redeeem tab.")
-                                    .setPositiveButton("Awesome!", null)
-                                    .show()
-                            }.show()
-                    }.show()
+            if (levelUp == true && isAdded && _binding != null) {
+                showLevelUpDialog()
 
                 sharedViewModel.levelUpEvent.value = false
                 // reset the event so the notice doesn't fire again
@@ -113,7 +91,56 @@ class TaskFragment: Fragment() {
         }
     }
 
+    private fun showLevelUpDialog() {
+        val (levelName, badgeName, voucherName) = sharedViewModel.getLevelDetails()
+
+        if (!isAdded) return
+
+        AlertDialog.Builder(requireContext())
+            // returns non-null Context associated with fragment's current host (activity)
+            .setTitle("Level Up!")
+            .setMessage("Good job! You have progressed to the $levelName stage!")
+            .setPositiveButton("Yay!") { dialog, _ ->
+                dialog.dismiss()
+                if (isAdded) showBadgeDialog(badgeName)
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun showBadgeDialog(badgeName: String) {
+        if (!isAdded) return
+
+        // chain to badge dialog
+        AlertDialog.Builder(requireContext())
+            .setTitle("Badge Obtained!")
+            .setMessage("You have earned the $badgeName badge! View it under the Home tab.")
+            .setPositiveButton("Got it!") { dialog, _ ->
+                dialog.dismiss()
+                if (isAdded) showVoucherDialog()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+    private fun showVoucherDialog() {
+        if (!isAdded) return
+
+        AlertDialog.Builder(requireContext())
+            .setTitle("Voucher Obtained!")
+            .setMessage("You have earned a voucher! Check the Redeeem tab.")
+            .setPositiveButton("Awesome!") { dialog, _ ->
+                dialog.dismiss()
+            }
+            .setCancelable(false)
+            .show()
+    }
+
+
     private fun onTaskClick(task: Task) {
+        if (task.isCompleted || task.isPassed) {
+            return
+        }
         if (task.requiresEvidence) {
             currentProcessingTaskId = task.taskID
             getPhoto.launch(null) // opens camera
@@ -123,17 +150,40 @@ class TaskFragment: Fragment() {
         }
     }
 
-    private val getPhoto = registerForActivityResult(ActivityResultContracts
-        .TakePicturePreview()) { bitmap -> bitmap?.let { // camera returns a bitmap if photo is taken
-            val stream = ByteArrayOutputStream()
-            it.compress(Bitmap.CompressFormat.JPEG, 90, stream)
-            // converting the image taken into data (90 to balance quality and upload speed)
+    private val getPhoto = registerForActivityResult(
+        ActivityResultContracts
+        .TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap == null) {
+            // user cancelled camera
+            currentProcessingTaskId = null
+            return@registerForActivityResult
+        }
 
-            currentProcessingTaskId?.let{ id ->
-                sharedViewModel.submitTask(id, stream.toByteArray())
+        try {
+            // camera returns a bitmap if photo is taken
+            val stream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
+            // converting the image taken into data (90 to balance quality and upload speed)
+            val imageBytes = stream.toByteArray()
+
+            currentProcessingTaskId?.let { id ->
+                sharedViewModel.submitTask(id, imageBytes)
                 // this part checks if there is an active task ID
                 // and converts that memory stream into a Byte Array and tells userViewModel to upload it
+                currentProcessingTaskId = null
+            } ?: run {
+                Toast.makeText(requireContext(),
+                    "Error: Task ID missing",
+                    Toast.LENGTH_SHORT
+                ).show()
             }
+        } catch (e:Exception) {
+            Toast.makeText(requireContext(),
+                "Error processing photo",
+                Toast.LENGTH_SHORT
+            ).show()
+            currentProcessingTaskId = null
         }
     }
 
@@ -141,7 +191,5 @@ class TaskFragment: Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
-    // add in a "passed" function - if user doesn't wanna do the task
 }
 

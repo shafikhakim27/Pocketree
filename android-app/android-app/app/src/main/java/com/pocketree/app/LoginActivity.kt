@@ -28,10 +28,11 @@ class LoginActivity: AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private val client = NetworkClient.okHttpClient
     private val baseUrl = "http://10.0.2.2:5042/api/User"
+    private val gson = NetworkClient.gson
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // initialise NetworkClient context
-        NetworkClient.context = this.applicationContext
+//        NetworkClient.context = this.applicationContext
 
         // check for existing token
         val existingToken = NetworkClient.loadToken(this)
@@ -123,7 +124,6 @@ class LoginActivity: AppCompatActivity() {
                 runOnUiThread {
                     // 2. Hide Loading on Failure
                     setLoadingState(false)
-                    android.util.Log.e("LoginError", "Connection failed: ${e.message}")
                     Toast.makeText(this@LoginActivity, "Connection failed", Toast.LENGTH_SHORT).show()
                 }
             }
@@ -145,7 +145,8 @@ class LoginActivity: AppCompatActivity() {
                         }
 
                         // save the token to the Singleton so the Interceptor can find it
-                        NetworkClient.setToken(NetworkClient.context, loginData.token)
+                        NetworkClient.setToken(applicationContext, loginData.token)
+                        NetworkClient.saveUserCache(applicationContext, loginData.user)
 
                         runOnUiThread {
                             loginUser(loginData.user)
@@ -169,46 +170,6 @@ class LoginActivity: AppCompatActivity() {
                             "Invalid username or password, please try again",
                             Toast.LENGTH_SHORT
                         ).show()
-                    }
-                }
-            }
-        })
-    }
-
-    private fun fetchUserProfile() {
-        val token = NetworkClient.loadToken(this)
-
-        val request = Request.Builder()
-            .url("$baseUrl/GetUserProfileApi")
-            .addHeader("Authorization", "Bearer $token")
-            .get()
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                runOnUiThread {
-                    setLoadingState(false) // Stop loading on error
-                    Toast.makeText(this@LoginActivity, "Network error fetching profile", Toast.LENGTH_SHORT).show()
-                }
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                val responseBody = response.body?.string()
-                if (response.isSuccessful && responseBody != null) {
-                    try {
-                        // Map the response to your User data class
-                        val userProfile = gson.fromJson(responseBody, User::class.java)
-                        runOnUiThread {
-                            loginUser(userProfile)
-                        }
-                    } catch (e:Exception) {
-                        runOnUiThread {
-                            setLoadingState(false)
-                            Toast.makeText(this@LoginActivity,
-                                "Error in server response",
-                                Toast.LENGTH_SHORT
-                            ).show()
-                        }
                     }
                 }
             }
@@ -250,7 +211,4 @@ class LoginActivity: AppCompatActivity() {
             }
         }
     }
-
-
-
 }

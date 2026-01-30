@@ -37,8 +37,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initUser(){
-        // initialise NetworkClient context (safety net)
-        NetworkClient.context = this.applicationContext
         val token = NetworkClient.loadToken(this)
 
         // check login status
@@ -49,9 +47,12 @@ class MainActivity : AppCompatActivity() {
             return // stop execution here
         }
 
+        // fill UI with last known data so user is able to see something on screen
+        viewModel.loadCachedData(this)
+
         val username = intent.getStringExtra("username")
         if (username != null) {
-            // manually push intent data into ViewModel
+            // push data obtained from LoginActivity into ViewModel
             viewModel.updateUserData(
                 username = username,
                 totalCoins = intent.getIntExtra("totalCoins", 0),
@@ -61,8 +62,8 @@ class MainActivity : AppCompatActivity() {
                 levelImageUrl = intent.getStringExtra("levelImageUrl")
             )
         } else {
-            // fallback - in case intent is empty (e.g. app was killed/restored),
-            // fetch fresh data from the server using the token
+            // fallback - in case intent is empty (e.g. app was killed/restored)
+            // fetch fresh data from the server to ensure info is up to date
             viewModel.fetchUserProfile()
         }
     }

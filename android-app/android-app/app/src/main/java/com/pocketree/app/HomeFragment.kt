@@ -32,62 +32,12 @@ class HomeFragment: Fragment() {
         // test - to remove later on
         binding.plant.setImageResource(R.drawable.mighty_oak)
 
-        sharedViewModel.username.observe(viewLifecycleOwner) { name ->
-            binding.accountInfo.text = "${name ?: "User"}"
-        }
-
-        sharedViewModel.totalCoins.observe(viewLifecycleOwner) { coins ->
-            binding.coinDisplay.text = "$coins coins"
-        }
-
-        // kiv for image insertion
-        // Observing the Image URL (Use Glide or Picasso to load it)
-        sharedViewModel.levelImageUrl.observe(viewLifecycleOwner) { url ->
-            if (!url.isNullOrEmpty()) {
-                // Example using Glide: Glide.with(this).load(url).into(binding.plant)
-            }
-        }
-
-        sharedViewModel.levelName.observe(viewLifecycleOwner) { level ->
-            binding.levelDisplay.text = "Current Stage: ${level ?: "Seedling"}"
-        }
-
         // set up recyclerview layout manager for badges
         binding.recyclerViewBadges.layoutManager = LinearLayoutManager(requireContext(),
             LinearLayoutManager.HORIZONTAL, false)
 
         sharedViewModel.fetchEarnedBadges() // fetch data
-        sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
-            if (badges != null) {
-                binding.badgesHeader.visibility = View.VISIBLE
-                binding.recyclerViewBadges.adapter = BadgeAdapter(badges)
-            }
-        }
-
-        // withering logic
-        sharedViewModel.isWithered.observe(viewLifecycleOwner) { withered ->
-            // if withered tree has revived
-            if (wasWithered == true && !withered) {
-                AlertDialog.Builder(requireContext())
-                    .setTitle("Plant Revived")
-                    .setMessage("Your plant has revived! Good job!")
-                    .setPositiveButton("Yay!", null)
-                    .show()
-            }
-            if (withered) {
-                binding.statusWarning.text = "Your plant has withered. Complete a task to revive it!"
-                binding.statusWarning.visibility = View.VISIBLE
-                // remove below if changing to picture of dying tree
-                binding.plant.alpha = 0.3f // make the plant look "faded"
-            } else {
-                binding.statusWarning.visibility = View.GONE
-                binding.plant.alpha = 1.0f
-                binding.plant.visibility = View.VISIBLE
-            }
-
-            // update tracker for the next change
-            wasWithered = withered
-        }
+        observeViewModel()
     }
 
     // kiv for now - insertion of plant images
@@ -98,6 +48,57 @@ class HomeFragment: Fragment() {
     //    val fullUrl = url.replace("~/", baseUrl + "/")
     //    Glide.with(this).load(fullUrl).into(binding.plantImageView)
     //}
+
+    fun observeViewModel() {
+        // observe consolidated state object
+        sharedViewModel.userState.observe(viewLifecycleOwner) { state ->
+            binding.accountInfo.text = state.username
+            binding.coinDisplay.text = "${state.totalCoins} coins"
+
+            binding.levelDisplay.text = "Current Stage: ${state.levelName}"
+
+            // KIV!!!!
+            // update plant image
+            if (state.levelImageUrl.isNotEmpty()) {
+                // val fullUrl = state.levelImageUrl.replace("~/", baseUrl + "/")
+                // Glide.with(this).load(fullUrl).into(binding.plant)
+            }
+
+            handleWithering(state.isWithered)
+
+            sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
+                if (badges != null) {
+                    binding.badgesHeader.visibility = View.VISIBLE
+                    binding.recyclerViewBadges.adapter = BadgeAdapter(badges)
+                }
+            }
+        }
+    }
+
+    // helper function to handle withering logic
+    private fun handleWithering(withered: Boolean) {
+        // if withered tree has revived
+        if (wasWithered == true && !withered) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Plant Revived")
+                .setMessage("Your plant has revived! Good job!")
+                .setPositiveButton("Yay!", null)
+                .show()
+        }
+        if (withered) {
+            binding.statusWarning.text = "Your plant has withered. Complete a task to revive it!"
+            binding.statusWarning.visibility = View.VISIBLE
+            // remove below if changing to picture of dying tree
+            binding.plant.alpha = 0.3f // make the plant look "faded"
+        } else {
+            binding.statusWarning.visibility = View.GONE
+            binding.plant.alpha = 1.0f
+            binding.plant.visibility = View.VISIBLE
+        }
+
+        // update tracker for the next change
+        wasWithered = withered
+    }
 
     override fun onDestroyView() {
         super.onDestroyView()
