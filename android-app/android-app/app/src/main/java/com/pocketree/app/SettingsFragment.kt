@@ -27,6 +27,7 @@ class SettingsFragment: Fragment() {
     private val sharedViewModel: UserViewModel by activityViewModels()
     private var mediaPlayer: MediaPlayer? = null    // for background music
     private lateinit var prefs: SharedPreferences    // to save user settings
+
     private val baseUrl = "http://10.0.2.2:5042/api/User"
     private val client = NetworkClient.okHttpClient
 
@@ -133,16 +134,16 @@ class SettingsFragment: Fragment() {
         }
     }
 
-
-    // --- Change Password Logic  ---
+    // change password
     private fun changePassword() {
-        binding.btnChangePassword.setOnClickListener {
+        binding.btnChangePassword.setOnClickListener{
             showChangePasswordDialog()
         }
     }
 
-    private fun showChangePasswordDialog() {
-        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_change_password, null)
+    private fun showChangePasswordDialog(){
+        val dialogView = LayoutInflater.from(requireContext()).inflate(
+            R.layout.dialog_change_password, null)
         val etCurrent = dialogView.findViewById<TextInputEditText>(R.id.etCurrentPassword)
         val etNew = dialogView.findViewById<TextInputEditText>(R.id.etNewPassword)
         val etConfirm = dialogView.findViewById<TextInputEditText>(R.id.etConfirmPassword)
@@ -150,13 +151,13 @@ class SettingsFragment: Fragment() {
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
             .setTitle("Change Password")
-            .setPositiveButton("Update", null) // Set null here to override later
+            .setPositiveButton("Update", null) // set null here to override later
             .setNegativeButton("Cancel", null)
             .create()
 
         dialog.show()
 
-        // Override the positive button onClick handler to prevent auto-dismiss
+        // override the positive button onClick handler to prevent auto-dismiss
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val currentPass = etCurrent.text.toString()
             val newPass = etNew.text.toString()
@@ -168,24 +169,39 @@ class SettingsFragment: Fragment() {
         }
     }
 
-    private fun validatePasswordInput(current: String, new: String, confirm: String): Boolean {
+    private fun validatePasswordInput(current:String,
+                                      new:String,
+                                      confirm:String):Boolean{
         if (current.isEmpty() || new.isEmpty() || confirm.isEmpty()) {
-            Toast.makeText(context, "All fields are required", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context, "All fields are required",
+                Toast.LENGTH_SHORT
+            ).show()
             return false
         }
-        if (new.length < 8) {
-            Toast.makeText(context, "New password must be at least 8 characters", Toast.LENGTH_SHORT).show()
+        if (new.length <8) {
+            Toast.makeText(
+                context, "Password must be at least 8 characters",
+                Toast.LENGTH_SHORT
+            ).show()
             return false
         }
         if (new != confirm) {
-            Toast.makeText(context, "New passwords do not match", Toast.LENGTH_SHORT).show()
+            Toast.makeText(
+                context, "New passwords do not match",
+                Toast.LENGTH_SHORT
+            ).show()
             return false
         }
         return true
     }
 
-    private fun sendChangePasswordRequest(current: String, new: String, confirm: String, dialog: AlertDialog) {
-        // 1. Get Token
+    private fun sendChangePasswordRequest(current: String,
+                                          new:String,
+                                          confirm:String,
+                                          dialog: AlertDialog
+    ) {
+        // Get Token
         val token = NetworkClient.loadToken(requireContext())
         android.util.Log.d("DEBUG_TOKEN", "Token is: $token") // 查看 Logcat
         android.util.Log.e("DEBUG_PASSWORD", "Token sending: '$token'")
@@ -193,7 +209,6 @@ class SettingsFragment: Fragment() {
             Toast.makeText(context, "Authentication error. Please login again.", Toast.LENGTH_SHORT).show()
             return
         }
-
         // 2. Prepare JSON data
         val jsonObject = JSONObject().apply {
             put("CurrentPassword", current)
@@ -234,9 +249,9 @@ class SettingsFragment: Fragment() {
                             400 -> {
                                 // backend returns 400 Bad Request (Business Logic Error)
                                 if (responseBody.contains("incorrect", ignoreCase = true)) {
-                                    Toast.makeText(context, "Wrong current password", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Invalid password", Toast.LENGTH_SHORT).show()
                                 } else if (responseBody.contains("match", ignoreCase = true)) {
-                                    Toast.makeText(context, "New passwords do not match", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
                                 } else {
                                     // Other validation errors
                                     Toast.makeText(context, "Validation failed: $responseBody", Toast.LENGTH_SHORT).show()
@@ -261,12 +276,10 @@ class SettingsFragment: Fragment() {
         })
     }
 
-
     override fun onDestroyView(){
         super.onDestroyView()
         mediaPlayer?.release()
         mediaPlayer = null
         _binding = null
     }
-
 }

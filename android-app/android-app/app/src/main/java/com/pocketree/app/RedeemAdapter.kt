@@ -31,8 +31,8 @@ class RedeemAdapter(
             val skin = item
             // holder.image.setImageResource(item.imageResId)
             holder.binding.itemImage.setImageResource(android.R.drawable.ic_menu_gallery)
-            holder.binding.itemName.text = skin.name
-            holder.binding.itemPrice.text = "${skin.price} coins"
+            holder.binding.itemName.text = skin.skinName
+            holder.binding.itemPrice.text = "${skin.skinPrice} coins"
             if (!skin.isRedeemed) {
                 holder.binding.itemPrice.setTextColor(Color.parseColor("#4CAF50"))
                 // holder.binding.itemStatus.text = ""

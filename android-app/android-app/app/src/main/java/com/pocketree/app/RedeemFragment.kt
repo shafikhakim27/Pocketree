@@ -106,7 +106,7 @@ class RedeemFragment: Fragment() {
     private fun showSkinConfirmDialog(skin: Skin) {
         AlertDialog.Builder(requireContext())
             .setTitle("Confirm Redemption")
-            .setMessage("Do you want to redeem ${skin.name} for ${skin.price} coins?")
+            .setMessage("Do you want to redeem ${skin.skinName} for ${skin.skinPrice} coins?")
             .setPositiveButton("Confirm") { dialog, _ ->
                 preRedeem(skin)
                 // dialog.dismiss() - not required here!
@@ -127,7 +127,7 @@ class RedeemFragment: Fragment() {
         }
 
         val currentCoins = sharedViewModel.totalCoins.value ?: 0
-        if (currentCoins >= skin.price) {
+        if (currentCoins >= skin.skinPrice) {
             processRedemption(skin)
         } else {
             AlertDialog.Builder(requireContext())
@@ -141,8 +141,8 @@ class RedeemFragment: Fragment() {
 
     private fun processRedemption(skin: Skin){
         val currentCoins = sharedViewModel.totalCoins.value ?: 0
-        deductCoins(currentCoins - skin.price, skin)
-        showSuccessDialog(skin.name)
+        deductCoins(currentCoins - skin.skinPrice, skin)
+        showSuccessDialog(skin.skinName)
     }
 
 
@@ -170,7 +170,7 @@ class RedeemFragment: Fragment() {
                     activity?.runOnUiThread {
                         sharedViewModel.updateTotalCoins(newTotal)
                         skin.isRedeemed = true
-                        Toast.makeText(context, "Redeemed ${skin.name}!", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, "Redeemed ${skin.skinName}!", Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     activity?.runOnUiThread {
