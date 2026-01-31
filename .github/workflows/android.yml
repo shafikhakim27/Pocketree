@@ -86,7 +86,9 @@ jobs:
             # 1. Print the flow file to the console to check for formatting issues
             echo "--- Debug: Raw flow.yaml inspection ---"
             cat -A $GITHUB_WORKSPACE/android/.maestro/flow.yaml
-            
+
+            sleep 5
+  
             # 2. Install the APK
             adb install app-debug.apk
             
