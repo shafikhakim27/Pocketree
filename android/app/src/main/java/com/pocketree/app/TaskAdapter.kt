@@ -1,5 +1,6 @@
 package com.pocketree.app
 
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -12,7 +13,8 @@ import androidx.recyclerview.widget.RecyclerView
 
 class TaskAdapter(
     private var taskList: List<Task>,
-    private val onTaskClick: (Task) -> Unit
+    private val onCompleteClick: (Task) -> Unit,
+    private val onPassClick: (Task) -> Unit
 ): RecyclerView.Adapter<TaskAdapter.TaskViewHolder>() {
 
     fun updateTasks(newTasks:List<Task>) {
@@ -32,6 +34,10 @@ class TaskAdapter(
         // bind data to the views held by ViewHolder
         holder.description.text = task.description
         holder.reward.text = "${task.coinReward} coins"
+
+        // reset all click listeners first to avoid stale listeners
+        holder.actionButton.setOnClickListener(null)
+        holder.passButton.setOnClickListener(null)
 
         // reset visibility and state for recycled holders
         holder.actionButton.visibility = View.VISIBLE
@@ -59,23 +65,18 @@ class TaskAdapter(
             else -> {
                 holder.actionButton.text =
                     if (task.requiresEvidence) "Take a photo" else "Let's go!"
+                holder.passButton.text = "Pass"
 
                 holder.actionButton.isEnabled = true
+                holder.passButton.isEnabled = true
 
                 holder.passButton.setOnClickListener {
-                    task.isPassed = true
-                    notifyItemChanged(position)
+                    onPassClick(task)
                 }
 
                 holder.actionButton.setOnClickListener {
-                    // complete tasks that don't require evidence
-    /*                if (!task.requiresEvidence) {
-                        task.isCompleted = true
-                        notifyItemChanged(position)
-                    }
-      */            onTaskClick(task)
+                    onCompleteClick(task)
                 }
-
             }
         }
     }
