@@ -4,6 +4,7 @@ import android.R.id.message
 import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -36,7 +37,11 @@ class TaskFragment: Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // initialising task adapter and recycler view
-        taskAdapter = TaskAdapter(emptyList()) { task -> onTaskClick(task) }
+        taskAdapter = TaskAdapter(
+            emptyList(),
+            onCompleteClick = {task -> onTaskCompleteClick(task)},
+            onPassClick = {task -> onTaskPassClick(task)}
+        )
         binding.recyclerViewTasks.layoutManager = LinearLayoutManager(context)
         binding.recyclerViewTasks.adapter = taskAdapter
 
@@ -59,8 +64,8 @@ class TaskFragment: Fragment() {
 
             taskAdapter.updateTasks(tasks)
 
-            if (tasks.isNotEmpty() && tasks.all { it.isCompleted }) {
-                binding.dailyStatusTv.text = "Daily tasks complete! Good job!"
+            if (tasks.isNotEmpty() && tasks.all { it.isCompleted || it.isPassed }) {
+                binding.dailyStatusTv.text = "Come back tomorrow for new tasks!"
                 binding.dailyStatusTv.visibility = View.VISIBLE
             } else {
                 binding.dailyStatusTv.visibility = View.GONE
@@ -71,18 +76,9 @@ class TaskFragment: Fragment() {
             binding.loadingOverlay.visibility = if (loading) View.VISIBLE else View.GONE
         }
 
-        sharedViewModel.errorMessage.observe(viewLifecycleOwner) { message ->
-            message?.let {
-
-                context?.let { ctx ->
-                    Toast.makeText(requireContext(), it, Toast.LENGTH_SHORT).show()
-                    sharedViewModel.errorMessage.value = null
-                }
-            }
-        }
-
         sharedViewModel.levelUpEvent.observe(viewLifecycleOwner) { levelUp ->
             if (levelUp == true && isAdded && _binding != null) {
+                // isAdded checks if a fragment is currently attached to its host activity
                 showLevelUpDialog()
 
                 sharedViewModel.levelUpEvent.value = false
@@ -136,18 +132,28 @@ class TaskFragment: Fragment() {
             .show()
     }
 
-
-    private fun onTaskClick(task: Task) {
+    // for the "Let's Go!"/"Take a photo" button
+    private fun onTaskCompleteClick(task: Task) {
+        // safety check - do nothing if task is already completed/passed
         if (task.isCompleted || task.isPassed) {
             return
         }
+
         if (task.requiresEvidence) {
             currentProcessingTaskId = task.taskID
             getPhoto.launch(null) // opens camera
         } else {
             // no photo needed, just send completion into backend
-            sharedViewModel.submitTask(task.taskID)
+            sharedViewModel.submitTask(task.taskID, "Completed")
         }
+    }
+
+    // to handle "Pass" button clicks
+    private fun onTaskPassClick(task: Task) {
+        if (task.isCompleted || task.isPassed) {
+            return
+        }
+        sharedViewModel.submitTask(task.taskID, "Passed")
     }
 
     private val getPhoto = registerForActivityResult(
@@ -168,7 +174,7 @@ class TaskFragment: Fragment() {
             val imageBytes = stream.toByteArray()
 
             currentProcessingTaskId?.let { id ->
-                sharedViewModel.submitTask(id, imageBytes)
+                sharedViewModel.submitTask(id, "Completed", imageBytes)
                 // this part checks if there is an active task ID
                 // and converts that memory stream into a Byte Array and tells userViewModel to upload it
                 currentProcessingTaskId = null

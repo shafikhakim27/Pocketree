@@ -1,6 +1,7 @@
 package com.pocketree.app
 
 import android.content.Context
+import android.util.Log
 import android.util.Log.e
 import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
@@ -159,12 +160,13 @@ class UserViewModel: ViewModel() {
         })
     }
 
-    fun submitTask(taskId: Int, imageBytes: ByteArray? = null) {
+    fun submitTask(taskId: Int, status: String, imageBytes: ByteArray? = null) {
         isLoading.postValue(true)
 
         val requestBodyBuilder = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
-            .addFormDataPart("TaskId", taskId.toString())
+            .addFormDataPart("taskId", taskId.toString())
+            .addFormDataPart("status", status)
 
         // Only add photo if it exists
         imageBytes?.let {
@@ -183,28 +185,42 @@ class UserViewModel: ViewModel() {
                 val bodyString = response.body?.string()
 
                 if (response.isSuccessful && !bodyString.isNullOrEmpty()) {
-                    val result = gson.fromJson(bodyString, TaskCompletionResponse::class.java)
+                    try {
+                        val result = gson.fromJson(bodyString, TaskCompletionResponse::class.java)
 
-                    // update state using copy - bc data classes are immutable! so property cannot be changed
-                    if (result.success) {
-                        val current = userState.value ?: UserState()
-                        userState.postValue(
-                            current.copy(
-                                totalCoins = result.newCoins,
-                                currentLevelID = result.newLevel,
-                                isWithered = result.isWithered
+                        // update state using copy - bc data classes are immutable! so property cannot be changed
+                        if (result.success) {
+                            val current = userState.value ?: UserState()
+
+                            // update task list
+                            val currentTasks = tasks.value?.toMutableList()
+
+                            currentTasks?.find { it.taskID == taskId }?.apply {
+                                isCompleted = (status == "Completed")
+                                isPassed = (status == "Passed")
+                            }
+
+                            // find the tasks we just finished and update it in memory
+                            tasks.postValue(currentTasks) // update UI so it shows "Completed"
+
+                            userState.postValue(
+                                current.copy(
+                                    totalCoins = result.newCoins,
+                                    currentLevelID = result.newLevel,
+                                    isWithered = result.isWithered
+                                )
                             )
-                        )
 
-                        // update task list
-                        val currentTasks = tasks.value?.toMutableList()
-                        currentTasks?.find { it.taskID == taskId }?.isCompleted = true
-                        // find the tasks we just finished and update it in memory
-                        tasks.postValue(currentTasks) // update UI so it shows "Completed"
-
-                        if (result.levelUp) levelUpEvent.postValue(true)
-                        fetchEarnedBadges()
+                            if (result.levelUp) levelUpEvent.postValue(true)
+                            fetchEarnedBadges()
+                        } else {
+                            errorMessage.postValue("Task submission failed")
+                        }
+                    } catch (e:Exception) {
+                        errorMessage.postValue("Error processing response: ${e.message}")
                     }
+                } else {
+                    errorMessage.postValue("Server error")
                 }
             }
             override fun onFailure(call: Call, e: IOException) {
