@@ -7,11 +7,9 @@ appId: com.pocketree.app
 - launchApp
 
 # 3. Wait for animations to settle
-- waitForAnimationToEnd:
-    timeout: 15000
+- waitForAnimationToEnd
 
 # 4. Verification
-# Ensure 'text' and 'timeout' are indented 4 spaces under the dash
 - assertVisible:
     text: "Welcome"
     timeout: 30000

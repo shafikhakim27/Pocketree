@@ -3,6 +3,7 @@ using ADproject.Models.Entities;
 using ADproject.Models.ViewModels;
 using ADproject.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -48,10 +49,15 @@ namespace ADproject.Controllers
 
             if (currentDailyTasks.Any())
             {
-                if (currentDailyTasks.Count(t => t.Status == "Completed") >= 3)
-                    return Ok(new { Message = "All tasks completed for the day!" });
+                // Return to Android the Task's status that matches the UserTaskHistory's status
+                var taskStatus = currentDailyTasks.Select(h =>
+                {
+                    var t = h.Task;
+                    t.isCompleted = (h.Status == "Completed");
+                    return t;
+                }).ToList();
 
-                return Ok(currentDailyTasks.Select(h => h.Task));
+                return Ok(taskStatus);
             }
 
             // First time receiving the tasks for the day
@@ -187,13 +193,12 @@ namespace ADproject.Controllers
                 }
                 else
                 {
-                    // If no existing assigned record is found
-                    db.UserTaskHistory.Add(new UserTaskHistory
-                    {
-                        UserID = user.UserID,
-                        TaskID = task.TaskID,
-                        Status = "Completed",
-                        CompletionDate = DateTime.UtcNow
+                    return Ok(new { 
+                        success = false,
+                        LevelUp = false,
+                        newCoins = user.TotalCoins,
+                        newLevel = user.CurrentLevelID,
+                        IsWithered = false
                     });
                 }  
                 

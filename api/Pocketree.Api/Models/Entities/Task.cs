@@ -18,5 +18,8 @@ namespace ADproject.Models.Entities
         public string Keyword { get; set; } // For ML use
         [Required, StringLength(80)]
         public string Category { get; set; } // For ML use
+
+        [NotMapped]
+        public bool isCompleted { get; set; } // Not created in DB, field is just to match Android's side
     }
 }
