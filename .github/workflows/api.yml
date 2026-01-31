@@ -4,7 +4,7 @@ on:
   push:
     branches: ["main", "develop"]
     paths:
-      - 'api/**'
+      - 'api/**'  # Matches Title Case folder
       - '.github/workflows/api.yml'
   workflow_dispatch:
 
@@ -25,18 +25,19 @@ jobs:
           dotnet-version: 9.0.x
 
       - name: Restore Dependencies
-        run: dotnet restore api/Pocketree.sln
+        run: dotnet restore api/api.sln
 
-      # 🛡️ Snyk Security Scan (NuGet & Code)
+      # 🛡️ Snyk Security Scan
       - name: 🛡️ Snyk Security Scan
         uses: snyk/actions/dotnet@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=api/Pocketree.sln --severity-threshold=high
+          args: --file=api/api.sln --severity-threshold=high
 
-      # 🧪 RUN TESTS (SIT)
+      # 🧪 RUN TESTS
       - name: 🧪 Run Tests
+        # Path updated to match your screenshot: Pocketree.Api.Tests/
         run: dotnet test api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj --no-restore --verbosity normal
 
       # Docker Build & Push
@@ -62,6 +63,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
+          # Ensure this path matches the physical location of the Dockerfile
           file: api/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -87,4 +89,5 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          # Uses the exact SHA tag for deterministic deployment
           images: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'

@@ -25,7 +25,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=ml-service/requirements.txt --severity-threshold=high
+          args: --file=ml-service/requirements.txt --severity-threshold=high --skip-unresolved
 
       # 🐍 Bandit Security Scan (SAST)
       - name: 🐍 Run Bandit

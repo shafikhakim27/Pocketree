@@ -35,20 +35,19 @@ jobs:
       - name: Build APK (Debug)
         run: ./gradlew assembleDebug
 
-      # Uploads the APK so the next job can download it
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: pocketree-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-# 🤖 JOB 2: MAESTRO UI TESTS
+  # 🤖 JOB 2: MAESTRO UI TESTS
   ui-test:
     needs: build-android
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./android # All 'run' steps execute inside the /android folder
+        working-directory: ./android
 
     strategy:
       matrix:
@@ -59,21 +58,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. Download the APK
-      # Note: 'path' here is relative to the REPO ROOT, not the working-directory.
+      # 1. Download the APK directly into the app's build folder
+      # Removed 'android/' from path because download-artifact is root-based
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
           name: pocketree-debug.apk
           path: android/app/build/outputs/apk/debug/
 
-      # 2. Install Maestro
       - name: Install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
-      # 3. Spin up Emulator & Run Tests
       - name: Run Maestro Flows
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -82,14 +79,12 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
-            # IMPORTANT: The script below runs INSIDE ./android due to defaults.
-            # We don't need the "android/" prefix here because we are already in it.
-            
+            # ✅ Now 'app/build/...' points correctly to 'android/app/build/...'
             adb install app/build/outputs/apk/debug/app-debug.apk
             
             mkdir -p maestro-report
-            maestro test .maestro/flow.yaml --format junit --output maestro-report/report.xml --record
-      # 📸 📹 Step 4: Capture Everything (XML + PNG + MP4)
+            maestro test .maestro/flow.yaml --format junit --output maestro-report/report.xml
+
       - name: Upload Maestro Reports & Media
         if: always() 
         uses: actions/upload-artifact@v4

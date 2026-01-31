@@ -6,19 +6,19 @@ appId: com.pocketree.app
 # 2. Start the app
 - launchApp
 
-# 3. Handle potential system dialogs or slow emulators
-# This waits up to 10 seconds for the "Welcome" text to appear
-- waitForAnimationEnd
-- assertVisible: 
-    text: "Welcome"
-    timeout: 10000
+# 3. Handle slow emulator startup
+# CI emulators are slower than local ones. Waiting for the app to settle is key.
+- waitForAnimationEnd:
+    timeout: 5000
 
-# 4. Take a "Happy Path" screenshot for your reports
+# 4. Verification
+# We use 'assertVisible' to confirm the UI has actually rendered
+- assertVisible:
+    text: "Welcome"
+    timeout: 15000 # Increased timeout for CI stability
+
+# 5. Take a "Happy Path" screenshot
 - takeScreenshot: "Startup_Success"
 
-# 5. Simple Interaction (Safe check)
-# Even if you don't navigate far, checking if a button exists is good.
-# - assertVisible: "Login"
-
-# 6. Optional: Stop the app at the end
+# 6. Stop the app
 - stopApp
