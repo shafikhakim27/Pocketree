@@ -83,10 +83,14 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
-            adb wait-for-device
-            sleep 30
+            # 1. Print the flow file to the console to check for formatting issues
+            echo "--- Debug: Checking flow.yaml content ---"
+            cat $GITHUB_WORKSPACE/android/.maestro/flow.yaml
+            
+            # 2. Install the APK
             adb install app-debug.apk
             
+            # 3. Execute Maestro
             mkdir -p maestro-report
             maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output maestro-report/report.xml
 
