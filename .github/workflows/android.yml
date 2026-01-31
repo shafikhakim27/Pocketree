@@ -82,7 +82,7 @@ jobs:
             adb install app-debug.apk
             
             mkdir -p maestro-report
-            maestro test .maestro/flow.yaml --format junit --output maestro-report/report.xml
+            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output maestro-report/report.xml
 
       - name: Upload Maestro Reports & Media
         if: always() 
