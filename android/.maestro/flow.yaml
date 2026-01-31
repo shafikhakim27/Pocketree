@@ -1,11 +1,6 @@
 appId: com.pocketree.app
 ---
-- clearState
 - launchApp
 - waitForAnimationToEnd:
-    timeout: 5000
-- assertVisible:
-    text: "Welcome! Please log in"
-    timeout: 30000
+- assertVisible: "Welcome! Please log in"
 - takeScreenshot: "Startup_Success"
-- stopApp
