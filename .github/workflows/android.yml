@@ -63,7 +63,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: pocketree-debug.apk
-          path: android/
+          path: .
 
       - name: Install Maestro
         run: |
