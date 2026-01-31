@@ -8,7 +8,7 @@ appId: com.pocketree.app
 
 # 3. Handle slow emulator startup
 # CI emulators are slower than local ones. Waiting for the app to settle is key.
-- waitForAnimationEnd:
+- waitForAnimationToEnd:
     timeout: 5000
 
 # 4. Verification

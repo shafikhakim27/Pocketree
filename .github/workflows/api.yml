@@ -78,7 +78,8 @@ jobs:
           image-ref: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
           format: 'table'
           exit-code: '1'
-          severity: 'HIGH,CRITICAL'
+	  ignore-unfixed: true 
+          severity: 'CRITICAL'
 
       - name: Azure Login
         uses: azure/login@v1

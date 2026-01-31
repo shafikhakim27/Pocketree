@@ -31,7 +31,7 @@ EXPOSE 8080
 
 # Essential for Azure Health Checks and troubleshooting
 USER root
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get upgrade -y && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/publish .
 ENTRYPOINT ["dotnet", "Pocketree.Api.dll"]
