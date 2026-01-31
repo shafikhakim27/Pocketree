@@ -83,21 +83,26 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
-            # 1. Print the flow file to the console to check for formatting issues
-            echo "--- Debug: Raw flow.yaml inspection ---"
-            cat -A $GITHUB_WORKSPACE/android/.maestro/flow.yaml
 
-            sleep 5
-  
-            # 2. Install the APK
-            adb install app-debug.apk
-            
-            # 3. Execute Maestro
+            # 1. Setup directories
             mkdir -p maestro-report
             mkdir -p .maestro/recordings
             mkdir -p .maestro/screenshots
 
-            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output maestro-report/report.xml --record .maestro/recordings/flow.mp4
+            # 2. Run Test (Generates the JUnit XML)
+            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml \
+              --format junit \
+              --output maestro-report/report.xml || true
+
+            # 3. Run Record (Generates the MP4 video)
+            # We use 'record' as a separate action since it's a different CLI entry point
+            maestro record $GITHUB_WORKSPACE/android/.maestro/flow.yaml .maestro/recordings/flow.mp4
+
+      - name: Generate Test Summary
+        uses: test-summary/action@v2
+        with:
+          paths: "android/maestro-report/report.xml"
+        if: always() # Essential to show the summary even when the test fails!
 
       - name: Upload Maestro Reports & Media
         if: always() 
@@ -105,7 +110,6 @@ jobs:
         with:
           name: maestro-full-test-results
           path: |
-            maestro-report/
-            .maestro/recordings/
-            .maestro/screenshots/*.png
-            *.png
+            maestro-report/report.xml
+            .maestro/recordings/flow.mp4
+            .maestro/screenshots/**/*.png
