@@ -71,15 +71,15 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # 🛡️ Container Security Scan
       - name: 🛡️ Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@master
+        uses: aquasecurity/trivy-action@0.28.0
         with:
-          image-ref: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
+          # Use the variable you defined at the top + the SHA tag
+          image-ref: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           format: 'table'
           exit-code: '1'
-	  ignore-unfixed: true 
           severity: 'CRITICAL'
+          ignore-unfixed: true
 
       - name: Azure Login
         uses: azure/login@v1
