@@ -11,7 +11,7 @@ COPY ["Pocketree.Shared/Pocketree.Shared.csproj", "api/Pocketree.Shared/"]
 COPY ["Pocketree.Api.Tests/Pocketree.Api.Tests.csproj", "api/Pocketree.Api.Tests/"]
 
 # --- STEP B: RESTORE ---
-RUN dotnet restore "api/Pocketree.sln"
+RUN dotnet restore "api/api.sln"
 
 # --- STEP C: COPY SOURCE CODE ---
 # Now we copy the actual code for all folders
