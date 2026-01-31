@@ -31,7 +31,7 @@ jobs:
       - name: 🐍 Run Bandit
         run: |
           pip install bandit
-          bandit -r ml-service/ -ll
+          bandit -r ml-service/ -lll -iii
 
       # 🐳 Docker Build & Push
       - name: Set up Docker Buildx

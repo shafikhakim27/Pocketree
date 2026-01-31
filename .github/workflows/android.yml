@@ -58,13 +58,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. Download the APK directly into the app's build folder
-      # Removed 'android/' from path because download-artifact is root-based
+      # 1. Download the APK directly into the android folder
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
           name: pocketree-debug.apk
-          path: android/app/build/outputs/apk/debug/
+          path: android/
 
       - name: Install Maestro
         run: |
@@ -79,8 +78,8 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
-            # ✅ Now 'app/build/...' points correctly to 'android/app/build/...'
-            adb install app/build/outputs/apk/debug/app-debug.apk
+
+            adb install app-debug.apk
             
             mkdir -p maestro-report
             maestro test .maestro/flow.yaml --format junit --output maestro-report/report.xml

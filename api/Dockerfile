@@ -5,7 +5,7 @@ WORKDIR /src
 # --- STEP A: COPY PROJECT FILES FOR CACHING ---
 # We copy all .csproj and the .sln first. 
 # This way, 'dotnet restore' only reruns if you change a NuGet package.
-COPY ["api/Pocketree.sln", "api/"]
+COPY ["api/api.sln", "api/"]
 COPY ["api/Pocketree.Api/Pocketree.Api.csproj", "api/Pocketree.Api/"]
 COPY ["api/Pocketree.Shared/Pocketree.Shared.csproj", "api/Pocketree.Shared/"]
 COPY ["api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj", "api/Pocketree.Api.Tests/"]
