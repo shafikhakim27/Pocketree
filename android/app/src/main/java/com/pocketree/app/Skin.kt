@@ -1,7 +1,7 @@
 package com.pocketree.app
 
 data class Skin(
-    val skinId: Int,
+    val skinID: Int,
     val skinName: String,
     val skinPrice: Int,
     val imageURL: Int,

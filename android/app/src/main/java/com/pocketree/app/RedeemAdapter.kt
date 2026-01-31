@@ -23,9 +23,9 @@ class RedeemAdapter(
     override fun onBindViewHolder(holder: RedeemViewHolder, position: Int) {
         val item = items[position]
         holder.binding.itemPrice.visibility = View.VISIBLE
-        holder.binding.itemStatus.visibility = View.GONE // shirley: i've changed this portion!
-        // holder.binding.itemStatus.text = ""
-        // holder.binding.root.alpha = 0.5f - remove
+        holder.binding.itemStatus.visibility = View.GONE
+        holder.binding.root.setOnClickListener(null)  // Global processing: Clear click events
+        holder.binding.root.alpha = 1.0f
 
         if (item is Skin){
             val skin = item
@@ -35,9 +35,8 @@ class RedeemAdapter(
             holder.binding.itemPrice.text = "${skin.skinPrice} coins"
             if (!skin.isRedeemed) {
                 holder.binding.itemPrice.setTextColor(Color.parseColor("#4CAF50"))
-                // holder.binding.itemStatus.text = ""
             } else {
-                holder.binding.itemPrice.visibility = View.GONE // shirley added this, you see if the logic is ok
+                holder.binding.itemPrice.visibility = View.GONE
                 holder.binding.itemStatus.visibility = View.VISIBLE
                 if (skin.isEquipped) {
                     holder.binding.itemStatus.text = "Equipped"
@@ -52,19 +51,18 @@ class RedeemAdapter(
             val voucher = item
             holder.binding.itemImage.setImageResource(R.drawable.redeem)
             holder.binding.itemName.text = voucher.voucherName
-            holder.binding.itemPrice.visibility = View.GONE // The price row was hidden.
+            holder.binding.itemPrice.visibility = View.GONE
             holder.binding.itemStatus.visibility = View.VISIBLE
             if (voucher.isValid && !voucher.isUsed) {
                 holder.binding.itemStatus.text = "Valid"
                 holder.binding.itemStatus.setTextColor(Color.parseColor("#4CAF50"))
-            } else if (voucher.isValid && voucher.isUsed) {
+                holder.binding.root.setOnClickListener { onItemClick(voucher) } // Set the button
+            } else if (voucher.isValid) {
                 holder.binding.itemStatus.text = "Used"
                 holder.binding.itemStatus.setTextColor(Color.RED)
-                holder.binding.root.setOnClickListener(null) // disable click reaction
             } else {
                 holder.binding.itemStatus.text = "Expired" // kiv can add in expiry date logic later on
-                holder.binding.root.alpha = 0.5f // to make the whole card slightly transparent (visual cue)
-                holder.binding.root.setOnClickListener(null)
+                holder.binding.root.alpha = 0.5f
             }
         }
     }

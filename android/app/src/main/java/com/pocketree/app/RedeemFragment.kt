@@ -26,6 +26,7 @@ class RedeemFragment: Fragment() {
     private val client = NetworkClient.okHttpClient
     private val baseUrl = "http://10.0.2.2:5042/api/Task"
 
+
     // mock data for now
     private val skinList = listOf(
         Skin(1, "Item1", 10, R.drawable.redeem_item_1, true, true),
@@ -33,9 +34,11 @@ class RedeemFragment: Fragment() {
         Skin(3, "Item3", 30, R.drawable.redeem_item_3, false, false)
     )
     private val voucherList = listOf(
-        Voucher(4, "Voucher 1", "none", true, false),
-        Voucher(5, "Voucher 2", "none", false, false)
+        Voucher(4, "Voucher 1", "none", true, true),
+        Voucher(5, "Voucher 2", "none", true, false),
+        Voucher(6, "Voucher 3", "none", false, false)
     )
+
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -44,6 +47,7 @@ class RedeemFragment: Fragment() {
         _binding = FragmentRedeemBinding.inflate(inflater, container, false)
         return binding.root
     }
+
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -55,16 +59,36 @@ class RedeemFragment: Fragment() {
             binding.accountInfo.text = state.username
             binding.coinDisplay.text="${state.totalCoins} coins"
         }
+
+        sharedViewModel.redeemSuccessEvent.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                showSuccessDialog(it) // message: "Skin redeemed successfully!"
+                sharedViewModel.redeemSuccessEvent.value = null
+            }
+        }
+
+        sharedViewModel.errorMessage.observe(viewLifecycleOwner) { errorMsg ->
+            errorMsg?.let {
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Error")
+                    .setMessage(it)
+                    .setPositiveButton("OK", null)
+                    .show()
+                sharedViewModel.errorMessage.value = null
+            }
+        }
     }
+
 
     private fun setupRecyclerView() {
         // GridLayoutManager: parameter 3 indicates that 3 items are displayed in one row.
         binding.recyclerViewSkin.layoutManager = GridLayoutManager(context, 3)
-        // The item here is of type Any, so we need to determine if it is a Skin.
         binding.recyclerViewSkin.adapter = RedeemAdapter(skinList) { item ->
             if (item is Skin) {
                 if (!item.isRedeemed) {
                     showSkinConfirmDialog(item)
+                } else {
+                    handleRedeemedSkinClick(item)  // If you have already purchased it, proceed to the new level check logic.
                 }
             }
         }
@@ -77,13 +101,36 @@ class RedeemFragment: Fragment() {
                 }
             }
         }
+    }
 
-// --- Shirley's works before 1.29 ---
-//        binding.recyclerViewRedeem.layoutManager = GridLayoutManager(context, 3)
-//        val adapter = RedeemAdapter(skinList) { selectedItem ->
-//            showConfirmDialog(selectedItem)
-//        }
-//        binding.recyclerViewRedeem.adapter = adapter
+
+    private fun showSkinConfirmDialog(skin: Skin) {
+        // I search that, no dialog.dismiss() required for setPositiveButton and setNegativeButton without functions
+        AlertDialog.Builder(requireContext())
+            .setTitle("Confirm Redemption")
+            .setMessage("Do you want to redeem ${skin.skinName} for ${skin.skinPrice} coins?")
+            .setPositiveButton("Confirm") { _, _ ->
+                preRedeem(skin)
+            }
+            .setNegativeButton("Cancel", null)
+            .create()
+            .show()
+    }
+
+
+    private fun handleRedeemedSkinClick(skin: Skin) {
+        // Requirement: All users below level 1 can only purchase, not equip.
+        val currentLevel = sharedViewModel.userState.value?.currentLevelID ?: 0
+        if (currentLevel >= 1) {
+            // TODO: equipSkin(skin)
+        } else {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Skin features are not yet unlocked")
+                .setMessage("Level 1 required")
+                .setPositiveButton("OK", null)
+                .create()
+                .show()
+        }
     }
 
 
@@ -95,32 +142,13 @@ class RedeemFragment: Fragment() {
                 //TODO: useVoucher(voucher)
                 dialog.dismiss()
             }
-            .setNegativeButton("Cancel") { dialog, _ ->
-                dialog.dismiss()
-            }
-            .create()
-            .show()
-    }
-
-
-    private fun showSkinConfirmDialog(skin: Skin) {
-        AlertDialog.Builder(requireContext())
-            .setTitle("Confirm Redemption")
-            .setMessage("Do you want to redeem ${skin.skinName} for ${skin.skinPrice} coins?")
-            .setPositiveButton("Confirm") { dialog, _ ->
-                preRedeem(skin)
-                // dialog.dismiss() - not required here!
-            }
-            .setNegativeButton("Cancel") { dialog, _ ->
-                dialog.dismiss()
-            }
+            .setNegativeButton("Cancel", null)
             .create()
             .show()
     }
 
 
     private fun preRedeem(skin: Skin) {
-        // check if already owned
         if (skin.isRedeemed) {
             Toast.makeText(requireContext(), "You already own this item!", Toast.LENGTH_SHORT).show()
             return
@@ -140,65 +168,28 @@ class RedeemFragment: Fragment() {
 
 
     private fun processRedemption(skin: Skin){
-        val currentCoins = sharedViewModel.userState.value?.totalCoins ?: 0
         // deductCoins(currentCoins - skin.skinPrice, skin) - will have error
-        showSuccessDialog(skin.skinName)
+        // showSuccessDialog(skin.skinName) - move to observer in onViewCreated()
+        sharedViewModel.redeemSkin(skin.skinID)
     }
 
-// hello chenyu this one need to remove (no more UpdateCoins Api) - so please relook at your fragment thanks
-//    private fun deductCoins(newTotal:Int, skin: Skin){
-//        val json = JSONObject().apply{
-//            put("TotalCoins", newTotal)
-//        }
-//
-//        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-//
-//        val request = okhttp3.Request.Builder()
-//            .url("$baseUrl/UpdateCoinsApi")
-//            .post(body)
-//            .build()
-//
-//        client.newCall(request).enqueue(object: Callback {
-//            override fun onFailure(call: Call, e: IOException) {
-//                activity?.runOnUiThread {
-//                    Toast.makeText(context, "Network error", Toast.LENGTH_LONG).show()
-//                }
-//            }
-//
-//            override fun onResponse(call: Call, response: Response) {
-//                if (response.isSuccessful) {
-//                    activity?.runOnUiThread {
-//                        sharedViewModel.updateTotalCoins(newTotal)
-//                        skin.isRedeemed = true
-//                        Toast.makeText(context, "Redeemed ${skin.skinName}!", Toast.LENGTH_SHORT).show()
-//                    }
-//                } else {
-//                    activity?.runOnUiThread {
-//                        Toast.makeText(context, "Error in server response", Toast.LENGTH_SHORT)
-//                            .show()
-//                    }
-//                }
-//            }
-//        })
-//    }
 
-
-    private fun showSuccessDialog(itemName: String) {
+    private fun showSuccessDialog(message: String) {
         AlertDialog.Builder(requireContext())
             .setTitle("Redemption Successful!")
-            .setMessage("Congratulations! You earned $itemName")
+            .setMessage("$message")
             .setIcon(R.drawable.redeem)
-            .setPositiveButton("OK") { dialog, _ ->
-                dialog.dismiss()
-            }
+            .setPositiveButton("OK", null)
             .create()
             .show()
     }
+
 
     override fun onDestroyView(){
         super.onDestroyView()
         _binding = null
     }
+
 
     // pending equipping of skins
     // pending vouchers
