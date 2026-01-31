@@ -94,7 +94,10 @@ jobs:
             
             # 3. Execute Maestro
             mkdir -p maestro-report
-            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output maestro-report/report.xml
+            mkdir -p .maestro/recordings
+            mkdir -p .maestro/screenshots
+
+            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output maestro-report/report.xml --record .maestro/recordings/flow.mp4
 
       - name: Upload Maestro Reports & Media
         if: always() 
@@ -102,6 +105,7 @@ jobs:
         with:
           name: maestro-full-test-results
           path: |
-            android/maestro-report/
-            android/.maestro/recordings/
-            android/.maestro/screenshots/
+            maestro-report/
+            .maestro/recordings/
+            .maestro/screenshots/*.png
+            *.png

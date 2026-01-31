@@ -4,4 +4,4 @@ appId: com.pocketree.app
 - waitForAnimationToEnd:
     timeout: 5000
 - assertVisible: "Welcome! Please log in"
-- takeScreenshot: "Startup_Success"
+- takeScreenshot: .maestro/screenshots/Startup_Success
