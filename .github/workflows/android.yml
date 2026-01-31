@@ -69,10 +69,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libvulkan1 libxcb-xinerama0 libx11-6 libx11-xcb1
+
       - name: Install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+
       - name: Run Maestro Flows
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -81,20 +83,35 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
-            # 1. Print the flow file to the console to check for formatting issues
+            # 1. Debug & Setup
             echo "--- Debug: Raw flow.yaml inspection ---"
             cat -A $GITHUB_WORKSPACE/android/.maestro/flow.yaml
-            sleep 5
-  
-            # 2. Install the APK
-            adb install app-debug.apk
-            
-            # 3. Execute Maestro
             mkdir -p maestro-report
             mkdir -p .maestro/recordings
+            mkdir -p .maestro/screenshots
             
-            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output maestro-report/report.xml
-            maestro record $GITHUB_WORKSPACE/android/.maestro/flow.yaml .maestro/recordings/flow.mp4
+            # 2. Install the APK
+            # Based on your logs, the APK is landing in the current folder
+            adb install app-debug.apk
+
+            # 3. Run Test (Generates JUnit XML)
+            # We add '|| touch ...' so the script CONTINUES even if the test fails
+            echo "Running Maestro Test..."
+            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output maestro-report/report.xml || touch .maestro/test_failed
+
+            # 4. Run Record (Generates MP4)
+            # We DO NOT specify an output path here to avoid the "exit code 2" error.
+            echo "Recording Video..."
+            maestro record $GITHUB_WORKSPACE/android/.maestro/flow.yaml
+
+            # 5. Move the Video
+            # Maestro creates a file like '2024-01-01...mp4', we move it to our artifact folder
+            echo "Moving video file..."
+            mv *.mp4 .maestro/recordings/flow.mp4
+
+            # 6. Fail the job if the test failed
+            # This ensures Azure Deployment is BLOCKED if the tests didn't pass
+            if [ -f .maestro/test_failed ]; then echo "Maestro tests failed!"; exit 1; fi
 
       - name: Upload Maestro Reports & Media
         if: always() 
