@@ -84,8 +84,10 @@ jobs:
           profile: Nexus 6
           script: |
             # 1. Print the flow file to the console to check for formatting issues
-            echo "--- Debug: Checking flow.yaml content ---"
-            cat $GITHUB_WORKSPACE/android/.maestro/flow.yaml
+            echo "--- Debug: Raw flow.yaml inspection ---"
+            cat -A $GITHUB_WORKSPACE/android/.maestro/flow.yaml
+
+            sleep 5
             
             # 2. Install the APK
             adb install app-debug.apk
