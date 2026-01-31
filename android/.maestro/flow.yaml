@@ -11,7 +11,7 @@ appId: com.pocketree.app
 
 # 4. Verification
 - assertVisible:
-    text: "Welcome"
+    text: "Welcome! Please log in"
     timeout: 30000
 
 # 5. Take a screenshot
