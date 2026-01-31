@@ -1,23 +1,22 @@
 appId: com.pocketree.app
 ---
-# 1. Clear state to ensure a clean test every time
+# 1. Clear state for a clean test
 - clearState
 
 # 2. Start the app
 - launchApp
 
-# 3. Handle slow emulator startup
-# CI emulators are slower than local ones. Waiting for the app to settle is key.
+# 3. Wait for animations to settle
 - waitForAnimationToEnd:
     timeout: 5000
 
 # 4. Verification
-# We use 'assertVisible' to confirm the UI has actually rendered
+# Ensure 'text' and 'timeout' are indented 4 spaces under the dash
 - assertVisible:
     text: "Welcome"
-    timeout: 15000 # Increased timeout for CI stability
+    timeout: 15000
 
-# 5. Take a "Happy Path" screenshot
+# 5. Take a screenshot
 - takeScreenshot: "Startup_Success"
 
 # 6. Stop the app
