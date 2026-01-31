@@ -3,6 +3,7 @@ package com.pocketree.app
 import com.google.gson.annotations.SerializedName
 
 data class TaskCompletionResponse (
+    @SerializedName("success") val success: Boolean,
     @SerializedName("levelUp") val levelUp:Boolean,
     @SerializedName("newCoins") val newCoins:Int,
     @SerializedName("newLevel") val newLevel:Int,

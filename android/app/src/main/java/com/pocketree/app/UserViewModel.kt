@@ -14,6 +14,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
+import java.util.concurrent.ThreadLocalRandom.current
 import kotlin.jvm.java
 
 // creation of a SharedViewModel to enable passing of data between fragments
@@ -184,23 +185,25 @@ class UserViewModel: ViewModel() {
                     val result = gson.fromJson(bodyString, TaskCompletionResponse::class.java)
 
                     // update state using copy - bc data classes are immutable! so property cannot be changed
-                    val current = userState.value ?: UserState()
-                    userState.postValue(
-                        current.copy(
-                            totalCoins = result.newCoins,
-                            currentLevelID = result.newLevel,
-                            isWithered = result.isWithered
+                    if (result.success) {
+                        val current = userState.value ?: UserState()
+                        userState.postValue(
+                            current.copy(
+                                totalCoins = result.newCoins,
+                                currentLevelID = result.newLevel,
+                                isWithered = result.isWithered
+                            )
                         )
-                    )
 
-                    // update task list
-                    val currentTasks = tasks.value?.toMutableList()
-                    currentTasks?.find { it.taskID == taskId }?.isCompleted = true
-                    // find the tasks we just finished and update it in memory
-                    tasks.postValue(currentTasks) // update UI so it shows "Completed"
+                        // update task list
+                        val currentTasks = tasks.value?.toMutableList()
+                        currentTasks?.find { it.taskID == taskId }?.isCompleted = true
+                        // find the tasks we just finished and update it in memory
+                        tasks.postValue(currentTasks) // update UI so it shows "Completed"
 
-                    if (result.levelUp) levelUpEvent.postValue(true)
-                    fetchEarnedBadges()
+                        if (result.levelUp) levelUpEvent.postValue(true)
+                        fetchEarnedBadges()
+                    }
                 }
             }
             override fun onFailure(call: Call, e: IOException) {

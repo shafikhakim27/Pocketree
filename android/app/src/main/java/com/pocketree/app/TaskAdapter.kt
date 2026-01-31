@@ -60,6 +60,8 @@ class TaskAdapter(
                 holder.actionButton.text =
                     if (task.requiresEvidence) "Take a photo" else "Let's go!"
 
+                holder.actionButton.isEnabled = true
+
                 holder.passButton.setOnClickListener {
                     task.isPassed = true
                     notifyItemChanged(position)
@@ -67,12 +69,13 @@ class TaskAdapter(
 
                 holder.actionButton.setOnClickListener {
                     // complete tasks that don't require evidence
-                    if (!task.requiresEvidence) {
+    /*                if (!task.requiresEvidence) {
                         task.isCompleted = true
                         notifyItemChanged(position)
                     }
-                    onTaskClick(task)
+      */            onTaskClick(task)
                 }
+
             }
         }
     }
