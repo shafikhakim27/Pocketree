@@ -6,9 +6,9 @@ WORKDIR /api
 # We copy all .csproj and the .sln first. 
 # This way, 'dotnet restore' only reruns if you change a NuGet package.
 COPY ["api/api.sln", "api/"]
-COPY ["Pocketree.Api/Pocketree.Api.csproj", "api/Pocketree.Api/"]
-COPY ["Pocketree.Shared/Pocketree.Shared.csproj", "api/Pocketree.Shared/"]
-COPY ["Pocketree.Api.Tests/Pocketree.Api.Tests.csproj", "api/Pocketree.Api.Tests/"]
+COPY ["api/Pocketree.Api/Pocketree.Api.csproj", "api/Pocketree.Api/"]
+COPY ["api/Pocketree.Shared/Pocketree.Shared.csproj", "api/Pocketree.Shared/"]
+COPY ["api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj", "api/Pocketree.Api.Tests/"]
 
 # --- STEP B: RESTORE ---
 RUN dotnet restore "api/api.sln"
