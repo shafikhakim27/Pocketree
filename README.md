@@ -1,6 +1,6 @@
 # 🌳 Pocketree - Development Branch
 
-![API Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/backend-api.yml/badge.svg)
+![API Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/api.yml/badge.svg)
 ![ML Ops Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/ml-ops.yml/badge.svg)
 ![Android Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/android.yml/badge.svg)
 
