@@ -69,12 +69,10 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libvulkan1 libxcb-xinerama0 libx11-6 libx11-xcb1
-
       - name: Install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
-
       - name: Run Maestro Flows
         uses: reactivecircus/android-emulator-runner@v2
         with:
@@ -83,34 +81,20 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
-            # 1. Install the App (CRITICAL STEP)
-            # We look for the APK in the root because download-artifact placed it there
-            echo "Installing APK..."
-            adb install -r ../app-debug.apk || adb install -r ../pocketree-debug.apk
-
-            # 2. Setup Directories
-            cd $GITHUB_WORKSPACE/android
+            # 1. Print the flow file to the console to check for formatting issues
+            echo "--- Debug: Raw flow.yaml inspection ---"
+            cat -A $GITHUB_WORKSPACE/android/.maestro/flow.yaml
+            sleep 5
+  
+            # 2. Install the APK
+            adb install app-debug.apk
+            
+            # 3. Execute Maestro
             mkdir -p maestro-report
             mkdir -p .maestro/recordings
-            mkdir -p .maestro/screenshots
-
-            # 3. Run Test (Generates JUnit XML)
-            # If it fails, we 'touch' a file so we can still record the video
-            echo "Running Maestro Test..."
-            maestro test .maestro/flow.yaml --format junit --output maestro-report/report.xml || touch .maestro/test_failed
-
-            # 4. Run Record (Generates MP4)
-            echo "Recording Video..."
-            maestro record .maestro/flow.yaml .maestro/recordings/flow.mp4
-
-            # 5. Fail the job if the test failed
-            if [ -f .maestro/test_failed ]; then echo "Maestro tests failed!"; exit 1; fi
-
-      - name: Generate Test Summary
-        uses: test-summary/action@v2
-        with:
-          paths: "android/maestro-report/report.xml"
-        if: always() # Essential to show the summary even when the test fails!
+            
+            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output maestro-report/report.xml
+            maestro record $GITHUB_WORKSPACE/android/.maestro/flow.yaml .maestro/recordings/flow.mp4
 
       - name: Upload Maestro Reports & Media
         if: always() 
@@ -118,6 +102,6 @@ jobs:
         with:
           name: maestro-full-test-results
           path: |
-            android/maestro-report/report.xml
-            android/.maestro/recordings/flow.mp4
-            android/.maestro/screenshots/**/*.png
+            maestro-report/
+            .maestro/recordings/
+            .maestro/screenshots/
