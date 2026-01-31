@@ -65,6 +65,11 @@ jobs:
           name: pocketree-debug.apk
           path: .
 
+      - name: Install required libraries for emulator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libvulkan1 libxcb-xinerama0 libx11-6 libx11-xcb1
+
       - name: Install Maestro
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
@@ -78,7 +83,8 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
-
+            adb wait-for-device
+            sleep 30
             adb install app-debug.apk
             
             mkdir -p maestro-report
