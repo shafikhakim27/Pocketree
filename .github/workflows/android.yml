@@ -83,20 +83,28 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
+            # 1. Install the App (CRITICAL STEP)
+            # We look for the APK in the root because download-artifact placed it there
+            echo "Installing APK..."
+            adb install -r ../app-debug.apk || adb install -r ../pocketree-debug.apk
 
-            # 1. Setup directories
+            # 2. Setup Directories
+            cd $GITHUB_WORKSPACE/android
             mkdir -p maestro-report
             mkdir -p .maestro/recordings
             mkdir -p .maestro/screenshots
 
-            # 2. Run Test (Generates the JUnit XML)
-            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml \
-              --format junit \
-              --output maestro-report/report.xml || true
+            # 3. Run Test (Generates JUnit XML)
+            # If it fails, we 'touch' a file so we can still record the video
+            echo "Running Maestro Test..."
+            maestro test .maestro/flow.yaml --format junit --output maestro-report/report.xml || touch .maestro/test_failed
 
-            # 3. Run Record (Generates the MP4 video)
-            # We use 'record' as a separate action since it's a different CLI entry point
-            maestro record $GITHUB_WORKSPACE/android/.maestro/flow.yaml .maestro/recordings/flow.mp4
+            # 4. Run Record (Generates MP4)
+            echo "Recording Video..."
+            maestro record .maestro/flow.yaml .maestro/recordings/flow.mp4
+
+            # 5. Fail the job if the test failed
+            if [ -f .maestro/test_failed ]; then echo "Maestro tests failed!"; exit 1; fi
 
       - name: Generate Test Summary
         uses: test-summary/action@v2
@@ -110,6 +118,6 @@ jobs:
         with:
           name: maestro-full-test-results
           path: |
-            maestro-report/report.xml
-            .maestro/recordings/flow.mp4
-            .maestro/screenshots/**/*.png
+            android/maestro-report/report.xml
+            android/.maestro/recordings/flow.mp4
+            android/.maestro/screenshots/**/*.png
