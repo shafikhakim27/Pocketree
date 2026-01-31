@@ -42,27 +42,29 @@ jobs:
           name: pocketree-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
 
-  # 🤖 JOB 2: MAESTRO UI TESTS
+# 🤖 JOB 2: MAESTRO UI TESTS
   ui-test:
-    needs: build-android # Waits for the build to finish
+    needs: build-android
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./android
+        working-directory: ./android # All 'run' steps execute inside the /android folder
+
     strategy:
       matrix:
-        api-level: [29] # Android 10 (Fast & Stable for CI)
+        api-level: [29]
         target: [default]
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. Download the APK (Using the name you defined above)
+      # 1. Download the APK
+      # Note: 'path' here is relative to the REPO ROOT, not the working-directory.
       - name: Download APK
         uses: actions/download-artifact@v4
         with:
-          name: pocketree-debug.apk # Must match the upload name
+          name: pocketree-debug.apk
           path: android/app/build/outputs/apk/debug/
 
       # 2. Install Maestro
@@ -80,8 +82,20 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
-            # Install the app (Path reconstructed by the download step)
-            adb install android/app/build/outputs/apk/debug/app-debug.apk
+            # IMPORTANT: The script below runs INSIDE ./android due to defaults.
+            # We don't need the "android/" prefix here because we are already in it.
             
-            # Run the flow (Looks for android/.maestro/flow.yaml)
-            maestro test .maestro/flow.yaml
+            adb install app/build/outputs/apk/debug/app-debug.apk
+            
+            mkdir -p maestro-report
+            maestro test .maestro/flow.yaml --format junit --output maestro-report/report.xml --record
+      # 📸 📹 Step 4: Capture Everything (XML + PNG + MP4)
+      - name: Upload Maestro Reports & Media
+        if: always() 
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-full-test-results
+          path: |
+            android/maestro-report/
+            android/.maestro/recordings/
+            android/.maestro/screenshots/

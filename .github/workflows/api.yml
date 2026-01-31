@@ -61,8 +61,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: api/
-          file: api/Pocketree.Api/Dockerfile
+          context: .
+          file: api/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -75,7 +75,7 @@ jobs:
         with:
           image-ref: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
           format: 'table'
-          exit-code: '0'
+          exit-code: '1'
           severity: 'HIGH,CRITICAL'
 
       - name: Azure Login

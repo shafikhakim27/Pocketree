@@ -1,11 +1,24 @@
 appId: com.pocketree.app
 ---
-# 1. Start the app
+# 1. Clear state to ensure a clean test every time
+- clearState
+
+# 2. Start the app
 - launchApp
 
-# 2. Wait for the app to load (Verify we see the Home or Login screen)
-# CHANGE "Welcome" to whatever text actually appears on your first screen!
-- assertVisible: "Welcome" 
+# 3. Handle potential system dialogs or slow emulators
+# This waits up to 10 seconds for the "Welcome" text to appear
+- waitForAnimationEnd
+- assertVisible: 
+    text: "Welcome"
+    timeout: 10000
 
-# 3. Simple navigation check (Optional for now)
-# - tapOn: "Upload"
+# 4. Take a "Happy Path" screenshot for your reports
+- takeScreenshot: "Startup_Success"
+
+# 5. Simple Interaction (Safe check)
+# Even if you don't navigate far, checking if a button exists is good.
+# - assertVisible: "Login"
+
+# 6. Optional: Stop the app at the end
+- stopApp

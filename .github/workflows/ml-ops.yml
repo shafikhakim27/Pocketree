@@ -8,25 +8,16 @@ on:
       - '.github/workflows/ml-ops.yml'
   workflow_dispatch:
 
-jobs:
-  test-and-deploy-ml:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./ml-service
+env:
+  IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-ml
+  AZURE_WEBAPP_NAME: pocketree-ml-service 
 
+jobs:
+  build-and-deploy-ml:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
-          cache: 'pip'
-
-      - name: Install Dependencies
-        run: pip install -r requirements.txt
 
       # 🛡️ Snyk Security Scan (Python Dependencies)
       - name: 🛡️ Snyk Python Scan
@@ -36,18 +27,48 @@ jobs:
         with:
           args: --file=ml-service/requirements.txt --severity-threshold=high
 
-      # 🐍 Bandit Security Scan (Python Code SAST)
+      # 🐍 Bandit Security Scan (SAST)
       - name: 🐍 Run Bandit
         run: |
           pip install bandit
-          bandit -r . -ll
+          bandit -r ml-service/ -ll
 
-      - name: Install Railway CLI
-        run: |
-          cd .. 
-          npm install -g @railway/cli
+      # 🐳 Docker Build & Push
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Deploy to Railway 🚂
-        env:
-          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
-        run: railway up --service pocketree-ml-service --detach
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,format=long
+
+      - name: Build and push ML Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ml-service/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # 🚀 Deploy to Azure
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Deploy to Azure Web App for Containers
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          images: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
