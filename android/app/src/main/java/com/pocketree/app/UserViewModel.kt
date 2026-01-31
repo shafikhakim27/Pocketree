@@ -37,6 +37,7 @@ class UserViewModel: ViewModel() {
     val tasks = MutableLiveData<List<Task>>()
     val earnedBadges = MutableLiveData<List<Badge>>()
     val redeemSuccessEvent = MutableLiveData<String?>()
+    val equipSuccessEvent = MutableLiveData<String?>() // by Chenyu
 
     // event livedata
     val levelUpEvent = MutableLiveData<Boolean>()
@@ -288,6 +289,37 @@ class UserViewModel: ViewModel() {
             }
         })
     }
+
+
+    // by Chenyu
+    fun equipSkin(skinId: Int) {
+        val json = JSONObject().apply {
+            put("SkinID", skinId)
+        }
+
+        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        // Assuming the backend is EquipSkinApi
+        val request = Request.Builder()
+            .url("$taskBaseUrl/EquipSkinApi")
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    equipSuccessEvent.postValue("Skin equipped successfully!")
+                } else {
+                    errorMessage.postValue("Failed to equip skin.")
+                }
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                errorMessage.postValue("Network error.")
+            }
+        })
+    }
+
 
     fun logout() {
         // clearing token in Network Client

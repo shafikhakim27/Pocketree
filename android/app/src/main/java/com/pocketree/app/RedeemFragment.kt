@@ -29,14 +29,13 @@ class RedeemFragment: Fragment() {
 
     // mock data for now
     private val skinList = listOf(
-        Skin(1, "Item1", 10, R.drawable.redeem_item_1, true, true),
-        Skin(2, "Item2", 20, R.drawable.redeem_item_2, true, false),
-        Skin(3, "Item3", 30, R.drawable.redeem_item_3, false, false)
+        Skin(1, "Skin 1", 10, R.drawable.redeem_item_1, true, true),
+        Skin(2, "Skin 2", 20, R.drawable.redeem_item_2, true, false),
+        Skin(3, "Skin 3", 30, R.drawable.redeem_item_3, false, false)
     )
     private val voucherList = listOf(
-        Voucher(4, "Voucher 1", "none", true, true),
-        Voucher(5, "Voucher 2", "none", true, false),
-        Voucher(6, "Voucher 3", "none", false, false)
+        Voucher(4, "Voucher 1", "none", true),
+        Voucher(5, "Voucher 2", "none", false)
     )
 
 
@@ -64,6 +63,13 @@ class RedeemFragment: Fragment() {
             message?.let {
                 showSuccessDialog(it) // message: "Skin redeemed successfully!"
                 sharedViewModel.redeemSuccessEvent.value = null
+            }
+        }
+
+        sharedViewModel.equipSuccessEvent.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                showSuccessDialog(it) // message: "Skin equipped successfully!"
+                sharedViewModel.equipSuccessEvent.value = null
             }
         }
 
@@ -96,7 +102,7 @@ class RedeemFragment: Fragment() {
         binding.recyclerViewVoucher.layoutManager = GridLayoutManager(context, 3)
         binding.recyclerViewVoucher.adapter = RedeemAdapter(voucherList) { item ->
             if (item is Voucher) {
-                if (item.isValid) {
+                if (!item.isUsed) {
                     showVoucherConfirmDialog(item)
                 }
             }
@@ -122,7 +128,7 @@ class RedeemFragment: Fragment() {
         // Requirement: All users below level 1 can only purchase, not equip.
         val currentLevel = sharedViewModel.userState.value?.currentLevelID ?: 0
         if (currentLevel >= 1) {
-            // TODO: equipSkin(skin)
+            equipSkin(skin)
         } else {
             AlertDialog.Builder(requireContext())
                 .setTitle("Skin features are not yet unlocked")
@@ -131,6 +137,14 @@ class RedeemFragment: Fragment() {
                 .create()
                 .show()
         }
+    }
+
+
+    private fun equipSkin(skin: Skin) {
+        sharedViewModel.equipSkin(skin.skinID)
+        skinList.forEach { it.isEquipped = false }
+        skinList.find { it.skinID == skin.skinID }?.isEquipped = true
+        binding.recyclerViewSkin.adapter?.notifyDataSetChanged()
     }
 
 
