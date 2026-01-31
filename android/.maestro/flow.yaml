@@ -1,21 +1,17 @@
 appId: com.pocketree.app
 ---
-# 1. Clear state for a clean test
+
 - clearState
 
-# 2. Start the app
 - launchApp
 
-# 3. Wait for animations to settle
-- waitForAnimationToEnd
+- waitForAnimationToEnd: 
+    timeout: 5000
 
-# 4. Verification
 - assertVisible:
     text: "Welcome! Please log in"
     timeout: 30000
 
-# 5. Take a screenshot
 - takeScreenshot: "Startup_Success"
 
-# 6. Stop the app
 - stopApp
