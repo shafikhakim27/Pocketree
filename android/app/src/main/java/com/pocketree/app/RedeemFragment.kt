@@ -73,10 +73,10 @@ class RedeemFragment: Fragment() {
             }
         }
 
-        sharedViewModel.useVoucherEvent.observe(viewLifecycleOwner) { message ->
+        sharedViewModel.redeemVoucherEvent.observe(viewLifecycleOwner) { message ->
             message?.let {
                 showSuccessDialog(it) // message: "Voucher used successfully!"
-                sharedViewModel.useVoucherEvent.value = null
+                sharedViewModel.redeemVoucherEvent.value = null
             }
         }
 
