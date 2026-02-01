@@ -36,7 +36,7 @@ class HomeFragment: Fragment() {
         binding.recyclerViewBadges.layoutManager = LinearLayoutManager(requireContext(),
             LinearLayoutManager.HORIZONTAL, false)
 
-        sharedViewModel.fetchEarnedBadges() // fetch data
+        sharedViewModel.fetchLatestBadges() // fetch data
         observeViewModel()
     }
 
@@ -67,7 +67,7 @@ class HomeFragment: Fragment() {
             handleWithering(state.isWithered)
 
             sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
-                if (badges != null) {
+                if (!badges.isNullOrEmpty()) {
                     binding.badgesHeader.visibility = View.VISIBLE
                     binding.recyclerViewBadges.adapter = BadgeAdapter(badges)
                 }

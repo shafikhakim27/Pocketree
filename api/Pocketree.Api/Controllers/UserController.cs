@@ -159,7 +159,7 @@ namespace ADproject.Controllers
                 IsWithered = userData.ActiveTree?.IsWithered ?? false
             };
 
-            return Ok(new { User = userProfile });
+            return Ok(userProfile);
         }
 
         [Authorize]

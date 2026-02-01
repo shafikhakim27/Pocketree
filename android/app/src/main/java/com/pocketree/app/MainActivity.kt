@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
@@ -47,10 +48,8 @@ class MainActivity : AppCompatActivity() {
             return // stop execution here
         }
 
-        // fill UI with last known data so user is able to see something on screen
-        viewModel.loadCachedData(this)
-
         val username = intent.getStringExtra("username")
+
         if (username != null) {
             // push data obtained from LoginActivity into ViewModel
             viewModel.updateUserData(
@@ -63,6 +62,9 @@ class MainActivity : AppCompatActivity() {
             )
         } else {
             // fallback - in case intent is empty (e.g. app was killed/restored)
+            // fill UI with last known data so user is able to see something on screen
+            viewModel.loadCachedData(this)
+
             // fetch fresh data from the server to ensure info is up to date
             viewModel.fetchUserProfile()
         }

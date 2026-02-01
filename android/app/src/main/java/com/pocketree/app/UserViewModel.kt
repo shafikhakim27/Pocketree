@@ -92,7 +92,7 @@ class UserViewModel: ViewModel() {
         // Now that the main profile is set, go get the rest
         if (tasks.value.isNullOrEmpty()){
             fetchDailyTasks()
-            fetchEarnedBadges()
+            fetchLatestBadges()
         }
     }
 
@@ -110,13 +110,18 @@ class UserViewModel: ViewModel() {
                 if (response.isSuccessful && !responseBody.isNullOrEmpty()) {
                     try{
                         val user = gson.fromJson(responseBody, User::class.java)
-                        updateLiveData(user)
 
-                        // fetch tasks and badges after user profile is loaded
-                        fetchDailyTasks()
-                        fetchEarnedBadges()
+                        if (user!= null) {
+                            updateLiveData(user)
+
+                            // fetch tasks and badges after user profile is loaded
+                            fetchDailyTasks()
+                            fetchLatestBadges()
+                        } else {
+                            errorMessage.postValue("Invalid user data")
+                        }
                     } catch (e:Exception) {
-                        errorMessage.postValue("Parsing error")
+                        errorMessage.postValue("Parsing error: ${e.message}")
                     }
                 } else {
                     errorMessage.postValue("Failed to load profile.")
@@ -124,14 +129,28 @@ class UserViewModel: ViewModel() {
             }
             override fun onFailure(call: Call, e: okio.IOException) {
                 e.printStackTrace()
+                errorMessage.postValue("Network error loading profile : ${e.message}")
             }
         })
     }
 
     fun loadCachedData(context: Context) {
-        NetworkClient.loadUserCache(context)?.let{ cachedUser ->
+
+        NetworkClient.loadUserCache(context)?.let { cachedUser ->
             updateLiveData(cachedUser)
         }
+
+        // ensure LiveData is never null - initialise with empty lists if needed
+        if (tasks.value == null) {
+            tasks.value = emptyList()
+        }
+        if (earnedBadges.value == null) {
+            earnedBadges.value = emptyList()
+        }
+
+        // fetch fresh data from server in background
+        fetchDailyTasks()
+        fetchLatestBadges()
     }
 
     fun fetchDailyTasks(){
@@ -151,12 +170,27 @@ class UserViewModel: ViewModel() {
                         tasks.postValue(fetchedTasks)
                     } catch (e: Exception) {
                         errorMessage.postValue("Parsing error")
+                        // keep existing value or set to empty if null
+                        if (tasks.value == null) {
+                            tasks.postValue(emptyList())
+                        }
                     }
                 } else {
                     errorMessage.postValue("Failed to load tasks.")
+                    // keep existing value or set to empty if null
+                    if (tasks.value == null) {
+                        tasks.postValue(emptyList())
+                    }
                 }
             }
-            override fun onFailure(call: Call, e: IOException) { e.printStackTrace() }
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+                errorMessage.postValue("Network error loading tasks")
+                // ensure tasks is never null
+                if (tasks.value == null) {
+                    tasks.postValue(emptyList())
+                }
+            }
         })
     }
 
@@ -212,7 +246,7 @@ class UserViewModel: ViewModel() {
                             )
 
                             if (result.levelUp) levelUpEvent.postValue(true)
-                            fetchEarnedBadges()
+                            fetchLatestBadges()
                         } else {
                             errorMessage.postValue("Task submission failed")
                         }
@@ -241,29 +275,44 @@ class UserViewModel: ViewModel() {
     }
 
     // used for redemption of skins
-    fun updateTotalCoins(newTotal:Int) {
-        val currentState = userState.value ?: UserState()
-        userState.postValue(currentState.copy(totalCoins=newTotal))
-    }
+//    fun updateTotalCoins(newTotal:Int) {
+//        val currentState = userState.value ?: UserState()
+//        userState.postValue(currentState.copy(totalCoins=newTotal))
+//    }
 
-    fun fetchEarnedBadges() {
+    fun fetchLatestBadges() {
         val request = Request.Builder()
-            .url("$userBaseUrl/GetEarnedBadgesApi")
+            .url("$userBaseUrl/GetLatestBadgesApi")
             .get()
             .build()
 
         client.newCall(request).enqueue(object:Callback {
             override fun onResponse(call:Call, response:Response) {
                 if (response.isSuccessful) {
-                    val json = response.body?.string()
-                    val badgeListType = object: TypeToken<List<Badge>>() {}.type
-                    val allFetchedBadges: List<Badge> = gson.fromJson(json, badgeListType)
-                    val displayBadges = allFetchedBadges.take(3)
+                    try {
+                        val json = response.body?.string()
+                        val badgeListType = object: TypeToken<List<Badge>>() {}.type
+                        val allFetchedBadges: List<Badge> = gson.fromJson(json, badgeListType)
+                        val displayBadges = allFetchedBadges.take(3)
 
-                    earnedBadges.postValue(displayBadges)
+                        earnedBadges.postValue(displayBadges)
+                    } catch (e:Exception) {
+                        if (earnedBadges.value == null) {
+                            earnedBadges.postValue(emptyList())
+                        }
+                    }
+                } else {
+                    if (earnedBadges.value == null) {
+                        earnedBadges.postValue(emptyList())
+                    }
                 }
             }
-            override fun onFailure(call:Call, e:IOException) {e.printStackTrace()}
+            override fun onFailure(call:Call, e:IOException) {
+                e.printStackTrace()
+                if (earnedBadges.value == null) {
+                    earnedBadges.postValue(emptyList())
+                }
+            }
         })
     }
 
@@ -315,7 +364,6 @@ class UserViewModel: ViewModel() {
 
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
-        // Assuming the backend is EquipSkinApi
         val request = Request.Builder()
             .url("$taskBaseUrl/EquipSkinApi")
             .post(body)
