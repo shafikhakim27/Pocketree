@@ -21,5 +21,7 @@ namespace ADproject.Models.Entities
 
         [NotMapped]
         public bool isCompleted { get; set; } // Not created in DB, field is just to match Android's side
+        [NotMapped]
+        public bool isPassed {get; set;}
     }
 }

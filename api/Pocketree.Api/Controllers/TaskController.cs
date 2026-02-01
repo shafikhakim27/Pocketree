@@ -54,6 +54,7 @@ namespace ADproject.Controllers
                 {
                     var t = h.Task;
                     t.isCompleted = (h.Status == "Completed");
+                    t.isPassed = (h.Status == "Passed"); 
                     return t;
                 }).ToList();
 
@@ -144,18 +145,18 @@ namespace ADproject.Controllers
 
         [Authorize]
         [HttpPost("RecordTaskCompletionApi")]
-        public async Task<IActionResult> RecordTaskCompletionApi([FromForm] TaskIdDto dto, IFormFile? photo)
+        public async Task<IActionResult> RecordTaskCompletionApi([FromForm] int taskId, [FromForm] string status, IFormFile? photo)
         {
             var user = await db.Users
                 .Include(u => u.Trees)
                 .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
 
             // Get the task details 
-            var task = await db.Tasks.FindAsync(dto.TaskId);
+            var task = await db.Tasks.FindAsync(taskId);
             if (user == null || task == null) return BadRequest("Invalid User or Task.");
 
             // Perform verification check only for "Hard" tasks
-            if (task.Difficulty == "Hard")
+            if (task.Difficulty == "Hard" && status =="Completed")
             {
                 if (photo == null) return BadRequest("Photo evidence required for task.");
                 using var stream = photo.OpenReadStream();
@@ -163,78 +164,76 @@ namespace ADproject.Controllers
                 {
                     user.FailedVerificationCount += 1;
                     await db.SaveChangesAsync();
-                    return Ok(new { success = false });
+                    return Ok(new { success = false, message = "Image verification failed" });
                 }
             }
 
-            var result = await ProcessTaskCompletion(user, task); // Process task completion regardless of difficulty level
+            var result = await ProcessTaskCompletion(user, task, status); // Process task completion regardless of difficulty level
             return Ok(result);
         } 
         
         // Private helper function (do not make an API call to this)
-        private async Task<object> ProcessTaskCompletion(User user, Task task)
+        private async Task<object> ProcessTaskCompletion(User user, Task task, string newStatus)
         {
-            // Start a transaction to update user task history, tree status, user total coins and new level if reached
-            using var transaction = await db.Database.BeginTransactionAsync();
-            try
-            {
-                // Search for the existing assigned record for today
-                var today = DateTime.UtcNow.Date;
-                var existingRecord = await db.UserTaskHistory
-                    .FirstOrDefaultAsync(h => h.UserID == user.UserID &&
-                                         h.TaskID == task.TaskID &&
-                                         h.CompletionDate >= today &&
-                                         h.Status == "Assigned");
+            // Added to handle any transient or failed network connection
+            var strategy = db.Database.CreateExecutionStrategy();
 
-                if (existingRecord != null)
+            // Get the program to retry the transaction below
+            return await strategy.ExecuteAsync<object>(async () =>
+            {
+                // Start a transaction to update user task history, tree status, user total coins and new level if reached
+                using var transaction = await db.Database.BeginTransactionAsync();
+                try
                 {
-                    existingRecord.Status = "Completed";
+                    // Search for the existing assigned record for today
+                    var today = DateTime.UtcNow.Date;
+                    var existingRecord = await db.UserTaskHistory
+                        .FirstOrDefaultAsync(h => h.UserID == user.UserID &&
+                                            h.TaskID == task.TaskID &&
+                                            h.CompletionDate >= today 
+                                            );
+
+                    if (existingRecord == null) return new {success = false};
+                    existingRecord.Status = newStatus; // can be "Completed" or "Passed"
                     existingRecord.CompletionDate = DateTime.UtcNow;
+
+                    bool levelUp = false;
+                    if (newStatus == "Completed")
+                    {
+                        // Update user's uncompleted task count for the completed task
+                        user.UncompletedTaskCount -= 1;
+                        // Check and update level, coins and badges
+                        levelUp = await UpdateLevelAndCoins(user, task);
+                    }
+                    
+                    // Update tree status
+                    var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
+                    if (activeTree != null && activeTree.IsWithered)
+                    {
+                        activeTree.IsWithered = false; // Tree is revived after the task completion
+                    }
+                    user.LastActivityDate = DateTime.UtcNow; // Update the activity date
+
+                    await db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+
+                    // Send LevelUp, Coin balance, level and tree status to Android device              
+                    return new TaskCompletionResultDto
+                    {
+                        success = true,
+                        Status = newStatus,
+                        LevelUp = levelUp,
+                        NewCoins = user.TotalCoins,
+                        NewLevel = user.CurrentLevelID,
+                        IsWithered = activeTree?.IsWithered ?? false
+                    };
                 }
-                else
+                catch (Exception)
                 {
-                    return Ok(new { 
-                        success = false,
-                        LevelUp = false,
-                        newCoins = user.TotalCoins,
-                        newLevel = user.CurrentLevelID,
-                        IsWithered = false
-                    });
-                }  
-                
-                // Update tree status
-                var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
-                if (activeTree != null && activeTree.IsWithered)
-                {
-                    activeTree.IsWithered = false; // Tree is revived after the task completion
+                    await transaction.RollbackAsync();
+                    throw;
                 }
-                user.LastActivityDate = DateTime.UtcNow; // Update the activity date
-                
-                // Update user's uncompleted task count for the completed task
-                user.UncompletedTaskCount -= 1;
-
-                // Check and update level, coins and badges
-                bool levelUp = await UpdateLevelAndCoins(user, task);
-                await CheckAndAwardBadges(user);
-
-                await db.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                // Send LevelUp, Coin balance, level and tree status to Android device              
-                return new
-                {
-                    success = true,
-                    LevelUp = levelUp,
-                    NewCoins = user.TotalCoins,
-                    NewLevel = user.CurrentLevelID,
-                    IsWithered = activeTree?.IsWithered ?? false
-                };
-            }
-            catch (Exception)
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+            });
         }
 
         [Authorize]
@@ -266,6 +265,42 @@ namespace ADproject.Controllers
             await db.SaveChangesAsync();
 
             return Ok(new { NewCoins = user.TotalCoins });
+        }
+
+        [Authorize]
+        [HttpPost("EquipSkinApi")]
+        public async Task<IActionResult> EquipSkinApi([FromBody] int skinId)
+        {
+            var user = await db.Users
+                 .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            if (user == null) return Unauthorized();
+
+            // Retrieve the user skins from the UserSkins table
+            var userSkinEntry = await db.UserSkins
+                .FirstOrDefaultAsync(us => us.UserID == user.UserID && us.SkinID == skinId);
+
+            if (userSkinEntry == null)
+            {
+                return BadRequest("You do not own this skin.");
+            }
+            /*
+            // Set all skins currently equipped by this user to unequipped
+            var currentlyEquippedSkins = await db.UserSkins
+                .Where(us => us.UserID == user.UserID && us.IsEquipped)
+                .ToListAsync();
+
+            foreach (var s in currentlyEquippedSkins)
+            {
+                s.IsEquipped = false;
+            }
+            */
+
+            // Set the user's selected skin to equipped
+            userSkinEntry.IsEquipped = true;
+
+            await db.SaveChangesAsync();
+
+            return Ok(new { success = true, message = "Skin equipped successfully!" });
         }
 
         [Authorize]
