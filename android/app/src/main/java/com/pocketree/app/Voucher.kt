@@ -5,5 +5,5 @@ data class Voucher (
     val voucherName: String,
     //val level: Int,
     val description: String,
-    var isUsed: Boolean
+    var isRedeemed: Boolean
 )

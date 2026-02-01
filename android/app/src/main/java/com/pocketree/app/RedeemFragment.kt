@@ -109,7 +109,7 @@ class RedeemFragment: Fragment() {
         binding.recyclerViewVoucher.layoutManager = GridLayoutManager(context, 3)
         binding.recyclerViewVoucher.adapter = RedeemAdapter(voucherList) { item ->
             if (item is Voucher) {
-                if (!item.isUsed) {
+                if (!item.isRedeemed) {
                     showVoucherConfirmDialog(item)
                 }
             }
@@ -160,7 +160,7 @@ class RedeemFragment: Fragment() {
             .setTitle("Confirm Redemption")
             .setMessage("Do you want to use ${voucher.voucherName}?")
             .setPositiveButton("Confirm") { _, _ ->
-                useVoucher(voucher)
+                redeemVoucher(voucher)
             }
             .setNegativeButton("Cancel", null)
             .create()
@@ -168,9 +168,9 @@ class RedeemFragment: Fragment() {
     }
 
 
-    private fun useVoucher(voucher: Voucher) {
-        sharedViewModel.useVoucher(voucher.voucherID)
-        voucherList.find {it.voucherID == voucher.voucherID}?.isUsed = true
+    private fun redeemVoucher(voucher: Voucher) {
+        sharedViewModel.redeemVoucher(voucher.voucherID)
+        voucherList.find {it.voucherID == voucher.voucherID}?.isRedeemed = true
         binding.recyclerViewVoucher.adapter?.notifyDataSetChanged()
     }
 

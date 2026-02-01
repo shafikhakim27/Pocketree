@@ -38,7 +38,7 @@ class UserViewModel: ViewModel() {
     val earnedBadges = MutableLiveData<List<Badge>>()
     val redeemSuccessEvent = MutableLiveData<String?>()
     val equipSuccessEvent = MutableLiveData<String?>() // by Chenyu
-    val useVoucherEvent = MutableLiveData<String?>() // by Chenyu
+    val redeemVoucherEvent = MutableLiveData<String?>() // by Chenyu
 
     // event livedata
     val levelUpEvent = MutableLiveData<Boolean>()
@@ -383,7 +383,7 @@ class UserViewModel: ViewModel() {
 
 
     // by Chenyu
-    fun useVoucher(voucherId: Int) {
+    fun redeemVoucher(voucherId: Int) {
         val json = JSONObject().apply {
             put("VoucherID", voucherId)
         }
@@ -391,14 +391,14 @@ class UserViewModel: ViewModel() {
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
-            .url("$taskBaseUrl/UseVoucherApi")
+            .url("$taskBaseUrl/RedeemVoucherApi")
             .post(body)
             .build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-                    useVoucherEvent.postValue("Voucher used successfully!")
+                    redeemVoucherEvent.postValue("Voucher used successfully!")
                 } else {
                     errorMessage.postValue("Failed to use voucher.")
                 }
