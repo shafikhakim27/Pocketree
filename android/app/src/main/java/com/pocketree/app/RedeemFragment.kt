@@ -73,6 +73,13 @@ class RedeemFragment: Fragment() {
             }
         }
 
+        sharedViewModel.useVoucherEvent.observe(viewLifecycleOwner) { message ->
+            message?.let {
+                showSuccessDialog(it) // message: "Voucher used successfully!"
+                sharedViewModel.useVoucherEvent.value = null
+            }
+        }
+
         sharedViewModel.errorMessage.observe(viewLifecycleOwner) { errorMsg ->
             errorMsg?.let {
                 AlertDialog.Builder(requireContext())
@@ -152,13 +159,19 @@ class RedeemFragment: Fragment() {
         AlertDialog.Builder(requireContext())
             .setTitle("Confirm Redemption")
             .setMessage("Do you want to use ${voucher.voucherName}?")
-            .setPositiveButton("Confirm") { dialog, _ ->
-                //TODO: useVoucher(voucher)
-                dialog.dismiss()
+            .setPositiveButton("Confirm") { _, _ ->
+                useVoucher(voucher)
             }
             .setNegativeButton("Cancel", null)
             .create()
             .show()
+    }
+
+
+    private fun useVoucher(voucher: Voucher) {
+        sharedViewModel.useVoucher(voucher.voucherID)
+        voucherList.find {it.voucherID == voucher.voucherID}?.isUsed = true
+        binding.recyclerViewVoucher.adapter?.notifyDataSetChanged()
     }
 
 

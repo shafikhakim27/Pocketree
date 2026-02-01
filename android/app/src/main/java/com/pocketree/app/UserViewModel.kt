@@ -38,6 +38,7 @@ class UserViewModel: ViewModel() {
     val earnedBadges = MutableLiveData<List<Badge>>()
     val redeemSuccessEvent = MutableLiveData<String?>()
     val equipSuccessEvent = MutableLiveData<String?>() // by Chenyu
+    val useVoucherEvent = MutableLiveData<String?>() // by Chenyu
 
     // event livedata
     val levelUpEvent = MutableLiveData<Boolean>()
@@ -375,6 +376,36 @@ class UserViewModel: ViewModel() {
             }
 
             override fun onFailure(call: Call, e: IOException) {
+                errorMessage.postValue("Network error.")
+            }
+        })
+    }
+
+
+    // by Chenyu
+    fun useVoucher(voucherId: Int) {
+        val json = JSONObject().apply {
+            put("VoucherID", voucherId)
+        }
+
+        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        val request = Request.Builder()
+            .url("$userBaseUrl/UseVoucherApi")
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                if (response.isSuccessful) {
+                    useVoucherEvent.postValue("Voucher used successfully!")
+                } else {
+                    errorMessage.postValue("Failed to use voucher.")
+                }
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
                 errorMessage.postValue("Network error.")
             }
         })
