@@ -391,7 +391,7 @@ class UserViewModel: ViewModel() {
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
-            .url("$userBaseUrl/UseVoucherApi")
+            .url("$taskBaseUrl/UseVoucherApi")
             .post(body)
             .build()
 
