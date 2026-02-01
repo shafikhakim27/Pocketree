@@ -31,8 +31,6 @@ class LoginActivity: AppCompatActivity() {
     private val gson = NetworkClient.gson
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // initialise NetworkClient context
-//        NetworkClient.context = this.applicationContext
 
         // check for existing token
         val existingToken = NetworkClient.loadToken(this)
@@ -83,7 +81,7 @@ class LoginActivity: AppCompatActivity() {
                     put("Username", username)
                     put("Password", password)
                 }
-                // 1. Show Loading and Disable Button
+                // set loading on login page
                 setLoadingState(true)
                 sendLoginRequest(credentials)
             }
@@ -122,7 +120,7 @@ class LoginActivity: AppCompatActivity() {
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
                 runOnUiThread {
-                    // 2. Hide Loading on Failure
+                    // hide loading on failure
                     setLoadingState(false)
                     Toast.makeText(this@LoginActivity, "Connection failed", Toast.LENGTH_SHORT).show()
                 }
@@ -136,10 +134,12 @@ class LoginActivity: AppCompatActivity() {
                         // get information of user from database
                         val loginData = gson.fromJson(responseBody, LoginResponse::class.java)
 
-                        // Check: Is token null?
+                        // check if token is null
                         if (loginData.token.isNullOrEmpty()) {
                             runOnUiThread {
-                                Toast.makeText(this@LoginActivity, "Login failed: Token missing", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@LoginActivity,
+                                    "Login failed",
+                                    Toast.LENGTH_SHORT).show()
                             }
                             return
                         }
@@ -153,7 +153,7 @@ class LoginActivity: AppCompatActivity() {
                         }
                     } catch (e: Exception) {
                         runOnUiThread {
-                            setLoadingState(false) // Stop loading
+                            setLoadingState(false) // stop loading
                             Toast.makeText(
                                 this@LoginActivity,
                                 "Error in server response",
@@ -164,7 +164,7 @@ class LoginActivity: AppCompatActivity() {
                 } else {
                     runOnUiThread{
                         // user not authorised or not found
-                        setLoadingState(false) // Stop loading
+                        setLoadingState(false)
                         Toast.makeText(
                             this@LoginActivity,
                             "Invalid username or password, please try again",
@@ -177,7 +177,7 @@ class LoginActivity: AppCompatActivity() {
     }
 
     private fun loginUser(user: User) {
-        // After updating UI, proceed to MainActivity
+        // after updating UI, proceed to MainActivity and fragments
         val intent = Intent(this@LoginActivity, MainActivity::class.java).apply{
             putExtra("username", user.username)
             putExtra("totalCoins", user.totalCoins)

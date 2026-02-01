@@ -3,7 +3,8 @@ package com.pocketree.app
 import android.app.Application
 import android.content.Context
 
-// trial
+// creating a Global Access Point to set Context
+// (Application Context lives as long as app process is alive)
 class MyApplication : Application() {
     override fun onCreate() {
         super.onCreate()

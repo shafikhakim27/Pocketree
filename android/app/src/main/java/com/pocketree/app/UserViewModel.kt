@@ -20,7 +20,6 @@ import kotlin.jvm.java
 
 // creation of a SharedViewModel to enable passing of data between fragments
 
-
 data class UserState(
     val username: String = "User",
     val totalCoins: Int = 0,
@@ -89,7 +88,7 @@ class UserViewModel: ViewModel() {
         )
         userState.value = newState // use .value for main thread calls
 
-        // Now that the main profile is set, go get the rest
+        // now that the main profile is set, go get the rest of the required info
         if (tasks.value.isNullOrEmpty()){
             fetchDailyTasks()
             fetchLatestBadges()
@@ -343,8 +342,6 @@ class UserViewModel: ViewModel() {
                     userState.postValue(currentState.copy(totalCoins=newBalance))
 
                     redeemSuccessEvent.postValue("Skin redeemed successfully!")
-
-                    //fetchUserProfile()
                 } else {
                     errorMessage.postValue("Insufficient coins or server error.")
                 }
@@ -354,7 +351,6 @@ class UserViewModel: ViewModel() {
             }
         })
     }
-
 
     // by Chenyu
     fun equipSkin(skinId: Int) {
