@@ -5,7 +5,7 @@ on:
     branches: ["main", "develop"]
     paths:
       - 'ml-service/**'
-      - '.github/workflows/ml-ops.yml'
+      - '.github/workflows/ml-service.yml'
   workflow_dispatch:
 
 env:

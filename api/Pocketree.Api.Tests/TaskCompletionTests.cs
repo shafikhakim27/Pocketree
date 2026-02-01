@@ -1,0 +1,621 @@
+using ADproject.Models.Entities;
+using ADproject.Models.DTOs;
+using ADproject.Services;
+using ADproject.Controllers;
+using ADproject.Hubs;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.SignalR;
+using Moq;
+using System.Security.Claims;
+
+namespace Pocketree.Api.Tests;
+
+public class TaskCompletionTests
+{
+    private DbContextOptions<MyDbContext> CreateDbOptions(string dbName)
+    {
+        return new DbContextOptionsBuilder<MyDbContext>()
+            .UseInMemoryDatabase(databaseName: dbName)
+            .UseLazyLoadingProxies()
+            .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning))
+            .Options;
+    }
+
+    private TaskController CreateController(MyDbContext context, IMlService mlService = null)
+    {
+        var mockMlService = mlService ?? Mock.Of<IMlService>();
+        
+        // Create proper mock for MissionService dependencies
+        var mockHubContext = new Mock<IHubContext<MapHub>>();
+        var missionService = new MissionService(context, mockHubContext.Object);
+        
+        var controller = new TaskController(context, mockMlService, missionService);
+        
+        // Mock User.Identity for [Authorize] attribute
+        var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
+        {
+            new Claim(ClaimTypes.Name, "testuser")
+        }, "mock"));
+        
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext { User = user }
+        };
+        
+        return controller;
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_EasyTask_AwardsCorrectCoins()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_EasyTask");
+        using var context = new MyDbContext(options);
+        
+        var user = new User
+        {
+            UserID = 1,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "hash",
+            TotalCoins = 0,
+            CurrentLevelID = 1,
+            UncompletedTaskCount = 3,
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
+        };
+        
+        var task = new ADproject.Models.Entities.Task
+        {
+            TaskID = 1,
+            Description = "Easy task",
+            Difficulty = "Easy",
+            CoinReward = 100,
+            RequiresEvidence = false,
+            Keyword = "test",
+            Category = "Testing"
+        };
+        
+        var tree = new Tree
+        {
+            TreeID = 1,
+            UserID = 1,
+            MissionID = 1,
+            IsWithered = false,
+            IsCompleted = false
+        };
+        
+        var taskHistory = new UserTaskHistory
+        {
+            HistoryID = 1,
+            UserID = 1,
+            TaskID = 1,
+            Status = "Assigned",
+            CompletionDate = DateTime.UtcNow.Date
+        };
+        
+        context.Users.Add(user);
+        context.Tasks.Add(task);
+        context.Trees.Add(tree);
+        context.UserTaskHistory.Add(taskHistory);
+        await context.SaveChangesAsync();
+        
+        var controller = CreateController(context);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(1, "Completed", null);
+        
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var resultData = okResult.Value;
+        
+        var updatedUser = await context.Users.FindAsync(1);
+        Assert.Equal(100, updatedUser.TotalCoins);
+        Assert.Equal(2, updatedUser.UncompletedTaskCount);
+        
+        var updatedHistory = await context.UserTaskHistory.FindAsync(1);
+        Assert.Equal("Completed", updatedHistory.Status);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_NormalTask_AwardsCorrectCoins()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_NormalTask");
+        using var context = new MyDbContext(options);
+        
+        var user = new User
+        {
+            UserID = 1,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "hash",
+            TotalCoins = 0,
+            CurrentLevelID = 1,
+            UncompletedTaskCount = 3,
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
+        };
+        
+        var task = new ADproject.Models.Entities.Task
+        {
+            TaskID = 1,
+            Description = "Normal task",
+            Difficulty = "Normal",
+            CoinReward = 200,
+            RequiresEvidence = false,
+            Keyword = "test",
+            Category = "Testing"
+        };
+        
+        var tree = new Tree
+        {
+            TreeID = 1,
+            UserID = 1,
+            MissionID = 1,
+            IsWithered = false,
+            IsCompleted = false
+        };
+        
+        var taskHistory = new UserTaskHistory
+        {
+            HistoryID = 1,
+            UserID = 1,
+            TaskID = 1,
+            Status = "Assigned",
+            CompletionDate = DateTime.UtcNow.Date
+        };
+        
+        context.Users.Add(user);
+        context.Tasks.Add(task);
+        context.Trees.Add(tree);
+        context.UserTaskHistory.Add(taskHistory);
+        await context.SaveChangesAsync();
+        
+        var controller = CreateController(context);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(1, "Completed", null);
+        
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var updatedUser = await context.Users.FindAsync(1);
+        Assert.Equal(200, updatedUser.TotalCoins);
+        Assert.Equal(2, updatedUser.UncompletedTaskCount);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_HardTaskWithoutPhoto_ReturnsBadRequest()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_HardTaskNoPhoto");
+        using var context = new MyDbContext(options);
+        
+        var user = new User
+        {
+            UserID = 1,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "hash",
+            TotalCoins = 0,
+            CurrentLevelID = 1,
+            UncompletedTaskCount = 3,
+            FailedVerificationCount = 0,
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
+        };
+        
+        var task = new ADproject.Models.Entities.Task
+        {
+            TaskID = 1,
+            Description = "Hard task",
+            Difficulty = "Hard",
+            CoinReward = 300,
+            RequiresEvidence = true,
+            Keyword = "recycle",
+            Category = "Testing"
+        };
+        
+        context.Users.Add(user);
+        context.Tasks.Add(task);
+        await context.SaveChangesAsync();
+        
+        var controller = CreateController(context);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(1, "Completed", null);
+        
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Photo evidence required for task.", badRequestResult.Value);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_HardTaskWithInvalidPhoto_IncrementsFailCount()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_HardTaskInvalidPhoto");
+        using var context = new MyDbContext(options);
+        
+        var mockMlService = new Mock<IMlService>();
+        mockMlService.Setup(m => m.ClassifyImageAsync(It.IsAny<Stream>(), It.IsAny<string>()))
+                     .ReturnsAsync(false); // ML verification fails
+        
+        var user = new User
+        {
+            UserID = 1,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "hash",
+            TotalCoins = 0,
+            CurrentLevelID = 1,
+            UncompletedTaskCount = 3,
+            FailedVerificationCount = 0,
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
+        };
+        
+        var task = new ADproject.Models.Entities.Task
+        {
+            TaskID = 1,
+            Description = "Hard task",
+            Difficulty = "Hard",
+            CoinReward = 300,
+            RequiresEvidence = true,
+            Keyword = "recycle",
+            Category = "Testing"
+        };
+        
+        context.Users.Add(user);
+        context.Tasks.Add(task);
+        await context.SaveChangesAsync();
+        
+        var controller = CreateController(context, mockMlService.Object);
+        
+        // Create mock photo
+        var mockFile = new Mock<IFormFile>();
+        var content = "fake image content";
+        var fileName = "test.jpg";
+        var ms = new MemoryStream();
+        var writer = new StreamWriter(ms);
+        writer.Write(content);
+        writer.Flush();
+        ms.Position = 0;
+        mockFile.Setup(_ => _.OpenReadStream()).Returns(ms);
+        mockFile.Setup(_ => _.FileName).Returns(fileName);
+        mockFile.Setup(_ => _.Length).Returns(ms.Length);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(1, "Completed", mockFile.Object);
+        
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var updatedUser = await context.Users.FindAsync(1);
+        Assert.Equal(1, updatedUser.FailedVerificationCount);
+        Assert.Equal(0, updatedUser.TotalCoins); // No coins awarded
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_ReachingLevel2_LevelsUp()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_LevelUp2");
+        using var context = new MyDbContext(options);
+        
+        var user = new User
+        {
+            UserID = 1,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "hash",
+            TotalCoins = 200, // Already has 200 coins
+            CurrentLevelID = 1,
+            UncompletedTaskCount = 1,
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
+        };
+        
+        var task = new ADproject.Models.Entities.Task
+        {
+            TaskID = 1,
+            Description = "Task that triggers level up",
+            Difficulty = "Easy",
+            CoinReward = 100, // This will bring total to 300 (> 250)
+            RequiresEvidence = false,
+            Keyword = "test",
+            Category = "Testing"
+        };
+        
+        var tree = new Tree
+        {
+            TreeID = 1,
+            UserID = 1,
+            MissionID = 1,
+            IsWithered = false,
+            IsCompleted = false
+        };
+        
+        var taskHistory = new UserTaskHistory
+        {
+            HistoryID = 1,
+            UserID = 1,
+            TaskID = 1,
+            Status = "Assigned",
+            CompletionDate = DateTime.UtcNow.Date
+        };
+        
+        context.Users.Add(user);
+        context.Tasks.Add(task);
+        context.Trees.Add(tree);
+        context.UserTaskHistory.Add(taskHistory);
+        await context.SaveChangesAsync();
+        
+        var controller = CreateController(context);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(1, "Completed", null);
+        
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var updatedUser = await context.Users.FindAsync(1);
+        Assert.Equal(300, updatedUser.TotalCoins);
+        Assert.Equal(2, updatedUser.CurrentLevelID); // Leveled up to Sapling
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_WitheredTree_GetsRevived()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_TreeRevival");
+        using var context = new MyDbContext(options);
+        
+        var user = new User
+        {
+            UserID = 1,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "hash",
+            TotalCoins = 0,
+            CurrentLevelID = 1,
+            UncompletedTaskCount = 3,
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
+        };
+        
+        var task = new ADproject.Models.Entities.Task
+        {
+            TaskID = 1,
+            Description = "Task to revive tree",
+            Difficulty = "Easy",
+            CoinReward = 100,
+            RequiresEvidence = false,
+            Keyword = "test",
+            Category = "Testing"
+        };
+        
+        var tree = new Tree
+        {
+            TreeID = 1,
+            UserID = 1,
+            MissionID = 1,
+            IsWithered = true, // Tree is withered
+            IsCompleted = false
+        };
+        
+        var taskHistory = new UserTaskHistory
+        {
+            HistoryID = 1,
+            UserID = 1,
+            TaskID = 1,
+            Status = "Assigned",
+            CompletionDate = DateTime.UtcNow.Date
+        };
+        
+        context.Users.Add(user);
+        context.Tasks.Add(task);
+        context.Trees.Add(tree);
+        context.UserTaskHistory.Add(taskHistory);
+        await context.SaveChangesAsync();
+        
+        var controller = CreateController(context);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(1, "Completed", null);
+        
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var updatedTree = await context.Trees.FindAsync(1);
+        Assert.False(updatedTree.IsWithered); // Tree is revived
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_PassedStatus_DoesNotAwardCoins()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_Passed");
+        using var context = new MyDbContext(options);
+        
+        var user = new User
+        {
+            UserID = 1,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "hash",
+            TotalCoins = 0,
+            CurrentLevelID = 1,
+            UncompletedTaskCount = 3,
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
+        };
+        
+        var task = new ADproject.Models.Entities.Task
+        {
+            TaskID = 1,
+            Description = "Task to pass",
+            Difficulty = "Easy",
+            CoinReward = 100,
+            RequiresEvidence = false,
+            Keyword = "test",
+            Category = "Testing"
+        };
+        
+        var tree = new Tree
+        {
+            TreeID = 1,
+            UserID = 1,
+            MissionID = 1,
+            IsWithered = false,
+            IsCompleted = false
+        };
+        
+        var taskHistory = new UserTaskHistory
+        {
+            HistoryID = 1,
+            UserID = 1,
+            TaskID = 1,
+            Status = "Assigned",
+            CompletionDate = DateTime.UtcNow.Date
+        };
+        
+        context.Users.Add(user);
+        context.Tasks.Add(task);
+        context.Trees.Add(tree);
+        context.UserTaskHistory.Add(taskHistory);
+        await context.SaveChangesAsync();
+        
+        var controller = CreateController(context);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(1, "Passed", null);
+        
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var updatedUser = await context.Users.FindAsync(1);
+        Assert.Equal(0, updatedUser.TotalCoins); // No coins awarded for "Passed"
+        Assert.Equal(3, updatedUser.UncompletedTaskCount); // Count not decreased
+        
+        var updatedHistory = await context.UserTaskHistory.FindAsync(1);
+        Assert.Equal("Passed", updatedHistory.Status);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_UpdatesLastActivityDate()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_ActivityDate");
+        using var context = new MyDbContext(options);
+        
+        var oldDate = DateTime.UtcNow.AddDays(-1);
+        var user = new User
+        {
+            UserID = 1,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "hash",
+            TotalCoins = 0,
+            CurrentLevelID = 1,
+            UncompletedTaskCount = 1,
+            LastLoginDate = oldDate,
+            LastActivityDate = oldDate
+        };
+        
+        var task = new ADproject.Models.Entities.Task
+        {
+            TaskID = 1,
+            Description = "Activity test task",
+            Difficulty = "Easy",
+            CoinReward = 100,
+            RequiresEvidence = false,
+            Keyword = "test",
+            Category = "Testing"
+        };
+        
+        var tree = new Tree
+        {
+            TreeID = 1,
+            UserID = 1,
+            MissionID = 1,
+            IsWithered = false,
+            IsCompleted = false
+        };
+        
+        var taskHistory = new UserTaskHistory
+        {
+            HistoryID = 1,
+            UserID = 1,
+            TaskID = 1,
+            Status = "Assigned",
+            CompletionDate = DateTime.UtcNow.Date
+        };
+        
+        context.Users.Add(user);
+        context.Tasks.Add(task);
+        context.Trees.Add(tree);
+        context.UserTaskHistory.Add(taskHistory);
+        await context.SaveChangesAsync();
+        
+        var controller = CreateController(context);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(1, "Completed", null);
+        
+        // Assert
+        var updatedUser = await context.Users.FindAsync(1);
+        Assert.NotNull(updatedUser.LastActivityDate);
+        Assert.True(updatedUser.LastActivityDate > oldDate);
+        Assert.True((DateTime.UtcNow - updatedUser.LastActivityDate.Value).TotalSeconds < 5);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_InvalidUser_ReturnsBadRequest()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_InvalidUser");
+        using var context = new MyDbContext(options);
+        
+        var controller = CreateController(context);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(999, "Completed", null);
+        
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Invalid User or Task.", badRequestResult.Value);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TaskCompletion_InvalidTask_ReturnsBadRequest()
+    {
+        // Arrange
+        var options = CreateDbOptions("TaskCompletion_InvalidTask");
+        using var context = new MyDbContext(options);
+        
+        var user = new User
+        {
+            UserID = 1,
+            Username = "testuser",
+            Email = "test@test.com",
+            PasswordHash = "hash",
+            TotalCoins = 0,
+            CurrentLevelID = 1,
+            UncompletedTaskCount = 3,
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
+        };
+        
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        
+        var controller = CreateController(context);
+        
+        // Act
+        var result = await controller.RecordTaskCompletionApi(999, "Completed", null);
+        
+        // Assert
+        var badRequestResult = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Invalid User or Task.", badRequestResult.Value);
+    }
+}
