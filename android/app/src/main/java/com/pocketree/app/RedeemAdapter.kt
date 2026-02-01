@@ -53,16 +53,13 @@ class RedeemAdapter(
             holder.binding.itemName.text = voucher.voucherName
             holder.binding.itemPrice.visibility = View.GONE
             holder.binding.itemStatus.visibility = View.VISIBLE
-            if (voucher.isValid && !voucher.isUsed) {
-                holder.binding.itemStatus.text = "Valid"
+            if (!voucher.isUsed) {
+                holder.binding.itemStatus.text = "Usable"
                 holder.binding.itemStatus.setTextColor(Color.parseColor("#4CAF50"))
                 holder.binding.root.setOnClickListener { onItemClick(voucher) } // Set the button
-            } else if (voucher.isValid) {
-                holder.binding.itemStatus.text = "Used"
-                holder.binding.itemStatus.setTextColor(Color.RED)
             } else {
-                holder.binding.itemStatus.text = "Expired" // kiv can add in expiry date logic later on
-                holder.binding.root.alpha = 0.5f
+                holder.binding.itemStatus.text = "Unusable"
+                holder.binding.itemStatus.setTextColor(Color.RED)
             }
         }
     }
