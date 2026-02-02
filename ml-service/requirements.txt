@@ -4,3 +4,7 @@ scikit-learn
 pandas
 pytest
 httpx
+torch
+transformers
+pillow
+numpy
