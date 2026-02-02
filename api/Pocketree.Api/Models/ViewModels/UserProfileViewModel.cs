@@ -2,11 +2,12 @@
 {
     public class UserProfileViewModel
     {
-        public string Username { get; set; }
+        public string? Username { get; set; }
         public int TotalCoins { get; set; }
         public int LevelID { get; set; }
-        public string LevelName { get; set; }
-        public string LevelImageURL { get; set; }
+        public string? LevelName { get; set; }
+        public string? LevelImageURL { get; set; }
+        public string? ProfileImageURL { get; set; }
         public bool IsWithered { get; set; }
     }
 }

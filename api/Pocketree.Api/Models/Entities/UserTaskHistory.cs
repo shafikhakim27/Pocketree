@@ -10,12 +10,13 @@ namespace ADproject.Models.Entities
         public int UserID { get; set; }
         public int TaskID { get; set; }
         [Required, StringLength(20)]
-        public string Status { get; set; }
+        public string? Status { get; set; }
         public DateTime CompletionDate { get; set; }
-        // Navigation Property
+        
+        // Navigation Properties
         [ForeignKey("UserID")]
-        public virtual User User { get; set; }
+        public virtual User? User { get; set; }
         [ForeignKey("TaskID")]
-        public virtual Task Task { get; set; }
+        public virtual Task? Task { get; set; }
     }
 }

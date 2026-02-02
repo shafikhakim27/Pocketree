@@ -9,28 +9,36 @@ namespace ADproject.Models.Entities
         [Key]
         public int UserID { get; set; }
         [Required, StringLength(50)]
-        public string Username { get; set; }
+        public string? Username { get; set; }
         [Required, StringLength(255)]
-        public string PasswordHash { get; set; }
+        public string? PasswordHash { get; set; }
         public string ProfileImageURL { get; set; } = "/images/default-user.jpg";
         public int TotalCoins { get; set; }
         public int CurrentLevelID { get; set; }
         public DateTime? LastLoginDate { get; set; }
         public DateTime? LastActivityDate { get; set; }
         [Required, StringLength(100)]
-        public string Email { get; set; }
+        public string? Email { get; set; }
         public int UncompletedTaskCount { get; set; } = 0;
         public int NotAttemptedTaskCount { get; set; } = 0;
         public int FailedVerificationCount { get; set; } = 0;
+        [Required, StringLength(20)]
+        public string UserRole { get; set; } = "Player";
+        [Required, StringLength(10)]
+        public string ResetCode { get; set; } = "";
+        public DateTime ResetExpiry { get; set; }
+        public bool IsOnline { get; set; } = false;
+        [StringLength(255)]
+        public string SupportQuery { get; set; } = "";
 
         // Navigation Properties
         [ForeignKey("CurrentLevelID")]
-        public virtual Level CurrentLevel { get; set; }
-        public virtual ICollection<UserTaskHistory> TaskHistory { get; set; }
-        public virtual ICollection<UserSkin> UserSkins { get; set; }
-        public virtual ICollection<UserVoucher> UserVouchers { get; set; }
+        public virtual Level? CurrentLevel { get; set; }
+        public virtual ICollection<UserTaskHistory>? TaskHistory { get; set; }
+        public virtual ICollection<UserSkin>? UserSkins { get; set; }
+        public virtual ICollection<UserVoucher>? UserVouchers { get; set; }
         public virtual UserSettings? Settings { get; set; }
-        public virtual ICollection<Tree> Trees { get; set; }
-        public virtual ICollection<UserBadge> UserBadges { get; set; }
+        public virtual ICollection<Tree>? Trees { get; set; }
+        public virtual ICollection<UserBadge>? UserBadges { get; set; }
     }
 }

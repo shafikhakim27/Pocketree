@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Pocketree.Api.Models.Entities;
 using System.Collections.Generic;
 using System.Security.Claims;
 
@@ -68,6 +69,8 @@ namespace ADproject.Models.Entities
         public DbSet<UserVoucher> UserVouchers { get; set; }
         public DbSet<CommunityForest> CommunityForests { get; set; }
         public DbSet<Tree> Trees { get; set; }
+        public DbSet<NotificationMessage> NotificationMessages { get; set; }
+
     }
 
 }

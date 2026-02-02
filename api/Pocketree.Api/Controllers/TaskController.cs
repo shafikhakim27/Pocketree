@@ -2,6 +2,7 @@
 using ADproject.Models.Entities;
 using ADproject.Models.ViewModels;
 using ADproject.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +31,7 @@ namespace ADproject.Controllers
             this.missionService = missionService;
         }
 
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetDailyTasksApi")]
         public async Task<IActionResult> GetDailyTasksApi()
         {
@@ -143,7 +144,7 @@ namespace ADproject.Controllers
             return newTasks;
         }
 
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("RecordTaskCompletionApi")]
         public async Task<IActionResult> RecordTaskCompletionApi([FromForm] int taskId, [FromForm] string status, IFormFile? photo)
         {
@@ -202,8 +203,10 @@ namespace ADproject.Controllers
                     {
                         // Update user's uncompleted task count for the completed task
                         user.UncompletedTaskCount -= 1;
-                        // Check and update level, coins and badges
+                        // Check and update level, coins, badges and vouchers
                         levelUp = await UpdateLevelAndCoins(user, task);
+                        await CheckAndAwardBadges(user);
+                        await CheckAndAwardVouchers(user);
                     }
                     
                     // Update tree status
@@ -236,7 +239,26 @@ namespace ADproject.Controllers
             });
         }
 
-        [Authorize]
+        // Private function (not API) for backend use
+        private async Task<bool> UpdateLevelAndCoins(User user, Task task)
+        {
+            user.TotalCoins += task.CoinReward;
+
+            if (user.TotalCoins >= 500 && user.CurrentLevelID < 3)
+            {
+                user.CurrentLevelID = 3; // Set to new Mighty Oak level   
+                await ContributeToGlobalMission(user, "Greenify Sahara"); // To specify MissionName for now 
+                return true;
+            }
+            else if (user.TotalCoins >= 250 && user.CurrentLevelID < 2)
+            {
+                user.CurrentLevelID = 2; // Set to new Sapling level
+                return true;
+            }
+            else return false;
+        }
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("RedeemSkinApi")]
         public async Task<IActionResult> RedeemSkinApi([FromBody] int skinId)
         {
@@ -258,7 +280,6 @@ namespace ADproject.Controllers
                     UserID = user.UserID,
                     SkinID = skinId,
                     RedemptionDate = DateTime.UtcNow,
-                    IsEquipped = true
                 };
 
             db.UserSkins.Add(userSkinEntry);
@@ -267,7 +288,7 @@ namespace ADproject.Controllers
             return Ok(new { NewCoins = user.TotalCoins });
         }
 
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("EquipSkinApi")]
         public async Task<IActionResult> EquipSkinApi([FromBody] int skinId)
         {
@@ -283,7 +304,7 @@ namespace ADproject.Controllers
             {
                 return BadRequest("You do not own this skin.");
             }
-            /*
+            
             // Set all skins currently equipped by this user to unequipped
             var currentlyEquippedSkins = await db.UserSkins
                 .Where(us => us.UserID == user.UserID && us.IsEquipped)
@@ -293,7 +314,6 @@ namespace ADproject.Controllers
             {
                 s.IsEquipped = false;
             }
-            */
 
             // Set the user's selected skin to equipped
             userSkinEntry.IsEquipped = true;
@@ -301,64 +321,6 @@ namespace ADproject.Controllers
             await db.SaveChangesAsync();
 
             return Ok(new { success = true, message = "Skin equipped successfully!" });
-        }
-
-        [Authorize]
-        [HttpPost("RedeemVoucherApi")]
-        public async Task<IActionResult> RedeemVoucherApi([FromBody] int VoucherId)
-        {
-            var user = await db.Users
-                 .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
-            if (user == null) return Unauthorized();
-
-            var voucher = await db.Vouchers.FindAsync(VoucherId);
-            if (voucher == null) return BadRequest("Requested voucher cannot be found.");
-
-            // Update UserVouchers 
-            var userVoucherEntry = new UserVoucher
-            {
-                UserID = user.UserID,
-                VoucherID = VoucherId,
-                RedemptionCode = GenerateRedemptionCode(),    // To be filled up later
-                RedemptionDate = DateTime.UtcNow,
-                IsRedeemed = true
-            };
-
-            db.UserVouchers.Add(userVoucherEntry);
-            await db.SaveChangesAsync();
-
-            return Ok(new { IsRedeemed = true });
-        }
-
-        // Private function (not API) for backend use
-        private string GenerateRedemptionCode()
-        {
-            // Define the pool of characters to ensure the code is readable and unique
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var random = new Random();
-
-            // Return a 20-character random character string
-            return new string(Enumerable.Repeat(chars, 20)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
-        }
-
-        // Private function (not API) for backend use
-        private async Task<bool> UpdateLevelAndCoins(User user, Task task)
-        {
-            user.TotalCoins += task.CoinReward;
-
-            if (user.TotalCoins >= 500 && user.CurrentLevelID < 3)
-            {
-                user.CurrentLevelID = 3; // Set to new Mighty Oak level   
-                await ContributeToGlobalMission(user, "Greenify Sahara"); // To specify MissionName for now 
-                return true;
-            }
-            else if (user.TotalCoins >= 250 && user.CurrentLevelID < 2)
-            {
-                user.CurrentLevelID = 2; // Set to new Sapling level
-                return true;
-            }
-            else return false;
         }
 
         // Private function (not API) for backend use
@@ -410,6 +372,84 @@ namespace ADproject.Controllers
             };
 
             db.UserBadges.Add(newBadge);
+        }
+
+        // Private function (not API) for backend use
+        private async System.Threading.Tasks.Task CheckAndAwardVouchers(User user)
+        {
+            // Get all Voucher IDs that are already awarded to user
+            var currentVoucherIds = await db.UserVouchers
+                .Where(ub => ub.UserID == user.UserID)
+                .Select(ub => ub.VoucherID)
+                .ToListAsync();
+
+            // Get all available vouchers
+            var availableVouchers = await db.Vouchers
+                .Where(b => !currentVoucherIds.Contains(b.VoucherID))
+                .ToListAsync();
+
+            foreach (var voucher in availableVouchers)
+            {
+                bool eligibility = false;
+                eligibility = user.CurrentLevelID >= voucher.MinRedemptionLevel;
+
+                // Award voucher if eligible
+                if (eligibility == true)
+                {
+                    await AwardVoucher(user.UserID, voucher);
+                }
+            }
+        }
+
+        // Private function (not API) for backend use
+        private async System.Threading.Tasks.Task AwardVoucher(int userId, Voucher voucher)
+        {
+            var newVoucher = new UserVoucher
+            {
+                UserID = userId,
+                VoucherID = voucher.VoucherID,
+                RedemptionCode = GenerateRedemptionCode()
+            };
+
+            db.UserVouchers.Add(newVoucher);
+        }
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [HttpPost("RedeemVoucherApi")]
+        public async Task<IActionResult> RedeemVoucherApi([FromBody] int VoucherId)
+        {
+            var user = await db.Users
+                 .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            if (user == null) return Unauthorized();
+
+            var voucher = await db.Vouchers.FindAsync(VoucherId);
+            if (voucher == null) return BadRequest("Requested voucher cannot be found.");
+
+            // Update UserVouchers 
+            var userVoucherEntry = new UserVoucher
+            {
+                UserID = user.UserID,
+                VoucherID = VoucherId,
+                RedemptionDate = DateTime.UtcNow,
+                IsRedeemed = true
+            };
+
+            db.UserVouchers.Update(userVoucherEntry);
+            await db.SaveChangesAsync();
+
+            return Ok(new { IsRedeemed = true });
+        }
+
+        // Private function (not API) for backend use
+        private string GenerateRedemptionCode()
+        {
+            // Define the pool of characters to ensure the code is readable and unique
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+
+            // Return a 20-character random character string
+            return new string(Enumerable.Repeat(chars, 20)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
 
         // Private function (not API) for backend use

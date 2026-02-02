@@ -1,18 +1,20 @@
 ﻿using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using ADproject.Models.ViewModels;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using System.IdentityModel.Tokens.Jwt;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 
 namespace ADproject.Controllers
@@ -84,16 +86,17 @@ namespace ADproject.Controllers
             if (result == PasswordVerificationResult.Success)
             {
                 // Set tree status
-                if (user.LastLoginDate.HasValue)
+                if (user.LastActivityDate.HasValue)
                 {
-                    var daysAway = (DateTime.UtcNow - user.LastLoginDate.Value).TotalDays;
-                    if (daysAway > witheringThreshold && userData.ActiveTree != null)
+                    var daysNoActivity = (DateTime.UtcNow - user.LastActivityDate.Value).TotalDays;
+                    if (daysNoActivity > witheringThreshold && userData.ActiveTree != null)
                     {
                         userData.ActiveTree.IsWithered = true;
                     }
                 }
 
                 var userProfile = GetUserProfile(user, userData.ActiveTree, userData.LevelName);
+                user.IsOnline = true; // Set user's online status to true
                 user.LastLoginDate = DateTime.UtcNow; // Update LastLoginDate
                 await db.SaveChangesAsync();
 
@@ -101,6 +104,8 @@ namespace ADproject.Controllers
                 var claims = new[]
                 {
                     new Claim(ClaimTypes.Name, user.Username),
+                    new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()), 
+                    new Claim(ClaimTypes.Role, user.UserRole)
                 };
 
                 var token = GenerateJwtToken(claims);
@@ -110,7 +115,19 @@ namespace ADproject.Controllers
             return Unauthorized("Invalid credentials.");
         }
 
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [HttpPost("/User/Logout")]
+        public async Task<IActionResult> LogoutApi()
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
+            if (user == null) return NotFound();
+    
+            user.IsOnline = false;
+            await db.SaveChangesAsync();
+            return Ok("Logged out successfully.");
+        }
+
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePasswordApi([FromBody] ChangePasswordDto dto)
         {
@@ -129,7 +146,7 @@ namespace ADproject.Controllers
             return BadRequest("Current password is incorrect.");
         }
 
-        [Authorize]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [HttpGet("GetUserProfileApi")]
         public async Task<IActionResult> GetUserProfileApi()
         {
@@ -141,6 +158,7 @@ namespace ADproject.Controllers
                         u.Username,
                         u.TotalCoins,
                         u.CurrentLevelID,
+                        u.ProfileImageURL,
                         LevelName = u.CurrentLevel.LevelName,
                         LevelImageURL = u.CurrentLevel.LevelImageURL,
                         ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted), // Get active tree
@@ -156,39 +174,11 @@ namespace ADproject.Controllers
                 LevelName = userData.LevelName ?? "Seedling",
                 LevelID = userData.CurrentLevelID,
                 LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
+                ProfileImageURL = userData.ProfileImageURL ?? "~/images/default-user.jpg",
                 IsWithered = userData.ActiveTree?.IsWithered ?? false
             };
 
             return Ok(userProfile);
-        }
-
-        [Authorize]
-        [HttpGet("GetLatestBadgesApi")]
-        public async Task<IActionResult> GetLatestBadgesApi()
-        {
-            var username = User.Identity?.Name;
-            var userId = await db.Users
-                .AsNoTracking()
-                .Where(u => u.Username == username)
-                .Select(u => u.UserID)
-                .FirstOrDefaultAsync();
-
-            if (userId == 0) return Unauthorized();
-
-            var latestBadges = await db.UserBadges
-                .AsNoTracking()
-                .Where(ub => ub.UserID == userId)
-                .OrderByDescending(ub => ub.DateEarned) // From latest to oldest
-                .Take(3) // For now Android just display 3 latest badges
-                .Select(ub => new
-                {
-                    BadgeName = ub.Badge.BadgeName,
-                    BadgeImageURL = ub.Badge.BadgeImageURL,
-                    DateEarned = ub.DateEarned
-                })
-                .ToListAsync();
-
-            return Ok(latestBadges);
         }
 
         // Private function (not API) for backend use
@@ -225,44 +215,92 @@ namespace ADproject.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        // Private function (not API) for backend use
-        private async Task<bool> PlantSeed(int userId)
+        // Provide all badges that the user has earned
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [HttpGet("GetLatestBadgesApi")]
+        public async Task<IActionResult> GetLatestBadgesApi()
         {
-            var activeMission = await db.GlobalMissions
-                                    .FirstOrDefaultAsync(m => m.MissionName == "Greenify Sahara");
-            if (activeMission != null)
-            {
-                var initialTree = new Tree
-                {
-                    UserID = userId,
-                    MissionID = activeMission.MissionID,
-                    IsCompleted = false
-                };
+            var username = User.Identity?.Name;
+            var userId = await db.Users
+                .AsNoTracking()
+                .Where(u => u.Username == username)
+                .Select(u => u.UserID)
+                .FirstOrDefaultAsync();
 
-                db.Trees.Add(initialTree);
-                await db.SaveChangesAsync();
-                return true;
-            }
-            return false;
+            if (userId == 0) return Unauthorized();
+
+            var latestBadges = await db.UserBadges
+                .AsNoTracking()
+                .Where(ub => ub.UserID == userId)
+                .OrderByDescending(ub => ub.DateEarned) // From latest to oldest
+                .Select(ub => new
+                {
+                    BadgeName = ub.Badge.BadgeName,
+                    BadgeImageURL = ub.Badge.BadgeImageURL,
+                    DateEarned = ub.DateEarned
+                })
+                .ToListAsync();
+
+            return Ok(latestBadges);
         }
 
-        /*
-        // Private function (not API) for backend use
-        private void UpdateTreeStatus (User user)
+        // Provide all skins that the user has redeemed
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [HttpGet("GetAllSkinsApi")]
+        public async Task<IActionResult> GetAllSkinsApi()
         {
-            if (user.LastLoginDate.HasValue)
-            {
-                var daysAway = (DateTime.UtcNow - user.LastLoginDate.Value).TotalDays;
-                if (daysAway > witheringThreshold)
+            var username = User.Identity?.Name;
+            var userId = await db.Users
+                .AsNoTracking()
+                .Where(u => u.Username == username)
+                .Select(u => u.UserID)
+                .FirstOrDefaultAsync();
+
+            if (userId == 0) return Unauthorized();
+
+            var allSkins = await db.UserSkins
+                .AsNoTracking()
+                .Where(us => us.UserID == userId)
+                .OrderByDescending(us => us.RedemptionDate) // From latest to oldest
+                .Select(us => new
                 {
-                    // Get active tree
-                    var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
-                    if (activeTree != null)
-                        activeTree.IsWithered = true;
-                }
-            }
+                    SkinName = us.Skin.SkinName,
+                    ImageURL = us.Skin.ImageURL,
+                    RedemptionDate = us.RedemptionDate
+                })
+                .ToListAsync();
+
+            return Ok(allSkins);
         }
-        */
+
+        // Provide all vouchers that the user is awarded and can redeem
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [HttpGet("GetAllVouchersApi")]
+        public async Task<IActionResult> GetAllVouchersApi()
+        {
+            var username = User.Identity?.Name;
+            var userId = await db.Users
+                .AsNoTracking()
+                .Where(u => u.Username == username)
+                .Select(u => u.UserID)
+                .FirstOrDefaultAsync();
+
+            if (userId == 0) return Unauthorized();
+
+            var allVouchers = await db.UserVouchers
+                .AsNoTracking()
+                .Where(uv => uv.UserID == userId)
+                .Select(uv => new
+                {
+                    VoucherName = uv.Voucher.VoucherName,
+                    Description = uv.Voucher.Description,
+                    RedemptionCode = uv.RedemptionCode
+                })
+                .ToListAsync();
+
+            return Ok(allVouchers);
+        }
+
 
         /**********************
           For all Web actions
@@ -331,16 +369,49 @@ namespace ADproject.Controllers
                 var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
                 if (result == PasswordVerificationResult.Success)
                 {
+                    user.IsOnline = true; // Set user's online status to true
                     user.LastLoginDate = DateTime.UtcNow; // Update LastLoginDate
                     db.Users.Update(user);
                     await db.SaveChangesAsync();
 
-                    // Store user info in Session
-                    HttpContext.Session.SetString("UserID", user.UserID.ToString());
-                    HttpContext.Session.SetString("Username", user.Username);
+                    if (user.UserRole == "Player")
+                    {
+                        // Store player's info in Session
+                        HttpContext.Session.SetString("UserID", user.UserID.ToString());
+                        HttpContext.Session.SetString("Username", user.Username);
+                        // Redirect to the status page of player
+                        return RedirectToAction("Status", "User");
+                    }
+                    else // Admin who logs in
+                    {
+                        // Added for cookie authentication
+                        var claims = new List<Claim>
+                        {
+                            new Claim(ClaimTypes.Name, user.Username),
+                            new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
+                            new Claim(ClaimTypes.Role, user.UserRole)
+                        };
 
-                    // Redirect to the status page
-                    return RedirectToAction("Status", "User");
+                        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+                        // Sign in to the HttpContext to create the authentication cookie
+                        var authProperties = new AuthenticationProperties
+                        {
+                            IsPersistent = true, // Keep logged in even if browser closes
+                            ExpiresUtc = DateTimeOffset.UtcNow.AddMinutes(30) // Match session timeout period
+                        };
+
+                        await HttpContext.SignInAsync(
+                            CookieAuthenticationDefaults.AuthenticationScheme,
+                            new ClaimsPrincipal(claimsIdentity),
+                            authProperties);
+                        
+                        // Store administrator's info in Session
+                        HttpContext.Session.SetString("AdminID", user.UserID.ToString());
+                        HttpContext.Session.SetString("Username", user.Username);
+                        // Redirect to the admin page
+                        return RedirectToAction("Index", "Admin");
+                    }
                 }
             }
 
@@ -349,10 +420,26 @@ namespace ADproject.Controllers
         }
 
         [HttpGet("/User/Logout")]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
+            var userId = HttpContext.Session.GetString("UserID");
+            
+            if (userId != null)
+            {
+                var user = await db.Users.FindAsync(int.Parse(userId));
+                if (user != null)
+                {
+                    user.IsOnline = false;
+                    await db.SaveChangesAsync();
+                }
+            }
+
+            // Remove authentication cookie
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            // Remove all session data
             HttpContext.Session.Clear();
-            return RedirectToAction("Login");
+
+            return RedirectToAction("Login", "User");
         }
 
         [HttpGet("/User/Status")]
@@ -373,22 +460,10 @@ namespace ADproject.Controllers
             {
                 // Get active tree and update tree status
                 var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
-                if (activeTree != null)
-                {
-                    // Update tree status
-                    if (user.LastLoginDate.HasValue)
-                    {
-                        var daysAway = (DateTime.UtcNow - user.LastLoginDate.Value).TotalDays;
-                        if (daysAway > witheringThreshold)
-                        {
-                            activeTree.IsWithered = true;
-                        }
-                    }
-                }
-
+ 
                 // Get the history of tasks performed by user
                 var history = await db.UserTaskHistory
-                    .Where(h => h.UserID == int.Parse(userId))
+                    .Where(h => h.UserID == int.Parse(userId) && h.Status == "Completed")
                     .Include(h => h.Task)
                     .OrderByDescending(h => h.CompletionDate)
                     .Select(h => new TaskHistoryViewModel
@@ -414,7 +489,6 @@ namespace ADproject.Controllers
                     TaskHistory = history
                 };
 
-                user.LastLoginDate = DateTime.UtcNow; // Update latest LastLoginDate
                 await db.SaveChangesAsync();
 
                 return View(compositeViewModel);
@@ -449,7 +523,8 @@ namespace ADproject.Controllers
                 await db.SaveChangesAsync();
 
                 TempData["Message"] = "Password updated successfully!";
-                return RedirectToAction("Status");
+                if (user.UserRole == "Player") return RedirectToAction("Status", "User");
+                else return RedirectToAction("Index", "Admin");
             }
 
             ModelState.AddModelError("", "Current password is incorrect.");
@@ -561,6 +636,27 @@ namespace ADproject.Controllers
 
             TempData["Message"] = "Thank you for taking care of me! I am so happy now!";
             return RedirectToAction("Status", "User");
+        }
+
+        // Private function (not API) for backend use
+        private async Task<bool> PlantSeed(int userId)
+        {
+            var activeMission = await db.GlobalMissions
+                                    .FirstOrDefaultAsync(m => m.MissionName == "Greenify Sahara");
+            if (activeMission != null)
+            {
+                var initialTree = new Tree
+                {
+                    UserID = userId,
+                    MissionID = activeMission.MissionID,
+                    IsCompleted = false
+                };
+
+                db.Trees.Add(initialTree);
+                await db.SaveChangesAsync();
+                return true;
+            }
+            return false;
         }
     }
 }

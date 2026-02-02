@@ -6,9 +6,9 @@ namespace ADproject.Models.Entities
         [Key]
         public int VoucherID { get; set; }
         [Required, StringLength(50)]
-        public string VoucherName { get; set; }
+        public string? VoucherName { get; set; }
         [Required]
-        public string Description { get; set; }
+        public string? Description { get; set; }
         [Required]
         public int MinRedemptionLevel { get; set; }
     }

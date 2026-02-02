@@ -16,6 +16,6 @@ namespace ADproject.Models.Entities
         public DateTime PlantedAt { get; set; } = DateTime.UtcNow;
         // Navigation Property
         [ForeignKey("MissionID")]
-        public virtual GlobalMission Mission { get; set; }
+        public virtual GlobalMission? Mission { get; set; }
     }
 }

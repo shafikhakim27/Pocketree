@@ -18,8 +18,8 @@ namespace ADproject.Models.Entities
 
         // Navigation Properties
         [ForeignKey("UserID")]
-        public virtual User User { get; set; }
+        public virtual User? User { get; set; }
         [ForeignKey("MissionID")]
-        public virtual GlobalMission GlobalMission { get; set; }
+        public virtual GlobalMission? GlobalMission { get; set; }
     }
 }

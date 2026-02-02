@@ -15,8 +15,8 @@ namespace ADproject.Models.Entities
 
         // Navigation Properties
         [ForeignKey("UserID")]
-        public virtual User User { get; set; }
+        public virtual User? User { get; set; }
         [ForeignKey("BadgeID")]
-        public virtual Badge Badge { get; set; }
+        public virtual Badge? Badge { get; set; }
     }
 }

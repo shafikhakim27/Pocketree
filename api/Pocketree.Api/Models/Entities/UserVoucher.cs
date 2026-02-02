@@ -8,11 +8,14 @@ namespace ADproject.Models.Entities
         public int UserVoucherID { get; set; }
         [ForeignKey("UserID")]
         public int UserID { get; set; }
-        [ForeignKey("VoucherID")]
         public int VoucherID { get; set; }
         [Required, StringLength(20)]
-        public string RedemptionCode { get; set; }
-        public DateTime RedemptionDate { get; set; }
+        public string? RedemptionCode { get; set; }
+        public DateTime? RedemptionDate { get; set; }
         public bool IsRedeemed { get; set; } = false;
+
+        // Navigation Property
+        [ForeignKey("VoucherID")]
+        public virtual Voucher? Voucher { get; set; }
     }
 }

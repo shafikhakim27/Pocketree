@@ -1,0 +1,197 @@
+﻿@{
+    Layout = "_Layout";
+}
+
+<nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold text-success" href="@Url.Action("Index", "Admin")">
+            <i class="bi bi-tree-fill"></i> Pocketree
+        </a>
+
+        <div class="ms-auto">
+            <div class="dropdown">
+                <button class="btn btn-outline-dark dropdown-toggle rounded-pill" type="button" id="accountDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-person-circle"></i> My Account
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="accountDropdown">
+                    <li>
+                        <a class="dropdown-item" href="@Url.Action("ChangePassword", "User")">
+                            <i class="bi bi-shield-lock"></i> Change Password
+                        </a>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <a class="dropdown-item" href="@Url.Action("Logout", "Admin")">
+                            <i class="bi bi-box-arrow-right"></i> Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<div class="container mt-4">
+    <partial name="_Alerts" />
+
+    <div class="row">
+    </div>
+</div>
+
+<div class="container py-5">
+    <h2 class="fw-bold text-success text-center mb-5">Admin Dashboard</h2>
+    <hr />
+    <div class="card mt-4 border-success shadow-sm">
+        <div class="card-header green-gradient-bg text-white fw-bold d-flex justify-content-between">
+            <span>All Users</span>
+            <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="card-body">
+            <table class="table align-middle table-hover" id="allUsersTable" style="table-layout: fixed;">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Username</th>
+                        <th style="width: 45%;">Email/Role</th>
+                        <th style="width: 25%;" class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-4 border-success shadow-sm">
+        <div class="card-header green-gradient-bg text-white fw-bold d-flex justify-content-between">
+            <span>Active Users</span>
+            <span class="badge bg-light text-success" id="activeCount">0 Online</span>
+        </div>
+        <div class="card-body">
+            <table class="table align-middle table-hover" id="activeUsersTable" style="table-layout: fixed;">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Username</th>
+                        <th style="width: 45%;">Last Activity Date</th>
+                        <th style="width: 25%;" class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-4 border-success shadow-sm">
+        <div class="card-header green-gradient-bg text-white fw-bold">Pending Users Queries</div>
+        <div class="card-body">
+            <table class="table align-middle table-hover" id="queriesTable" style="table-layout: fixed;">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Username</th>
+                        <th style="width: 45%;">Query</th>
+                        <th style="width: 25%;" class="text-end">Action</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card mt-4 border-success shadow-sm">
+        <div class="card-header green-gradient-bg text-white fw-bold">Push Notification Message</div>
+        <div class="card-body">
+            <form action="/Admin/BroadcastMessage" method="post">
+                <div class="form-group mb-4">
+                    <textarea name="messageText" class="form-control" rows="3" placeholder="Enter message for all users..." required></textarea>
+                </div>
+                <div class="d-flex justify-content-end mt-1">
+                    <button type="submit" class="btn btn-success">Send Broadcast</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    async function loadData() {
+    try {
+        // Fetch All Users
+        const allRes = await fetch('/api/AdminApi/FetchAllUsers');
+        const allUsers = await allRes.json();
+        const allBody = document.querySelector('#allUsersTable tbody');
+        allBody.innerHTML = allUsers.map(u => `
+            <tr>
+                <td>${u.username}</td>
+                <td class="text-muted">${u.email || 'N/A'}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-outline-danger" onclick="manualReset(${u.userID})">Reset Password</button>
+                </td>
+            </tr>
+        `).join('');
+
+        // Fetch users who are online and allow private message to be sent
+        const activeRes = await fetch('/api/AdminApi/FetchUsersOnline');
+        const activeUsers = await activeRes.json();
+        document.getElementById('activeCount').innerText = `${activeUsers.length} Online`;
+        const activeBody = document.querySelector('#activeUsersTable tbody');
+        activeBody.innerHTML = activeUsers.map(u => `
+            <tr>
+                <td>${u.username}</td>
+                <td>${u.lastActivityDate ? new Date(u.lastActivityDate).toLocaleString() : 'Just now'}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm btn-success" onclick="sendPrivateMsg(${u.userID}, '${u.username}')">
+                        <i class="bi bi-chat-dots"></i> Send Message
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+
+        // Load users who have queries
+        const queryRes = await fetch('/api/AdminApi/FetchUsersQueries');
+        const queries = await queryRes.json();
+        const queryBody = document.querySelector('#queriesTable tbody');
+
+        queryBody.innerHTML = queries.map(q => {
+            // Button disabled and dimmed if supportQuery is empty/null
+            const isDisabled = !q.supportQuery || q.supportQuery.trim() === "";
+            return `
+            <tr>
+                <td>${q.username}</td>
+                <td class="text-muted">${q.supportQuery || 'No pending query'}</td>
+                <td class="text-end">
+                    <button class="btn btn-sm ${isDisabled ? 'btn-secondary opacity-50' : 'btn-success'}"
+                            ${isDisabled ? 'disabled' : ''}
+                            onclick="resolveQuery(${q.userID})">Mark Resolved
+                    </button>
+                </td>
+            </tr>
+        `}).join('');
+
+    } 
+    catch (e) { console.error("Load failed", e); }
+    }
+
+    async function sendPrivateMsg(id, name) {
+        const msg = prompt(`Send private message to ${name}:`);
+        if (msg && msg.trim() !== "") {
+            const res = await fetch(`/api/AdminApi/SendPrivateMessage?userId=${id}&message=${encodeURIComponent(msg)}`, { 
+                method: 'POST' 
+            });
+            if(res.ok) alert("Message sent successfully!");
+        }
+    }
+
+    async function manualReset(id) {
+        if(confirm("Reset user password to 'password'?")) {
+            const response = await fetch('/api/AdminApi/ManualPasswordReset/' + id, { method: 'POST' });
+            if(response.ok) alert("Password reset successful.");
+        }
+    }
+
+    async function resolveQuery(id) {
+        const response = await fetch('/api/AdminApi/ClearUserQueryStatus?userId=' + id, { method: 'POST' });
+        if(response.ok) loadData();
+    }
+
+    document.addEventListener("DOMContentLoaded", loadData);
+
+</script>

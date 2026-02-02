@@ -2,7 +2,7 @@
 {
     public class StatusPageViewModel
     {
-        public UserProfileViewModel UserProfile { get; set; }
-        public List<TaskHistoryViewModel> TaskHistory { get; set; }
+        public UserProfileViewModel? UserProfile { get; set; }
+        public List<TaskHistoryViewModel>? TaskHistory { get; set; }
     }
 }

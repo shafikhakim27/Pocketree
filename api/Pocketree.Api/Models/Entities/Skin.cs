@@ -6,10 +6,10 @@ namespace ADproject.Models.Entities
         [Key]
         public int SkinID { get; set; }
         [Required, StringLength(50)]
-        public string SkinName { get; set; }
+        public string? SkinName { get; set; }
         [Required]
         public int SkinPrice { get; set; }
         [Required, StringLength(255)]
-        public string ImageURL { get; set; }
+        public string? ImageURL { get; set; }
     }
 }
