@@ -58,7 +58,8 @@ class MainActivity : AppCompatActivity() {
                 currentLevelId = intent.getIntExtra("currentLevelId", 1),
                 levelName = intent.getStringExtra("levelName") ?: "Seedling",
                 isWithered = intent.getBooleanExtra("isWithered", false),
-                levelImageUrl = intent.getStringExtra("levelImageUrl")
+                levelImageUrl = intent.getStringExtra("levelImageUrl"),
+                profileImageUrl = intent.getStringExtra("profileImageUrl")
             )
         } else {
             // fallback - in case intent is empty (e.g. app was killed/restored)

@@ -53,12 +53,12 @@ class RedeemAdapter(
             holder.binding.itemName.text = voucher.voucherName
             holder.binding.itemPrice.visibility = View.GONE
             holder.binding.itemStatus.visibility = View.VISIBLE
-            if (!voucher.isUsed) {
-                holder.binding.itemStatus.text = "Usable"
+            if (!voucher.isRedeemed) {
+                holder.binding.itemStatus.text = "Redeem"
                 holder.binding.itemStatus.setTextColor(Color.parseColor("#4CAF50"))
                 holder.binding.root.setOnClickListener { onItemClick(voucher) } // Set the button
             } else {
-                holder.binding.itemStatus.text = "Unusable"
+                holder.binding.itemStatus.text = "Redeemed"
                 holder.binding.itemStatus.setTextColor(Color.RED)
             }
         }

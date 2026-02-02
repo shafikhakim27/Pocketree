@@ -12,6 +12,13 @@
         android:orientation="horizontal"
         android:padding="16dp">
 
+        <ImageView
+            android:id="@+id/profilePic"
+            android:layout_width="64dp"
+            android:layout_height="64dp"
+            android:layout_marginEnd="12dp"
+            android:scaleType="fitCenter" />
+
         <TextView
             android:id="@+id/accountInfo"
             android:layout_width="0dp"
@@ -23,7 +30,7 @@
         <TextView
             android:id="@+id/coinDisplay"
             android:layout_width="wrap_content"
-            android:layout_height="match_parent"
+            android:layout_height="wrap_content"
             android:text="@string/number_of_coins"/>
 
     </LinearLayout>
@@ -64,6 +71,7 @@
         android:id="@+id/badgesHeader"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
         android:padding="16dp"
         android:orientation="vertical"
         android:visibility="gone">

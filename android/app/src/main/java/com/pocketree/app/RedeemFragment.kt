@@ -9,14 +9,8 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.GridLayoutManager
+import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.FragmentRedeemBinding
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONObject
-import java.io.IOException
-import com.pocketree.app.databinding.ItemBadgeBinding
-import com.pocketree.app.databinding.ItemRedeemBinding
 
 class RedeemFragment: Fragment() {
     private var _binding: FragmentRedeemBinding? = null
@@ -57,6 +51,15 @@ class RedeemFragment: Fragment() {
             // update UI using properties of state object
             binding.accountInfo.text = state.username
             binding.coinDisplay.text="${state.totalCoins} coins"
+
+            if (state.profileImageUrl.isNotEmpty()) {
+                Glide.with(requireContext())
+                    .load(state.profileImageUrl)
+                    .circleCrop()
+                    .placeholder(R.drawable.profile_pic)
+                    .error(R.drawable.profile_pic)
+                    .into(binding.profilePic)
+            }
         }
 
         sharedViewModel.redeemSuccessEvent.observe(viewLifecycleOwner) { message ->

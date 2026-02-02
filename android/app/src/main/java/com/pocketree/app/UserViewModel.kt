@@ -26,6 +26,7 @@ data class UserState(
     val currentLevelID: Int = 1,
     val levelName: String = "Seedling",
     val levelImageUrl: String = "",
+    val profileImageUrl: String = "",
     val isWithered: Boolean = false,
 )
 
@@ -34,7 +35,7 @@ class UserViewModel: ViewModel() {
     val userState = MutableLiveData<UserState>()
 
     // UI state livedata
-    val tasks = MutableLiveData<List<Task>>()
+    val tasks = MutableLiveData<List<Task>?>()
     val earnedBadges = MutableLiveData<List<Badge>>()
     val redeemSuccessEvent = MutableLiveData<String?>()
     val equipSuccessEvent = MutableLiveData<String?>() // by Chenyu
@@ -61,6 +62,7 @@ class UserViewModel: ViewModel() {
             currentLevelID = user.currentLevelId ?: 1,
             levelName = user.levelName ?: "Seedling",
             levelImageUrl = user.levelImageUrl ?: "",
+            profileImageUrl = user.profileImageUrl ?: "",
             isWithered = user.isWithered ?: false
         )
         userState.postValue(newState)
@@ -77,7 +79,8 @@ class UserViewModel: ViewModel() {
         currentLevelId: Int,
         levelName: String,
         isWithered: Boolean,
-        levelImageUrl: String?
+        levelImageUrl: String?,
+        profileImageUrl: String?
     ) {
         val newState = UserState(
             username,
@@ -85,6 +88,7 @@ class UserViewModel: ViewModel() {
             currentLevelId,
             levelName,
             levelImageUrl ?: "",
+            profileImageUrl ?:"",
             isWithered
         )
         userState.value = newState // use .value for main thread calls

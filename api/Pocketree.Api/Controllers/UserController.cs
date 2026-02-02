@@ -141,6 +141,7 @@ namespace ADproject.Controllers
                         u.Username,
                         u.TotalCoins,
                         u.CurrentLevelID,
+                        u.ProfileImageURL,
                         LevelName = u.CurrentLevel.LevelName,
                         LevelImageURL = u.CurrentLevel.LevelImageURL,
                         ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted), // Get active tree
@@ -156,6 +157,7 @@ namespace ADproject.Controllers
                 LevelName = userData.LevelName ?? "Seedling",
                 LevelID = userData.CurrentLevelID,
                 LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
+                ProfileImageURL = userData.ProfileImageURL ?? "~/images/default-user.jpg",
                 IsWithered = userData.ActiveTree?.IsWithered ?? false
             };
 
