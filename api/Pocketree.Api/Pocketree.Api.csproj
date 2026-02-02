@@ -9,11 +9,16 @@
     <AnalysisLevel>latest</AnalysisLevel> 
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild> 
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
-    </PropertyGroup>
+      <UserSecretsId>18417a93-a4ef-4164-a7c1-3eebffbc6386</UserSecretsId>
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="Scalar.AspNetCore" Version="2.12.18" />
     <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="9.0.0">
       <PrivateAssets>all</PrivateAssets>
