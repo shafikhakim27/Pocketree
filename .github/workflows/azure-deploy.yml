@@ -1,0 +1,51 @@
+name: Deploy to Azure App Service
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  workflow_dispatch: # Allows manual trigger
+
+env:
+  AZURE_WEBAPP_NAME: pocketree-api
+  DOTNET_VERSION: '9.0.x'
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Restore dependencies
+      run: dotnet restore ./api/Pocketree.Api/Pocketree.Api.csproj
+
+    - name: Build
+      run: dotnet build ./api/Pocketree.Api/Pocketree.Api.csproj --configuration Release --no-restore
+
+    - name: Test
+      run: dotnet test ./api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj --no-restore --verbosity normal
+
+    - name: Publish
+      run: dotnet publish ./api/Pocketree.Api/Pocketree.Api.csproj --configuration Release --output ./publish
+
+    - name: Login to Azure
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+    - name: Deploy to Azure Web App
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: ${{ env.AZURE_WEBAPP_NAME }}
+        package: ./publish
+
+    - name: Notify deployment
+      run: echo "? Deployment to Azure App Service completed successfully!"
