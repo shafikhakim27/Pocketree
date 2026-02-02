@@ -26,7 +26,15 @@ public class LevelProgressionTests
     private TaskController CreateController(MyDbContext context)
     {
         var mockMlService = Mock.Of<IMlService>();
+        
+        // Properly mock the SignalR hub context
+        var mockClients = new Mock<IHubClients>();
+        var mockClientProxy = new Mock<IClientProxy>();
+        mockClients.Setup(clients => clients.Group(It.IsAny<string>())).Returns(mockClientProxy.Object);
+        
         var mockHubContext = new Mock<IHubContext<MapHub>>();
+        mockHubContext.Setup(x => x.Clients).Returns(mockClients.Object);
+        
         var missionService = new MissionService(context, mockHubContext.Object);
         
         var controller = new TaskController(context, mockMlService, missionService);
@@ -106,7 +114,7 @@ public class LevelProgressionTests
         
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var updatedUser = await context.Users.FindAsync(1);
+        var updatedUser = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserID == 1);
         Assert.Equal(300, updatedUser.TotalCoins);
         Assert.Equal(2, updatedUser.CurrentLevelID); // Seedling ? Sapling
     }
@@ -184,7 +192,7 @@ public class LevelProgressionTests
         
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var updatedUser = await context.Users.FindAsync(1);
+        var updatedUser = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserID == 1);
         Assert.Equal(600, updatedUser.TotalCoins);
         Assert.Equal(3, updatedUser.CurrentLevelID); // Sapling ? Mighty Oak
     }
@@ -261,8 +269,8 @@ public class LevelProgressionTests
         
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
-        var updatedUser = await context.Users.FindAsync(1);
-        var updatedTree = await context.Trees.FindAsync(1);
+        var updatedUser = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserID == 1);
+        var updatedTree = await context.Trees.AsNoTracking().FirstOrDefaultAsync(t => t.TreeID == 1);
         
         Assert.Equal(550, updatedUser.TotalCoins);
         Assert.Equal(3, updatedUser.CurrentLevelID);
@@ -331,7 +339,7 @@ public class LevelProgressionTests
         var result = await controller.RecordTaskCompletionApi(1, "Completed", null);
         
         // Assert
-        var updatedUser = await context.Users.FindAsync(1);
+        var updatedUser = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserID == 1);
         Assert.Equal(250, updatedUser.TotalCoins);
         Assert.Equal(2, updatedUser.CurrentLevelID); // Should level up at exactly 250
     }
@@ -397,7 +405,7 @@ public class LevelProgressionTests
         var result = await controller.RecordTaskCompletionApi(1, "Completed", null);
         
         // Assert
-        var updatedUser = await context.Users.FindAsync(1);
+        var updatedUser = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserID == 1);
         Assert.Equal(249, updatedUser.TotalCoins);
         Assert.Equal(1, updatedUser.CurrentLevelID); // Should NOT level up
     }
@@ -463,7 +471,7 @@ public class LevelProgressionTests
         var result = await controller.RecordTaskCompletionApi(1, "Completed", null);
         
         // Assert
-        var updatedUser = await context.Users.FindAsync(1);
+        var updatedUser = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserID == 1);
         Assert.Equal(800, updatedUser.TotalCoins);
         Assert.Equal(3, updatedUser.CurrentLevelID); // Stays at 3
     }
@@ -474,6 +482,9 @@ public class LevelProgressionTests
         // Arrange
         var options = CreateDbOptions("Level_MultipleToLevel3");
         using var context = new MyDbContext(options);
+        
+        // Use a fixed date to avoid timing issues
+        var testDate = DateTime.UtcNow.Date;
         
         var mission = new GlobalMission
         {
@@ -493,7 +504,7 @@ public class LevelProgressionTests
             PasswordHash = "hash",
             TotalCoins = 0,
             CurrentLevelID = 1,
-            UncompletedTaskCount = 3,
+            UncompletedTaskCount = 2, // Only need 2 tasks for this test
             LastLoginDate = DateTime.UtcNow,
             LastActivityDate = DateTime.UtcNow
         };
@@ -509,47 +520,81 @@ public class LevelProgressionTests
             IsCompleted = false
         };
         context.Trees.Add(tree);
-        await context.SaveChangesAsync();
         
-        // Complete 5 hard tasks (5 * 300 = 1500 coins, well past level 3)
-        for (int i = 1; i <= 5; i++)
+        // Task 1 - Changed from "Hard" to "Normal" to avoid photo requirement
+        var task1 = new ADproject.Models.Entities.Task
         {
-            var task = new ADproject.Models.Entities.Task
-            {
-                TaskID = i,
-                Description = $"Task {i}",
-                Difficulty = "Hard",
-                CoinReward = 300,
-                RequiresEvidence = false,
-                Keyword = "test",
-                Category = "Testing"
-            };
-            
-            var taskHistory = new UserTaskHistory
-            {
-                HistoryID = i,
-                UserID = 1,
-                TaskID = i,
-                Status = "Assigned",
-                CompletionDate = DateTime.UtcNow.Date
-            };
-            
-            context.Tasks.Add(task);
-            context.UserTaskHistory.Add(taskHistory);
-        }
+            TaskID = 1,
+            Description = "Task 1",
+            Difficulty = "Normal",
+            CoinReward = 300,
+            RequiresEvidence = false,
+            Keyword = "test",
+            Category = "Testing"
+        };
+        
+        var taskHistory1 = new UserTaskHistory
+        {
+            HistoryID = 1,
+            UserID = 1,
+            TaskID = 1,
+            Status = "Assigned",
+            CompletionDate = testDate
+        };
+        
+        context.Tasks.Add(task1);
+        context.UserTaskHistory.Add(taskHistory1);
+        
+        // Task 2 - Changed from "Hard" to "Normal" to avoid photo requirement
+        var task2 = new ADproject.Models.Entities.Task
+        {
+            TaskID = 2,
+            Description = "Task 2",
+            Difficulty = "Normal",
+            CoinReward = 300,
+            RequiresEvidence = false,
+            Keyword = "test",
+            Category = "Testing"
+        };
+        
+        var taskHistory2 = new UserTaskHistory
+        {
+            HistoryID = 2,
+            UserID = 1,
+            TaskID = 2,
+            Status = "Assigned",
+            CompletionDate = testDate
+        };
+        
+        context.Tasks.Add(task2);
+        context.UserTaskHistory.Add(taskHistory2);
+        
+        // Save everything in one call
         await context.SaveChangesAsync();
         
         var controller = CreateController(context);
         
         // Act - Complete first task
-        await controller.RecordTaskCompletionApi(1, "Completed", null);
-        var userAfterTask1 = await context.Users.FindAsync(1);
+        var result1 = await controller.RecordTaskCompletionApi(1, "Completed", null);
+        
+        // Verify the result indicates success
+        var okResult1 = Assert.IsType<OkObjectResult>(result1);
+        
+        // Clear the change tracker to force fresh query
+        context.ChangeTracker.Clear();
+        
+        var userAfterTask1 = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserID == 1);
         Assert.Equal(300, userAfterTask1.TotalCoins);
         Assert.Equal(2, userAfterTask1.CurrentLevelID); // Level 2
         
         // Complete second task
-        await controller.RecordTaskCompletionApi(2, "Completed", null);
-        var userAfterTask2 = await context.Users.FindAsync(1);
+        var result2 = await controller.RecordTaskCompletionApi(2, "Completed", null);
+        var okResult2 = Assert.IsType<OkObjectResult>(result2);
+        
+        // Clear the change tracker again
+        context.ChangeTracker.Clear();
+        
+        var userAfterTask2 = await context.Users.AsNoTracking().FirstOrDefaultAsync(u => u.UserID == 1);
         Assert.Equal(600, userAfterTask2.TotalCoins);
         Assert.Equal(3, userAfterTask2.CurrentLevelID); // Level 3!
     }

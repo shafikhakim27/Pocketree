@@ -21,6 +21,34 @@ public class AuthenticationTests
             .Options;
     }
 
+    private async System.Threading.Tasks.Task SeedRequiredData(MyDbContext context)
+    {
+        // Add Levels (required for user registration and login)
+        if (!context.Levels.Any())
+        {
+            context.Levels.AddRange(
+                new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" },
+                new Level { LevelID = 2, LevelName = "Sapling", MinCoins = 250, LevelImageURL = "/images/levels/sapling.png" },
+                new Level { LevelID = 3, LevelName = "Mighty Oak", MinCoins = 500, LevelImageURL = "/images/levels/oak.png" }
+            );
+        }
+
+        // Add GlobalMission (required for tree planting)
+        if (!context.GlobalMissions.Any())
+        {
+            context.GlobalMissions.Add(new GlobalMission
+            {
+                MissionID = 1,
+                MissionName = "Greenify Sahara",
+                TotalRequiredTrees = 1000,
+                CurrentTreeCount = 0,
+                PlantingFrequency = 1
+            });
+        }
+
+        await context.SaveChangesAsync();
+    }
+
     private UserController CreateController(MyDbContext context, IPasswordHasher<User> hasher = null)
     {
         var mockHasher = hasher ?? Mock.Of<IPasswordHasher<User>>();
@@ -51,6 +79,7 @@ public class AuthenticationTests
         // Arrange
         var options = CreateDbOptions("Register_NewUser");
         using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
         
         var mockHasher = new Mock<IPasswordHasher<User>>();
         mockHasher.Setup(h => h.HashPassword(It.IsAny<User>(), It.IsAny<string>()))
@@ -85,6 +114,7 @@ public class AuthenticationTests
         // Arrange
         var options = CreateDbOptions("Register_Duplicate");
         using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
         
         var existingUser = new User
         {
@@ -122,6 +152,7 @@ public class AuthenticationTests
         // Arrange
         var options = CreateDbOptions("Login_Valid");
         using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
         
         var mockHasher = new Mock<IPasswordHasher<User>>();
         var user = new User
@@ -163,6 +194,7 @@ public class AuthenticationTests
         // Arrange
         var options = CreateDbOptions("Login_InvalidUser");
         using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
         
         var controller = CreateController(context);
         
@@ -185,6 +217,7 @@ public class AuthenticationTests
         // Arrange
         var options = CreateDbOptions("Login_InvalidPassword");
         using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
         
         var mockHasher = new Mock<IPasswordHasher<User>>();
         var user = new User
@@ -224,6 +257,7 @@ public class AuthenticationTests
         // Arrange
         var options = CreateDbOptions("ChangePassword_Valid");
         using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
         
         var mockHasher = new Mock<IPasswordHasher<User>>();
         var user = new User
@@ -269,22 +303,11 @@ public class AuthenticationTests
         // Arrange
         var options = CreateDbOptions("Register_CreatesTree");
         using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
         
         var mockHasher = new Mock<IPasswordHasher<User>>();
         mockHasher.Setup(h => h.HashPassword(It.IsAny<User>(), It.IsAny<string>()))
                   .Returns("hashed_password");
-        
-        // Add GlobalMission for tree creation
-        var mission = new GlobalMission
-        {
-            MissionID = 1,
-            MissionName = "Greenify Sahara",
-            TotalRequiredTrees = 1000,
-            CurrentTreeCount = 0,
-            PlantingFrequency = 1
-        };
-        context.GlobalMissions.Add(mission);
-        await context.SaveChangesAsync();
         
         var controller = CreateController(context, mockHasher.Object);
         
@@ -315,6 +338,7 @@ public class AuthenticationTests
         // Arrange
         var options = CreateDbOptions("Login_UpdatesDate");
         using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
         
         var oldLoginDate = DateTime.UtcNow.AddDays(-5);
         var mockHasher = new Mock<IPasswordHasher<User>>();
