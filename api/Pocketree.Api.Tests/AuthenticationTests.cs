@@ -122,9 +122,11 @@ public class AuthenticationTests
             Username = "existinguser",
             Email = "existing@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 0,
             CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         context.Users.Add(existingUser);
         await context.SaveChangesAsync();
@@ -161,9 +163,11 @@ public class AuthenticationTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hashed_password",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100,
             CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         context.Users.Add(user);
         await context.SaveChangesAsync();
@@ -226,9 +230,11 @@ public class AuthenticationTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hashed_password",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100,
             CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         context.Users.Add(user);
         await context.SaveChangesAsync();
@@ -266,9 +272,11 @@ public class AuthenticationTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "old_hashed_password",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100,
             CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         context.Users.Add(user);
         await context.SaveChangesAsync();
@@ -348,9 +356,11 @@ public class AuthenticationTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hashed_password",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100,
             CurrentLevelID = 1,
-            LastLoginDate = oldLoginDate
+            LastLoginDate = oldLoginDate,
+            LastActivityDate = oldLoginDate
         };
         context.Users.Add(user);
         await context.SaveChangesAsync();

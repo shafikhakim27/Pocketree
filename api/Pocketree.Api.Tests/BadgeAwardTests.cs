@@ -40,9 +40,11 @@ public class BadgeAwardTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 250,
             CurrentLevelID = 2,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         context.Users.Add(user);
         await context.SaveChangesAsync();
@@ -84,9 +86,11 @@ public class BadgeAwardTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 500,
             CurrentLevelID = 2,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         context.Users.Add(user);
         
@@ -154,9 +158,11 @@ public class BadgeAwardTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100,
             CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         context.Users.Add(user);
         
@@ -211,9 +217,11 @@ public class BadgeAwardTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 500,
             CurrentLevelID = 3,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         context.Users.Add(user);
         await context.SaveChangesAsync();
@@ -254,9 +262,11 @@ public class BadgeAwardTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 3000,
             CurrentLevelID = 3,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         context.Users.Add(user);
         

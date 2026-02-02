@@ -48,6 +48,7 @@ namespace ADproject.Controllers
 
             // Generate hash
             newUser.PasswordHash = passwordHasher.HashPassword(newUser, dto.Password);
+            newUser.ProfileImageURL = "/images/default-user.jpg";
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
             newUser.LastLoginDate = DateTime.UtcNow;
@@ -295,6 +296,7 @@ namespace ADproject.Controllers
 
             // Generate hash
             newUser.PasswordHash = passwordHasher.HashPassword(newUser, dto.Password);
+            newUser.ProfileImageURL = "/images/default-user.jpg";
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
             newUser.LastLoginDate = DateTime.UtcNow;

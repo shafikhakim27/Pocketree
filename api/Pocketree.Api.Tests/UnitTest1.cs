@@ -43,9 +43,11 @@ public class DbContextTests
                 Username = "testuser",
                 Email = "test@example.com",
                 PasswordHash = "hashedpassword",
+                ProfileImageURL = "/images/default-user.jpg",
                 TotalCoins = 100,
                 CurrentLevelID = 1,
-                LastLoginDate = DateTime.UtcNow
+                LastLoginDate = DateTime.UtcNow,
+                LastActivityDate = DateTime.UtcNow
             };
 
             context.Users.Add(user);

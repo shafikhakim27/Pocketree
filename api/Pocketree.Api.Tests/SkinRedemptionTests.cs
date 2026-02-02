@@ -57,9 +57,11 @@ public class SkinRedemptionTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 500,
             CurrentLevelID = 2,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         
         var skin = new Skin
@@ -102,9 +104,11 @@ public class SkinRedemptionTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100, // Not enough for 300-coin skin
             CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         
         var skin = new Skin
@@ -142,9 +146,11 @@ public class SkinRedemptionTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 500,
             CurrentLevelID = 2,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         
         context.Users.Add(user);
@@ -173,9 +179,11 @@ public class SkinRedemptionTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 500,
             CurrentLevelID = 2,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         
         var skin = new Skin
@@ -224,9 +232,11 @@ public class SkinRedemptionTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 500,
             CurrentLevelID = 2,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         
         var skin = new Skin
@@ -264,9 +274,11 @@ public class SkinRedemptionTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 300, // Exactly the skin price
             CurrentLevelID = 2,
-            LastLoginDate = DateTime.UtcNow
+            LastLoginDate = DateTime.UtcNow,
+            LastActivityDate = DateTime.UtcNow
         };
         
         var skin = new Skin

@@ -32,6 +32,7 @@ public class TreeWitheringTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100,
             CurrentLevelID = 1,
             LastActivityDate = DateTime.UtcNow.AddDays(-4), // 4 days ago (> 3 day threshold)
@@ -82,6 +83,7 @@ public class TreeWitheringTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100,
             CurrentLevelID = 1,
             LastActivityDate = DateTime.UtcNow.AddDays(-2), // Only 2 days (< 3 day threshold)
@@ -122,6 +124,7 @@ public class TreeWitheringTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 500,
             CurrentLevelID = 3,
             LastActivityDate = DateTime.UtcNow.AddDays(-10), // 10 days inactive
@@ -164,6 +167,7 @@ public class TreeWitheringTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100,
             CurrentLevelID = 1,
             LastActivityDate = DateTime.UtcNow.AddDays(-5),
@@ -209,6 +213,7 @@ public class TreeWitheringTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 800,
             CurrentLevelID = 3,
             LastActivityDate = DateTime.UtcNow.AddDays(-5),
@@ -276,6 +281,7 @@ public class TreeWitheringTests
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
+            ProfileImageURL = "/images/default-user.jpg",
             TotalCoins = 100,
             CurrentLevelID = 1,
             LastActivityDate = DateTime.UtcNow.AddDays(-3), // Exactly 3 days
