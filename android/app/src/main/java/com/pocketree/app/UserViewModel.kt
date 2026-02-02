@@ -33,13 +33,15 @@ data class UserState(
 class UserViewModel: ViewModel() {
 
     val userState = MutableLiveData<UserState>()
+    val skins = MutableLiveData<List<Skin>>()  // by Chenyu
+    val vouchers = MutableLiveData<List<Voucher>>()  // by Chenyu
 
     // UI state livedata
     val tasks = MutableLiveData<List<Task>?>()
     val earnedBadges = MutableLiveData<List<Badge>>()
-    val redeemSuccessEvent = MutableLiveData<String?>()
-    val equipSuccessEvent = MutableLiveData<String?>() // by Chenyu
-    val redeemVoucherEvent = MutableLiveData<String?>() // by Chenyu
+    val redeemSkinSuccessEvent = MutableLiveData<String?>()  // by Chenyu
+    val equipSkinSuccessEvent = MutableLiveData<String?>() // by Chenyu
+    val redeemVoucherSuccessEvent = MutableLiveData<String?>() // by Chenyu
 
     // event livedata
     val levelUpEvent = MutableLiveData<Boolean>()
@@ -320,6 +322,37 @@ class UserViewModel: ViewModel() {
         })
     }
 
+
+    fun fetchSkins() {
+        val request = Request.Builder()
+            .url("$taskBaseUrl/GetSkinsApi") // TODO
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                val body = response.body?.string()
+                if (response.isSuccessful && !body.isNullOrEmpty()) {
+                    try {
+                        val listType = object : TypeToken<List<Skin>>() {}.type
+                        val fetchedList: List<Skin> = gson.fromJson(body, listType)
+                        skins.postValue(fetchedList)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        errorMessage.postValue("Error parsing skins")
+                    }
+                } else {
+                    errorMessage.postValue("Failed to load skins")
+                }
+            }
+
+            override fun onFailure(call: Call, e: IOException) {
+                errorMessage.postValue("Network error fetching skins")
+            }
+        })
+    }
+
+
     // check back again
     fun redeemSkin(skinId:Int) {
         val json = JSONObject().apply {
@@ -327,7 +360,6 @@ class UserViewModel: ViewModel() {
         }
 
         val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
-
 
         val request = Request.Builder()
             .url("$taskBaseUrl/RedeemSkinApi")
@@ -346,7 +378,7 @@ class UserViewModel: ViewModel() {
                     val currentState = userState.value ?: UserState()
                     userState.postValue(currentState.copy(totalCoins=newBalance))
 
-                    redeemSuccessEvent.postValue("Skin redeemed successfully!")
+                    redeemSkinSuccessEvent.postValue("Skin redeemed successfully!")
                 } else {
                     errorMessage.postValue("Insufficient coins or server error.")
                 }
@@ -357,7 +389,7 @@ class UserViewModel: ViewModel() {
         })
     }
 
-    // by Chenyu
+
     fun equipSkin(skinId: Int) {
         val json = JSONObject().apply {
             put("SkinID", skinId)
@@ -373,7 +405,7 @@ class UserViewModel: ViewModel() {
         client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-                    equipSuccessEvent.postValue("Skin equipped successfully!")
+                    equipSkinSuccessEvent.postValue("Skin equipped successfully!")
                 } else {
                     errorMessage.postValue("Failed to equip skin.")
                 }
@@ -386,7 +418,32 @@ class UserViewModel: ViewModel() {
     }
 
 
-    // by Chenyu
+    fun fetchVouchers() {
+        val request = Request.Builder()
+            .url("$taskBaseUrl/GetVouchersApi") // TODO
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onResponse(call: Call, response: Response) {
+                val body = response.body?.string()
+                if (response.isSuccessful && !body.isNullOrEmpty()) {
+                    try {
+                        val listType = object : TypeToken<List<Voucher>>() {}.type
+                        val fetchedList: List<Voucher> = gson.fromJson(body, listType)
+                        vouchers.postValue(fetchedList)
+                    } catch (e: Exception) {
+                        errorMessage.postValue("Error parsing vouchers")
+                    }
+                }
+            }
+            override fun onFailure(call: Call, e: IOException) {
+                errorMessage.postValue("Network error fetching vouchers")
+            }
+        })
+    }
+
+
     fun redeemVoucher(voucherId: Int) {
         val json = JSONObject().apply {
             put("VoucherID", voucherId)
@@ -402,7 +459,7 @@ class UserViewModel: ViewModel() {
         client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
                 if (response.isSuccessful) {
-                    redeemVoucherEvent.postValue("Voucher used successfully!")
+                    redeemVoucherSuccessEvent.postValue("Voucher used successfully!")
                 } else {
                     errorMessage.postValue("Failed to use voucher.")
                 }
