@@ -69,6 +69,12 @@ services:
       - BACKEND_API_URL=http://pocketree-api:8080
     networks:
       - pocketree-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   db_data:

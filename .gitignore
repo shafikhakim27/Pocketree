@@ -497,3 +497,6 @@ build/
 
 *.keystore
 
+# Ignore configuration files
+appsettings.json
+appsettings.*.json

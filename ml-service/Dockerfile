@@ -1,5 +1,5 @@
 # 1. Base Image
-FROM python:3.10-slim
+FROM python:3.11-slim
 
 # 2. Set Environment Variables
 # Prevents Python from writing pyc files and buffering stdout/stderr
@@ -28,5 +28,4 @@ COPY ml-service/ .
 EXPOSE 5000
 
 # 7. Start the application
-# Using uvicorn with the app instance inside app_donotdelete.py
-CMD ["sh", "-c", "uvicorn app_donotdelete:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]

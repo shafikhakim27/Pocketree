@@ -8,6 +8,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.FragmentHomeBinding
 
 class HomeFragment: Fragment() {
@@ -40,15 +41,6 @@ class HomeFragment: Fragment() {
         observeViewModel()
     }
 
-    // kiv for now - insertion of plant images
-    // viewModel.levelImageURL.observe(this) { url ->
-    //    // Use a library like Glide or Picasso to load the image from the URL
-    //    // Note: Since your API returns "~/images/...", you may need to
-    //    // clean the URL to match your server's public address.
-    //    val fullUrl = url.replace("~/", baseUrl + "/")
-    //    Glide.with(this).load(fullUrl).into(binding.plantImageView)
-    //}
-
     fun observeViewModel() {
         // observe consolidated state object
         sharedViewModel.userState.observe(viewLifecycleOwner) { state ->
@@ -57,14 +49,40 @@ class HomeFragment: Fragment() {
 
             binding.levelDisplay.text = "Current Stage: ${state.levelName}"
 
-            // KIV!!!!
-            // update plant image
-            if (state.levelImageUrl.isNotEmpty()) {
-                // val fullUrl = state.levelImageUrl.replace("~/", baseUrl + "/")
-                // Glide.with(this).load(fullUrl).into(binding.plant)
+            if (state.profileImageUrl.isNotEmpty()) {
+                Glide.with(requireContext())
+                    .load(state.profileImageUrl)
+                    .circleCrop() // to make image round
+                    .placeholder(R.drawable.profile_pic)
+                    .error(R.drawable.profile_pic)
+                    .into(binding.profilePic)
             }
 
+            // KIV!!!! haoting you can consider these 2 codes, if they help
+            // update plant image
+            //if (state.levelImageUrl.isNotEmpty()) {
+                // val fullUrl = state.levelImageUrl.replace("~/", baseUrl + "/")
+                // Glide.with(this).load(fullUrl).into(binding.plant)
+            //}
+
+            // OR THIS:
+            // viewModel.levelImageURL.observe(this) { url ->
+            //    // Use a library like Glide or Picasso to load the image from the URL
+            //    // Note: Since your API returns "~/images/...", you may need to
+            //    // clean the URL to match your server's public address.
+            //    val fullUrl = url.replace("~/", baseUrl + "/")
+            //    Glide.with(this).load(fullUrl).into(binding.plantImageView)
+            //}
+
             handleWithering(state.isWithered)
+
+            // kiv use this for withering logic (if need to change)
+//            if (state.isWithered) {
+//                Glide.with(this)
+//                    .load(state.levelImageUrl)
+//                    .grayscale() // Optional: some versions of Glide or transformations allow this
+//                    .into(plantView)
+//            }
 
             sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
                 if (!badges.isNullOrEmpty()) {

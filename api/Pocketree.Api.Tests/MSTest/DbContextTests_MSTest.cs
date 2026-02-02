@@ -1,47 +1,48 @@
-﻿using ADproject.Models.Entities;
+using ADproject.Models.Entities;
 using ADproject.Services;
 using Microsoft.EntityFrameworkCore;
+using Assert = Microsoft.VisualStudio.TestTools.UnitTesting.Assert;
+using TestClass = Microsoft.VisualStudio.TestTools.UnitTesting.TestClassAttribute;
+using TestMethod = Microsoft.VisualStudio.TestTools.UnitTesting.TestMethodAttribute;
+using DataTestMethod = Microsoft.VisualStudio.TestTools.UnitTesting.DataTestMethodAttribute;
+using DataRow = Microsoft.VisualStudio.TestTools.UnitTesting.DataRowAttribute;
 
-namespace Pocketree.Api.Tests;
+namespace Pocketree.Api.Tests.MSTestFramework;
 
-public class DbContextTests
+[TestClass]
+public class DbContextTests_MSTest
 {
-    [Fact]
+    [TestMethod]
     public void DbContext_ShouldInitialize_WithInMemoryDatabase()
     {
-        // Arrange
         var options = new DbContextOptionsBuilder<MyDbContext>()
-            .UseInMemoryDatabase(databaseName: "TestDb")
+            .UseInMemoryDatabase(databaseName: "TestDb_MSTest")
             .UseLazyLoadingProxies()
             .Options;
 
-        // Act
         using var context = new MyDbContext(options);
 
-        // Assert
-        Assert.NotNull(context);
-        Assert.NotNull(context.Users);
-        Assert.NotNull(context.Tasks);
-        Assert.NotNull(context.Levels);
+        Assert.IsNotNull(context);
+        Assert.IsNotNull(context.Users);
+        Assert.IsNotNull(context.Tasks);
+        Assert.IsNotNull(context.Levels);
     }
 
-    [Fact]
+    [TestMethod]
     public async System.Threading.Tasks.Task DbContext_CanAddAndRetrieve_User()
     {
-        // Arrange
         var options = new DbContextOptionsBuilder<MyDbContext>()
-            .UseInMemoryDatabase(databaseName: "TestDb_AddUser")
+            .UseInMemoryDatabase(databaseName: "TestDb_MSTest_AddUser")
             .UseLazyLoadingProxies()
             .Options;
 
-        // Act
         using (var context = new MyDbContext(options))
         {
             var user = new User
             {
                 UserID = 1,
-                Username = "testuser",
-                Email = "test@example.com",
+                Username = "testuser_mstest",
+                Email = "test@mstest.com",
                 PasswordHash = "hashedpassword",
                 ProfileImageURL = "/images/default-user.jpg",
                 TotalCoins = 100,
@@ -54,37 +55,34 @@ public class DbContextTests
             await context.SaveChangesAsync();
         }
 
-        // Assert
         using (var context = new MyDbContext(options))
         {
-            var user = await context.Users.FirstOrDefaultAsync(u => u.Username == "testuser");
-            Assert.NotNull(user);
-            Assert.Equal("testuser", user.Username);
-            Assert.Equal("test@example.com", user.Email);
-            Assert.Equal(100, user.TotalCoins);
+            var user = await context.Users.FirstOrDefaultAsync(u => u.Username == "testuser_mstest");
+            Assert.IsNotNull(user);
+            Assert.AreEqual("testuser_mstest", user.Username);
+            Assert.AreEqual("test@mstest.com", user.Email);
+            Assert.AreEqual(100, user.TotalCoins);
         }
     }
 
-    [Fact]
+    [TestMethod]
     public async System.Threading.Tasks.Task DbContext_CanAddAndRetrieve_Task()
     {
-        // Arrange
         var options = new DbContextOptionsBuilder<MyDbContext>()
-            .UseInMemoryDatabase(databaseName: "TestDb_AddTask")
+            .UseInMemoryDatabase(databaseName: "TestDb_MSTest_AddTask")
             .UseLazyLoadingProxies()
             .Options;
 
-        // Act
         using (var context = new MyDbContext(options))
         {
             var task = new ADproject.Models.Entities.Task
             {
                 TaskID = 1,
-                Description = "Test task",
+                Description = "MSTest task",
                 Difficulty = "Easy",
                 CoinReward = 50,
                 RequiresEvidence = false,
-                Keyword = "test",
+                Keyword = "mstest",
                 Category = "Testing"
             };
 
@@ -92,63 +90,55 @@ public class DbContextTests
             await context.SaveChangesAsync();
         }
 
-        // Assert
         using (var context = new MyDbContext(options))
         {
             var task = await context.Tasks.FirstOrDefaultAsync(t => t.TaskID == 1);
-            Assert.NotNull(task);
-            Assert.Equal("Test task", task.Description);
-            Assert.Equal("Easy", task.Difficulty);
-            Assert.Equal(50, task.CoinReward);
-            Assert.Equal("Testing", task.Category);
+            Assert.IsNotNull(task);
+            Assert.AreEqual("MSTest task", task.Description);
+            Assert.AreEqual("Easy", task.Difficulty);
+            Assert.AreEqual(50, task.CoinReward);
+            Assert.AreEqual("Testing", task.Category);
         }
     }
 }
 
-public class MissionServiceTests
+[TestClass]
+public class MissionServiceTests_MSTest
 {
-    [Fact]
+    [TestMethod]
     public void MissionService_LocationSlots_ShouldHave50Locations()
     {
-        // Arrange & Act
         var locationCount = MissionService.locSlots.Count;
-
-        // Assert
-        Assert.Equal(50, locationCount);
+        Assert.AreEqual(50, locationCount);
     }
 
-    [Fact]
+    [TestMethod]
     public void MissionService_LocationSlots_ShouldHaveValidCoordinates()
     {
-        // Arrange & Act
         var invalidLocations = MissionService.locSlots
             .Where(loc => loc.X < 0 || loc.X > 100 || loc.Y < 0 || loc.Y > 100)
             .ToList();
 
-        // Assert
-        Assert.Empty(invalidLocations);
+        Assert.AreEqual(0, invalidLocations.Count, "All coordinates should be within 0-100 range");
     }
 
-    [Fact]
+    [TestMethod]
     public void MissionService_LocationSlots_ShouldHaveUniqueCoordinates()
     {
-        // Arrange & Act
         var uniqueLocations = MissionService.locSlots.Distinct().Count();
-
-        // Assert
-        Assert.Equal(50, uniqueLocations);
+        Assert.AreEqual(50, uniqueLocations);
     }
 }
 
-public class EntityValidationTests
+[TestClass]
+public class EntityValidationTests_MSTest
 {
-    [Theory]
-    [InlineData("Easy", 100)]
-    [InlineData("Normal", 200)]
-    [InlineData("Hard", 300)]
+    [DataTestMethod]
+    [DataRow("Easy", 100)]
+    [DataRow("Normal", 200)]
+    [DataRow("Hard", 300)]
     public void Task_CoinReward_ShouldMatchDifficulty(string difficulty, int expectedCoins)
     {
-        // Arrange
         var task = new ADproject.Models.Entities.Task
         {
             TaskID = 1,
@@ -160,15 +150,13 @@ public class EntityValidationTests
             Category = "Testing"
         };
 
-        // Act & Assert
-        Assert.Equal(expectedCoins, task.CoinReward);
-        Assert.Equal(difficulty, task.Difficulty);
+        Assert.AreEqual(expectedCoins, task.CoinReward);
+        Assert.AreEqual(difficulty, task.Difficulty);
     }
 
-    [Fact]
+    [TestMethod]
     public void Level_Progression_ShouldHaveIncreasingMinCoins()
     {
-        // Arrange
         var levels = new List<Level>
         {
             new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0 },
@@ -176,19 +164,16 @@ public class EntityValidationTests
             new Level { LevelID = 3, LevelName = "Mighty Oak", MinCoins = 500 }
         };
 
-        // Act
         var isAscending = levels
             .Zip(levels.Skip(1), (a, b) => a.MinCoins < b.MinCoins)
             .All(x => x);
 
-        // Assert
-        Assert.True(isAscending);
+        Assert.IsTrue(isAscending);
     }
 
-    [Fact]
+    [TestMethod]
     public void User_DefaultValues_ShouldBeValid()
     {
-        // Arrange & Act
         var user = new User
         {
             UserID = 1,
@@ -200,10 +185,9 @@ public class EntityValidationTests
             LastLoginDate = DateTime.UtcNow
         };
 
-        // Assert
-        Assert.Equal(0, user.TotalCoins);
-        Assert.Equal(1, user.CurrentLevelID);
-        Assert.NotNull(user.Username);
-        Assert.NotNull(user.Email);
+        Assert.AreEqual(0, user.TotalCoins);
+        Assert.AreEqual(1, user.CurrentLevelID);
+        Assert.IsNotNull(user.Username);
+        Assert.IsNotNull(user.Email);
     }
 }
