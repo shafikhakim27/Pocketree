@@ -3,9 +3,14 @@
 ![API Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/api.yml/badge.svg)
 ![ML Ops Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/ml-service.yml/badge.svg)
 ![Android Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/android.yml/badge.svg)
+![Azure API Deployment](https://github.com/shafikhakim27/Pocketree/actions/workflows/azure-deploy.yml/badge.svg)
+
+**Azure Deployment Status:**
+- 🌐 **API**: [![Deploy to Azure](https://img.shields.io/badge/Azure-Deployed-blue?logo=microsoft-azure)](https://pocketree-api.azurewebsites.net)
+- 🧠 **ML Service**: [![Deploy to Azure](https://img.shields.io/badge/Azure-Deployed-blue?logo=microsoft-azure)](https://pocketree-ml-service.azurewebsites.net)
 
 Welcome to **Pocketree**, a full-stack sustainability application designed to track and encourage eco-friendly habits.
-This repository operates as a **Monorepo**, containing the Backend API, Android Mobile App, Python ML Service, and the necessary DevOps infrastructure, orchestrating the Mobile App, Backend API, and Machine Learning components.
+This repository operates as a **Monorepo**, containing the Backend API with Machine Learning components, packaged into an Android Mobile App.
 
 ## 🏗️ Architecture & Tech Stack
 
