@@ -204,6 +204,7 @@ namespace ADproject.Controllers
                         user.UncompletedTaskCount -= 1;
                         // Check and update level, coins and badges
                         levelUp = await UpdateLevelAndCoins(user, task);
+                        await CheckAndAwardBadges(user);
                     }
                     
                     // Update tree status
