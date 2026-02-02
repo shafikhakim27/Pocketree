@@ -179,7 +179,7 @@ namespace ADproject.Controllers
                 .AsNoTracking()
                 .Where(ub => ub.UserID == userId)
                 .OrderByDescending(ub => ub.DateEarned) // From latest to oldest
-                .Take(3) // For now Android just display 3 latest badges
+                                                        //.Take(3)  For now Android just display 3 latest badges
                 .Select(ub => new
                 {
                     BadgeName = ub.Badge.BadgeName,
