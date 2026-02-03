@@ -46,8 +46,8 @@
         android:id="@+id/status_warning"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="warning message here"
-        android:textColor="#FF0000"
+        android:text="@string/warning_message"
+        android:textColor="#F86262"
         android:gravity="center"
         android:visibility="gone"
         android:textSize="18sp"/>

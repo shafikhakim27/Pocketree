@@ -53,7 +53,6 @@ class HomeFragment: Fragment() {
                 .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                 .circleCrop() // to make image round
                 .placeholder(R.drawable.profile_pic)
-                .error(R.drawable.profile_pic)
                 .into(binding.profilePic)
 
             // KIV!!!! haoting you can consider these 2 codes, if they help
@@ -81,12 +80,12 @@ class HomeFragment: Fragment() {
 //                    .grayscale() // Optional: some versions of Glide or transformations allow this
 //                    .into(plantView)
 //            }
+        }
 
-            sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
-                if (!badges.isNullOrEmpty()) {
-                    binding.badgesHeader.visibility = View.VISIBLE
-                    binding.recyclerViewBadges.adapter = BadgeAdapter(badges)
-                }
+        sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
+            if (!badges.isNullOrEmpty()) {
+                binding.badgesHeader.visibility = View.VISIBLE
+                binding.recyclerViewBadges.adapter = BadgeAdapter(badges)
             }
         }
     }
@@ -102,7 +101,7 @@ class HomeFragment: Fragment() {
                 .show()
         }
         if (withered) {
-            binding.statusWarning.text = "Your plant has withered. Complete a task to revive it!"
+            binding.statusWarning.text = "Your plant has withered.\nComplete a task to revive it!"
             binding.statusWarning.visibility = View.VISIBLE
             // remove below if changing to picture of dying tree
             binding.plant.alpha = 0.3f // make the plant look "faded"

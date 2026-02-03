@@ -1,21 +1,13 @@
 package com.pocketree.app
 
-import android.R.attr.data
-import android.R.attr.password
-import android.R.attr.text
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log.e
-import android.util.Patterns
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
-import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doAfterTextChanged
-import com.pocketree.app.NetworkClient.gson
 import com.pocketree.app.databinding.ActivityLoginBinding
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType

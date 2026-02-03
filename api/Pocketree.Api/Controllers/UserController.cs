@@ -69,37 +69,51 @@ namespace ADproject.Controllers
         [HttpPost("LoginApi")]
         public async Task<IActionResult> LoginApi([FromBody] UserLoginDto dto)
         {
-            var userData = await db.Users
-                .Where(u => u.Username == dto.Username)
-                .Select(u => new
-                {
-                    User = u,
-                    ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted),
-                    LevelName = u.CurrentLevel.LevelName
-                })
-                .FirstOrDefaultAsync();
+            // var userData = await db.Users
+            //     .Where(u => u.Username == dto.Username)
+            //     .Select(u => new
+            //     {
+            //         User = u,
+            //         ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted),
+            //         LevelName = u.CurrentLevel.LevelName
+            //     })
+            //     .FirstOrDefaultAsync();
 
-            if (userData == null) return Unauthorized("Invalid credentials.");
+            // fetch User object so we can update Login/Activity dates directly
+            var user = await db.Users
+                        .Include(u => u.CurrentLevel)
+                        .Include(u => u.Trees) 
+                        .FirstOrDefaultAsync(u => u.Username == dto.Username);
 
-            var user = userData.User;
+            if (user == null) return Unauthorized("Invalid credentials.");
+
+            //var user = userData.User;
             var result = passwordHasher.VerifyHashedPassword(user, user.PasswordHash, dto.Password);
 
             if (result == PasswordVerificationResult.Success)
             {
-                // Set tree status
-                if (user.LastActivityDate.HasValue)
-                {
-                    var daysNoActivity = (DateTime.UtcNow - user.LastActivityDate.Value).TotalDays;
-                    if (daysNoActivity > witheringThreshold && userData.ActiveTree != null)
-                    {
-                        userData.ActiveTree.IsWithered = true;
-                    }
-                }
+                var activeTree = user.Trees?.FirstOrDefault(t => !t.IsCompleted);
 
-                var userProfile = GetUserProfile(user, userData.ActiveTree, userData.LevelName);
+                // Set tree status
+                await CheckWithering(activeTree, user.LastActivityDate);
+
+                
+                // if (user.LastActivityDate.HasValue)
+                // {
+                //     var daysNoActivity = (DateTime.UtcNow - user.LastActivityDate.Value).TotalDays;
+                //     if (daysNoActivity > witheringThreshold && userData.ActiveTree != null)
+                //     {
+                //         userData.ActiveTree.IsWithered = true;
+                //     }
+                // }
+
+                // var userProfile = GetUserProfile(user, userData.ActiveTree, userData.LevelName);
                 user.IsOnline = true; // Set user's online status to true
                 user.LastLoginDate = DateTime.UtcNow; // Update LastLoginDate
+                
                 await db.SaveChangesAsync();
+
+                var userProfile = GetUserProfile(user, activeTree, user.CurrentLevel?.LevelName);
 
                 // GenerateJwtToken
                 var claims = new[]
@@ -152,14 +166,16 @@ namespace ADproject.Controllers
         public async Task<IActionResult> GetUserProfileApi()
         {
             var userData = await db.Users
-                    .AsNoTracking()
+                    // .AsNoTracking() - remove so we can update tree status
                     .Where(u => u.Username == User.Identity.Name)
                     .Select(u => new
                     {
+                        User = u, // so as to be able to access LastActivityDate to update tree status
                         u.Username,
                         u.TotalCoins,
                         u.CurrentLevelID,
                         u.ProfileImageURL,
+                        u.LastActivityDate,
                         LevelName = u.CurrentLevel.LevelName,
                         LevelImageURL = u.CurrentLevel.LevelImageURL,
                         ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted), // Get active tree
@@ -167,6 +183,8 @@ namespace ADproject.Controllers
                     .FirstOrDefaultAsync();
 
             if (userData == null) return NotFound();
+
+            await CheckWithering(userData.ActiveTree, userData.LastActivityDate);
 
             var userProfile = new UserProfileViewModel
             {
@@ -194,6 +212,23 @@ namespace ADproject.Controllers
                 LevelImageURL = user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png",
                 IsWithered = activeTree?.IsWithered ?? false
             };
+        }
+
+        // private function (not API) for backend use
+        private async System.Threading.Tasks.Task CheckWithering(Tree? activeTree, DateTime? lastActivityDate)
+        {
+            if (activeTree == null || !lastActivityDate.HasValue) return;
+
+            var daysNoActivity = (DateTime.UtcNow - lastActivityDate.Value).TotalDays;
+            bool shouldBeWithered = daysNoActivity > witheringThreshold;
+
+            // update if a change is required in Withered status
+            if (activeTree.IsWithered != shouldBeWithered)
+            {
+                activeTree.IsWithered = shouldBeWithered;
+
+                await db.SaveChangesAsync();
+            }
         }
 
         // Private function (not API) for backend use

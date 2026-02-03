@@ -58,7 +58,6 @@ class TaskFragment: Fragment() {
                     .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                     .circleCrop() // to make image round
                     .placeholder(R.drawable.profile_pic)
-                    .error(R.drawable.profile_pic)
                     .into(binding.profilePic)
             }
         }
