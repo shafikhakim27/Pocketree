@@ -126,6 +126,8 @@ class SettingsFragment: Fragment() {
             startActivity(loginIntent) // start the login activity
             activity?.finish() // ensures the activity holding the fragment is closed
 
+            SignalRManager.stopConnection()
+
             Toast.makeText(
                 context,
                 "You have logged out successfully",
