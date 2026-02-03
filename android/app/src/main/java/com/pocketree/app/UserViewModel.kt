@@ -437,7 +437,8 @@ class UserViewModel: ViewModel() {
 
                     redeemSkinSuccessEvent.postValue("Skin redeemed successfully!")
                 } else {
-                    errorMessage.postValue("Insufficient coins or server error.")
+                    val errorBody = response.body?.string() ?: "Unknown error"
+                    errorMessage.postValue("Failed: $errorBody")
                 }
             }
             override fun onFailure(call:Call, e:IOException) {
@@ -464,7 +465,8 @@ class UserViewModel: ViewModel() {
                 if (response.isSuccessful) {
                     equipSkinSuccessEvent.postValue("Skin equipped successfully!")
                 } else {
-                    errorMessage.postValue("Failed to equip skin.")
+                    val errorBody = response.body?.string() ?: "Unknown error"
+                    errorMessage.postValue("Failed: $errorBody")
                 }
             }
 
@@ -518,7 +520,8 @@ class UserViewModel: ViewModel() {
                 if (response.isSuccessful) {
                     redeemVoucherSuccessEvent.postValue("Voucher used successfully!")
                 } else {
-                    errorMessage.postValue("Failed to use voucher.")
+                    val errorBody = response.body?.string() ?: "Unknown error"
+                    errorMessage.postValue("Failed: $errorBody")
                 }
             }
 
