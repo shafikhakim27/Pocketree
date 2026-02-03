@@ -18,12 +18,14 @@ namespace Pocketree.Api.Controllers
         private readonly MyDbContext db;
         private readonly IHubContext<NotificationHub> hub;
         private readonly IPasswordHasher<User> passwordHasher;
+        private readonly IConfiguration _configuration;
 
-        public AdminApiController(MyDbContext db, IHubContext<NotificationHub> hub, IPasswordHasher<User> passwordHasher)
+        public AdminApiController(MyDbContext db, IHubContext<NotificationHub> hub, IPasswordHasher<User> passwordHasher, IConfiguration configuration)
         {    
             this.db = db;
             this.passwordHasher = passwordHasher;
             this.hub = hub;
+            this._configuration = configuration;
         }
 
         // Obtain all the current Users that are online

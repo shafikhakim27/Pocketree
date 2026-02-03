@@ -33,6 +33,10 @@
                     <div class="d-flex justify-content-between mt-3 small">
                         <a asp-controller="User" asp-action="Register" class="text-muted text-decoration-none">Sign Up</a>
                     </div>
+
+                    <div class="mt-2">
+                        <a href="#" onclick="forgotPassword()" class="text-sm text-success">Forgot Password?</a>
+                    </div>
                 </form>
             </div>
 
@@ -58,3 +62,32 @@
         </div>
     </div>
 </div>
+
+<script>
+    async function forgotPassword() {
+        const username = document.getElementById("Username").value;
+
+        if (!username) {
+            alert("Please enter your username. The temporary password will be sent to your registered email address.");
+            return;
+        }
+
+        try {
+            const response = await fetch('/User/PasswordReset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `username=${encodeURIComponent(username)}`
+            });
+
+            if (response.ok) {
+                alert("A temporary 8-digit password has been sent to your email. Please use it to log in.");
+            } else {
+                const error = await response.text();
+                alert("Error: " + error);
+            }
+        } catch (err) {
+            console.error("Connection failed", err);
+            alert("Could not connect to the server. Check your internet connection.");
+        }
+    }
+</script>

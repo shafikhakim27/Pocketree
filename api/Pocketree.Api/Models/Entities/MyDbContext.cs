@@ -33,6 +33,11 @@ namespace ADproject.Models.Entities
         {
             base.OnModelCreating(modelBuilder);
 
+            // Prevents a User from registering their accounts due to duplicate usernames in MySQL
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+
             // Prevents a GlobalMission from being deleted if users still have trees linked to it 
             modelBuilder.Entity<Tree>()
                 .HasOne(t => t.GlobalMission)
