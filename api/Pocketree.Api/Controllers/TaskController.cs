@@ -205,7 +205,6 @@ namespace ADproject.Controllers
                         // Update user's uncompleted task count for the completed task
                         user.UncompletedTaskCount -= 1;
                         // Check and update level, coins, badges and vouchers
-                        // levelUp = await UpdateLevelAndCoins(user, task);
                         var result = await UpdateLevelAndCoins(user, task);
                         levelUp = result.levelUp;
                         newLevelName = result.levelName;
@@ -253,16 +252,13 @@ namespace ADproject.Controllers
             {
                 user.CurrentLevelID = 3; // Set to new Mighty Oak level   
                 await ContributeToGlobalMission(user, "Greenify Sahara"); // To specify MissionName for now 
-                //return true;
                 return (true, "Mighty Oak");
             }
             else if (user.TotalCoins >= 250 && user.CurrentLevelID < 2)
             {
                 user.CurrentLevelID = 2; // Set to new Sapling level
-                // return true
                 return (true, "Sapling");
             }
-            //else return false;
             return (false,"");
         }
 

@@ -1,21 +1,15 @@
 package com.pocketree.app
 
 import android.content.Context
-import android.util.Log
-import android.util.Log.e
-import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.gson.reflect.TypeToken
-import com.pocketree.app.NetworkClient.gson
-import com.pocketree.app.UserState
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
-import java.util.concurrent.ThreadLocalRandom.current
 import kotlin.jvm.java
 
 // creation of a SharedViewModel to enable passing of data between fragments
@@ -280,16 +274,6 @@ class UserViewModel: ViewModel() {
             }
         })
     }
-
-//    // needed for when levelling up - which badge and voucher is tied to which level
-//    fun getLevelDetails(): Triple<String, String, String>{
-//        val currLevelID = userState.value?.currentLevelID ?: 1
-//        return when (currLevelID) {
-//            2 -> Triple ("Sapling", "Sapling Badge", "Voucher 1")
-//            3 -> Triple ("Mighty Oak", "Oak Badge", "Voucher 2")
-//            else -> Triple("Seedling", "No Badge", "No Voucher")
-//        }
-//    }
 
     // used for redemption of skins
 //    fun updateTotalCoins(newTotal:Int) {
