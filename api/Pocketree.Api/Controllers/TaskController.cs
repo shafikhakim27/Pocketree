@@ -199,12 +199,16 @@ namespace ADproject.Controllers
                     existingRecord.CompletionDate = DateTime.UtcNow;
 
                     bool levelUp = false;
+                    string newLevelName = "";
                     if (newStatus == "Completed")
                     {
                         // Update user's uncompleted task count for the completed task
                         user.UncompletedTaskCount -= 1;
                         // Check and update level, coins, badges and vouchers
-                        levelUp = await UpdateLevelAndCoins(user, task);
+                        // levelUp = await UpdateLevelAndCoins(user, task);
+                        var result = await UpdateLevelAndCoins(user, task);
+                        levelUp = result.levelUp;
+                        newLevelName = result.levelName;
                         await CheckAndAwardBadges(user);
                         await CheckAndAwardVouchers(user);
                     }
@@ -228,7 +232,8 @@ namespace ADproject.Controllers
                         LevelUp = levelUp,
                         NewCoins = user.TotalCoins,
                         NewLevel = user.CurrentLevelID,
-                        IsWithered = activeTree?.IsWithered ?? false
+                        IsWithered = activeTree?.IsWithered ?? false,
+                        NewLevelName = newLevelName,
                     };
                 }
                 catch (Exception)
@@ -240,7 +245,7 @@ namespace ADproject.Controllers
         }
 
         // Private function (not API) for backend use
-        private async Task<bool> UpdateLevelAndCoins(User user, Task task)
+        private async Task<(bool levelUp, string levelName)> UpdateLevelAndCoins(User user, Task task)
         {
             user.TotalCoins += task.CoinReward;
 
@@ -248,14 +253,17 @@ namespace ADproject.Controllers
             {
                 user.CurrentLevelID = 3; // Set to new Mighty Oak level   
                 await ContributeToGlobalMission(user, "Greenify Sahara"); // To specify MissionName for now 
-                return true;
+                //return true;
+                return (true, "Mighty Oak");
             }
             else if (user.TotalCoins >= 250 && user.CurrentLevelID < 2)
             {
                 user.CurrentLevelID = 2; // Set to new Sapling level
-                return true;
+                // return true
+                return (true, "Sapling");
             }
-            else return false;
+            //else return false;
+            return (false,"");
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]

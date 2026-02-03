@@ -8,5 +8,6 @@ data class TaskCompletionResponse (
     @SerializedName("levelUp") val levelUp:Boolean,
     @SerializedName("newCoins") val newCoins:Int,
     @SerializedName("newLevel") val newLevel:Int,
-    @SerializedName("isWithered") val isWithered:Boolean
+    @SerializedName("isWithered") val isWithered:Boolean,
+    @SerializedName("newLevelName") val newLevelName: String
 )

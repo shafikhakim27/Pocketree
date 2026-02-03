@@ -49,14 +49,12 @@ class HomeFragment: Fragment() {
 
             binding.levelDisplay.text = "Current Stage: ${state.levelName}"
 
-            if (state.profileImageUrl.isNotEmpty()) {
-                Glide.with(requireContext())
-                    .load(state.profileImageUrl)
-                    .circleCrop() // to make image round
-                    .placeholder(R.drawable.profile_pic)
-                    .error(R.drawable.profile_pic)
-                    .into(binding.profilePic)
-            }
+            Glide.with(requireContext())
+                .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
+                .circleCrop() // to make image round
+                .placeholder(R.drawable.profile_pic)
+                .error(R.drawable.profile_pic)
+                .into(binding.profilePic)
 
             // KIV!!!! haoting you can consider these 2 codes, if they help
             // update plant image
