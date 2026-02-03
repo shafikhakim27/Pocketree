@@ -2,6 +2,7 @@ package com.pocketree.app
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import com.google.gson.FieldNamingPolicy
 import com.google.gson.GsonBuilder
 import okhttp3.Interceptor
@@ -15,14 +16,12 @@ object NetworkClient {
         .addInterceptor { chain ->
             // Standard interceptor to add the current token
             val original = chain.request()
-            // val token = loadToken(context)
             val token = loadToken(MyApplication.getContext())
 
             val requestBuilder = original.newBuilder()
             if (!token.isNullOrEmpty() && token != "no_token") {
                 requestBuilder.addHeader("Authorization", "Bearer $token")
             }
-
             chain.proceed(requestBuilder.build())
         }
         .authenticator { _, response ->
@@ -32,9 +31,14 @@ object NetworkClient {
                 return@authenticator null
             }
 
-            if (loadToken(MyApplication.getContext()) == null) {
+            val token = loadToken(MyApplication.getContext())
+            if (token.isNullOrEmpty() || token == "no_token") {
                 triggerLogout()
+                return@authenticator null
             }
+
+            // Token exists but auth failed, might be expired
+            triggerLogout()
             null
         }
         .build()

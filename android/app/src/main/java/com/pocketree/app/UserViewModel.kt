@@ -1,21 +1,15 @@
 package com.pocketree.app
 
 import android.content.Context
-import android.util.Log
-import android.util.Log.e
-import android.widget.Toast
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.google.gson.reflect.TypeToken
-import com.pocketree.app.NetworkClient.gson
-import com.pocketree.app.UserState
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
-import java.util.concurrent.ThreadLocalRandom.current
 import kotlin.jvm.java
 
 // creation of a SharedViewModel to enable passing of data between fragments
@@ -38,15 +32,18 @@ class UserViewModel: ViewModel() {
 
     // UI state livedata
     val tasks = MutableLiveData<List<Task>?>()
+    val latestBadgeName = MutableLiveData<String?>()
     val earnedBadges = MutableLiveData<List<Badge>>()
+
+    // event livedata
+    val levelUpEvent = MutableLiveData<Triple<String,String,String>>()
+    val isLoading = MutableLiveData<Boolean>(false) // for loading of progress bar (for ML image verification)
+    val errorMessage = MutableLiveData<String?>()
     val redeemSkinSuccessEvent = MutableLiveData<String?>()  // by Chenyu
     val equipSkinSuccessEvent = MutableLiveData<String?>() // by Chenyu
     val redeemVoucherSuccessEvent = MutableLiveData<String?>() // by Chenyu
-
-    // event livedata
-    val levelUpEvent = MutableLiveData<Boolean>()
-    val isLoading = MutableLiveData<Boolean>(false) // for loading of progress bar (for ML image verification)
-    val errorMessage = MutableLiveData<String>()
+    val logoutSuccess = MutableLiveData<Boolean>()
+    val passwordUpdateSuccess = MutableLiveData<Boolean>()
 
     private val client = NetworkClient.okHttpClient
     private val gson = NetworkClient.gson
@@ -247,12 +244,22 @@ class UserViewModel: ViewModel() {
                                 current.copy(
                                     totalCoins = result.newCoins,
                                     currentLevelID = result.newLevel,
+                                    levelName = result.newLevelName ?: current.levelName,  // update level name
                                     isWithered = result.isWithered
                                 )
                             )
 
-                            if (result.levelUp) levelUpEvent.postValue(true)
-                            fetchLatestBadges()
+                            if (result.levelUp) {
+                                // use simple mapping for vouchers
+                                val voucherName = when (result.newLevel) {
+                                    2 -> "Voucher 1"
+                                    3 -> "Voucher 2"
+                                    else -> ""
+                                }
+
+                                // fetch badge name first, then post complete event with all details
+                                fetchLatestBadgeForLevelUp(result.newLevelName ?: "new", voucherName)
+                            }
                         } else {
                             errorMessage.postValue("Task submission failed")
                         }
@@ -270,23 +277,13 @@ class UserViewModel: ViewModel() {
         })
     }
 
-    // needed for when levelling up - which badge and voucher is tied to which level
-    fun getLevelDetails(): Triple<String, String, String>{
-        val currLevelID = userState.value?.currentLevelID ?: 1
-        return when (currLevelID) {
-            2 -> Triple ("Sapling", "Sapling Badge", "Voucher 1")
-            3 -> Triple ("Mighty Oak", "Oak Badge", "Voucher 2")
-            else -> Triple("Seedling", "No Badge", "No Voucher")
-        }
-    }
-
     // used for redemption of skins
 //    fun updateTotalCoins(newTotal:Int) {
 //        val currentState = userState.value ?: UserState()
 //        userState.postValue(currentState.copy(totalCoins=newTotal))
 //    }
 
-    fun fetchLatestBadges() {
+    fun fetchLatestBadges(shouldNotifyBadge:Boolean = false) {
         val request = Request.Builder()
             .url("$userBaseUrl/GetLatestBadgesApi")
             .get()
@@ -299,9 +296,16 @@ class UserViewModel: ViewModel() {
                         val json = response.body?.string()
                         val badgeListType = object: TypeToken<List<Badge>>() {}.type
                         val allFetchedBadges: List<Badge> = gson.fromJson(json, badgeListType)
-                        val displayBadges = allFetchedBadges.take(3)
 
+                        // post list of badges for UI to display
+                        val displayBadges = allFetchedBadges.take(3)
                         earnedBadges.postValue(displayBadges)
+
+                        // extract name of latest badge for level up dialog
+                        if (shouldNotifyBadge && allFetchedBadges.isNotEmpty()) {
+                            val latestName = allFetchedBadges[0].badgeName
+                            latestBadgeName.postValue(latestName)
+                        }
                     } catch (e:Exception) {
                         if (earnedBadges.value == null) {
                             earnedBadges.postValue(emptyList())
@@ -322,10 +326,63 @@ class UserViewModel: ViewModel() {
         })
     }
 
+    // method for level up - to fetch badge name and trigger complete event
+    fun fetchLatestBadgeForLevelUp(levelName: String, voucherName: String) {
+        val request = Request.Builder()
+            .url("$userBaseUrl/GetLatestBadgesApi")
+            .get()
+            .build()
+
+        client.newCall(request).enqueue(object:Callback {
+            override fun onResponse(call:Call, response:Response) {
+                if (response.isSuccessful) {
+                    try {
+                        val json = response.body?.string()
+                        val badgeListType = object: TypeToken<List<Badge>>() {}.type
+                        val allFetchedBadges: List<Badge> = gson.fromJson(json, badgeListType)
+
+                        // post list of badges for UI to display
+                        val displayBadges = allFetchedBadges.take(3)
+                        earnedBadges.postValue(displayBadges)
+
+                        // extract name of latest badge
+                        val badgeName = if (allFetchedBadges.isNotEmpty()) {
+                            allFetchedBadges[0].badgeName
+                        } else {
+                            ""
+                        }
+
+                        // Now post the complete event with level, badge, and voucher
+                        levelUpEvent.postValue(Triple(levelName, badgeName, voucherName))
+                    } catch (e:Exception) {
+                        // Still post event even if badge fetch fails
+                        levelUpEvent.postValue(Triple(levelName, "", voucherName))
+                        if (earnedBadges.value == null) {
+                            earnedBadges.postValue(emptyList())
+                        }
+                    }
+                } else {
+                    // Still post event even if request fails
+                    levelUpEvent.postValue(Triple(levelName, "", voucherName))
+                    if (earnedBadges.value == null) {
+                        earnedBadges.postValue(emptyList())
+                    }
+                }
+            }
+            override fun onFailure(call:Call, e:IOException) {
+                e.printStackTrace()
+                // Still post event even if network fails
+                levelUpEvent.postValue(Triple(levelName, "", voucherName))
+                if (earnedBadges.value == null) {
+                    earnedBadges.postValue(emptyList())
+                }
+            }
+        })
+    }
 
     fun fetchSkins() {
         val request = Request.Builder()
-            .url("$taskBaseUrl/GetSkinsApi") // TODO
+            .url("$userBaseUrl/GetAllSkinsApi")
             .get()
             .build()
 
@@ -420,7 +477,7 @@ class UserViewModel: ViewModel() {
 
     fun fetchVouchers() {
         val request = Request.Builder()
-            .url("$taskBaseUrl/GetVouchersApi") // TODO
+            .url("$userBaseUrl/GetAllVouchersApi")
             .get()
             .build()
 
@@ -472,17 +529,92 @@ class UserViewModel: ViewModel() {
         })
     }
 
-
     fun logout() {
+        val context = MyApplication.getContext()
+
+        val request = Request.Builder()
+            .url("$userBaseUrl/Logout")
+            .post("".toRequestBody(null))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Automatically switches to Main Thread to update observers
+                errorMessage.postValue("Network failure")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (response.isSuccessful) {
+                        performLocalCleanup(context)
+
+                        // Notify the UI that logout was successful
+                        logoutSuccess.postValue(true)
+                    } else {
+                        errorMessage.postValue("Logout failed")
+                    }
+                }
+            }
+        })
+    }
+
+    fun sendPasswordChangeRequest(current:String, new:String, confirm:String) {
+        val jsonObject = JSONObject().apply{
+            put("CurrentPassword", current)
+            put("NewPassword", new)
+            put("ConfirmNewPassword", confirm)
+        }
+
+        val body = jsonObject.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        val request = Request.Builder()
+            .url("$userBaseUrl/change-password")
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object: Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                errorMessage.postValue("Network failure")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string() ?: ""
+                if (response.isSuccessful) {
+                    passwordUpdateSuccess.postValue(true)
+                } else {
+                    val msg = when (response.code) {
+                        // 400 Bad Request (Business Logic Error)
+                        400 -> {
+                            if (responseBody.contains("incorrect", ignoreCase = true)){
+                                "Invalid password"
+                            } else if (responseBody.contains("match", ignoreCase = true)) {
+                                "Passwords do not match"
+                            } else { // other validation errors
+                                "Validation failed"
+                            }
+                        }
+                        401 -> "Session expired"
+                        500 -> "Server error"
+                        else -> "Error"
+                    }
+                    errorMessage.postValue(msg)
+                }
+            }
+        })
+    }
+
+    fun performLocalCleanup(context:Context) { // "logging out" locally on android device
         // clearing token in Network Client
-        NetworkClient.setToken(MyApplication.getContext(), null)
+        NetworkClient.setToken(context, null)
 
-        // reset state to default
-        userState.value = UserState()
+        // clear user cache
+        val prefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        prefs.edit().remove("LAST_USER_DATA").apply()
 
-        // clear lists
-        tasks.value = emptyList()
-        earnedBadges.value = emptyList()
+        // reset ViewModel state
+        userState.postValue(UserState())
+        tasks.postValue(emptyList())
+        earnedBadges.postValue(emptyList())
     }
 }
 

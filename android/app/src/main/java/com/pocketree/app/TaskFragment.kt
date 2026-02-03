@@ -54,14 +54,12 @@ class TaskFragment: Fragment() {
                 binding.accountInfo.text = state.username
                 binding.coinDisplay.text = "${state.totalCoins} coins"
 
-                if (state.profileImageUrl.isNotEmpty()) {
-                    Glide.with(requireContext())
-                        .load(state.profileImageUrl)
-                        .circleCrop() // to make image round
-                        .placeholder(R.drawable.profile_pic)
-                        .error(R.drawable.profile_pic)
-                        .into(binding.profilePic)
-                }
+                Glide.with(requireContext())
+                    .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
+                    .circleCrop() // to make image round
+                    .placeholder(R.drawable.profile_pic)
+                    .error(R.drawable.profile_pic)
+                    .into(binding.profilePic)
             }
         }
 
@@ -83,59 +81,55 @@ class TaskFragment: Fragment() {
             binding.loadingOverlay.visibility = if (loading) View.VISIBLE else View.GONE
         }
 
-        sharedViewModel.levelUpEvent.observe(viewLifecycleOwner) { levelUp ->
-            if (levelUp == true && isAdded && _binding != null) {
-                // isAdded checks if a fragment is currently attached to its host activity
-                showLevelUpDialog()
-
-                sharedViewModel.levelUpEvent.value = false
-                // reset the event so the notice doesn't fire again
+        sharedViewModel.levelUpEvent.observe(viewLifecycleOwner) { details ->
+            details?.let { (levelName, badgeName, voucherName) ->
+                showLevelUpDialog(levelName, badgeName, voucherName)
+                sharedViewModel.levelUpEvent.value = null
             }
         }
     }
 
-    private fun showLevelUpDialog() {
-        val (levelName, badgeName, voucherName) = sharedViewModel.getLevelDetails()
-
-        if (!isAdded) return
-
+    private fun showLevelUpDialog(levelName: String, badgeName:String, voucherName: String) {
         AlertDialog.Builder(requireContext())
             // returns non-null Context associated with fragment's current host (activity)
             .setTitle("Level Up!")
             .setMessage("Good job! You have progressed to the $levelName stage!")
             .setPositiveButton("Yay!") { dialog, _ ->
                 dialog.dismiss()
-                if (isAdded) showBadgeDialog(badgeName)
+
+                // show badge dialog next
+                if (badgeName.isNotEmpty()) {
+                    showBadgeDialog(badgeName, voucherName)
+                } else if (voucherName.isNotEmpty()) {
+                    showVoucherDialog(voucherName)
+                }
             }
             .setCancelable(false)
             .show()
     }
 
-    private fun showBadgeDialog(badgeName: String) {
-        if (!isAdded) return
-
-        // chain to badge dialog
+    private fun showBadgeDialog(badgeName: String, voucherName: String) {
         AlertDialog.Builder(requireContext())
             .setTitle("Badge Obtained!")
             .setMessage("You have earned the $badgeName badge! View it under the Home tab.")
             .setPositiveButton("Got it!") { dialog, _ ->
                 dialog.dismiss()
-                if (isAdded) showVoucherDialog()
+
+                if (voucherName.isNotEmpty()) {
+                    showVoucherDialog(voucherName)
+                }
             }
             .setCancelable(false)
             .show()
     }
 
-    private fun showVoucherDialog() {
-        if (!isAdded) return
-
+    private fun showVoucherDialog(voucherName:String) {
         AlertDialog.Builder(requireContext())
             .setTitle("Voucher Obtained!")
-            .setMessage("You have earned a voucher! Check the Redeeem tab.")
+            .setMessage("You have earned $voucherName! Check the Redeeem tab.")
             .setPositiveButton("Awesome!") { dialog, _ ->
                 dialog.dismiss()
             }
-            .setCancelable(false)
             .show()
     }
 
@@ -165,7 +159,7 @@ class TaskFragment: Fragment() {
 
     private val getPhoto = registerForActivityResult(
         ActivityResultContracts
-        .TakePicturePreview()
+            .TakePicturePreview()
     ) { bitmap ->
         if (bitmap == null) {
             // user cancelled camera
@@ -205,4 +199,3 @@ class TaskFragment: Fragment() {
         _binding = null
     }
 }
-

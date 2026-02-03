@@ -148,6 +148,8 @@ class LoginActivity: AppCompatActivity() {
                         NetworkClient.setToken(applicationContext, loginData.token)
                         NetworkClient.saveUserCache(applicationContext, loginData.user)
 
+                        SignalRManager.init(loginData.token)
+
                         runOnUiThread {
                             loginUser(loginData.user)
                         }
