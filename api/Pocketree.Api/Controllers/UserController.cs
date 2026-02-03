@@ -117,7 +117,7 @@ namespace ADproject.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpPost("Logout")]
+        [HttpPost("LogoutApi")]
         public async Task<IActionResult> LogoutApi()
         {
             var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
@@ -336,6 +336,7 @@ namespace ADproject.Controllers
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
             newUser.LastLoginDate = DateTime.UtcNow;
+            newUser.LastActivityDate = null;
             newUser.Email = dto.Email;
 
             db.Users.Add(newUser);
@@ -618,6 +619,43 @@ namespace ADproject.Controllers
             return View("Settings", settings);
         }
 
+        // Help users who forgotten their passwords to reset them
+        [HttpPost("/User/PasswordReset")]
+        public async Task<IActionResult> PasswordReset([FromForm] string username)
+        {
+            var user = await db.Users.SingleOrDefaultAsync(u => u.Username == username);
+            if (user == null) return NotFound("Username not found.");
+
+            // Generate random 8-char number code as the temporary password
+            string tempPW = Guid.NewGuid().ToString().Substring(0, 8);
+            user.PasswordHash = passwordHasher.HashPassword(user, tempPW);
+            await db.SaveChangesAsync();
+
+            // Send the temporary password to the user's registered email address
+            await SendEmailAsync(user.Email, "PockeTree: Auto-system generated reply", $"Your password has been reset to the following : {tempPW}. " +
+                "Please remember to change your password after you have logged in.");
+
+            return Ok("Password reset successfully and sent to your registered email");
+        }
+
+        private async System.Threading.Tasks.Task SendEmailAsync(string userEmail, string subject, string body)
+        {
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var appPassword = _configuration["EmailSettings:AppPassword"];
+
+            using var client = new System.Net.Mail.SmtpClient(smtpServer)
+            {
+                Port = 587,
+                Credentials = new System.Net.NetworkCredential(senderEmail, appPassword),
+                EnableSsl = true,
+            };
+
+            var mailMessage = new System.Net.Mail.MailMessage(senderEmail, userEmail, subject, body);
+            await client.SendMailAsync(mailMessage);
+        }
+
+        [AllowAnonymous]
         [HttpPost("/User/WaterTree")]
         public async Task<IActionResult> WaterTree()
         {

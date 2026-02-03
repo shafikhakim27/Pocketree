@@ -25,7 +25,7 @@ namespace Pocketree.Api.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     Description = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    BadgeImageURL = table.Column<string>(type: "longtext", nullable: false)
+                    BadgeImageURL = table.Column<string>(type: "longtext", nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CriteriaType = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
@@ -66,7 +66,7 @@ namespace Pocketree.Api.Migrations
                     LevelName = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     MinCoins = table.Column<int>(type: "int", nullable: false),
-                    LevelImageURL = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                    LevelImageURL = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -177,7 +177,15 @@ namespace Pocketree.Api.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     UncompletedTaskCount = table.Column<int>(type: "int", nullable: false),
                     NotAttemptedTaskCount = table.Column<int>(type: "int", nullable: false),
-                    FailedVerificationCount = table.Column<int>(type: "int", nullable: false)
+                    FailedVerificationCount = table.Column<int>(type: "int", nullable: false),
+                    UserRole = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ResetCode = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    ResetExpiry = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    IsOnline = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    SupportQuery = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
                 {
@@ -187,6 +195,29 @@ namespace Pocketree.Api.Migrations
                         column: x => x.CurrentLevelID,
                         principalTable: "Levels",
                         principalColumn: "LevelID",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "NotificationMessages",
+                columns: table => new
+                {
+                    MessageID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    AdminID = table.Column<int>(type: "int", nullable: false),
+                    Message = table.Column<string>(type: "longtext", nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    TimeStamp = table.Column<DateTime>(type: "datetime(6)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_NotificationMessages", x => x.MessageID);
+                    table.ForeignKey(
+                        name: "FK_NotificationMessages_Users_AdminID",
+                        column: x => x.AdminID,
+                        principalTable: "Users",
+                        principalColumn: "UserID",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
@@ -302,12 +333,18 @@ namespace Pocketree.Api.Migrations
                         .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
                     UserID = table.Column<int>(type: "int", nullable: false),
                     SkinID = table.Column<int>(type: "int", nullable: false),
-                    RedemptionDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    RedemptionDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     IsEquipped = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_UserSkins", x => x.UserSkinID);
+                    table.ForeignKey(
+                        name: "FK_UserSkins_Skins_SkinID",
+                        column: x => x.SkinID,
+                        principalTable: "Skins",
+                        principalColumn: "SkinID",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_UserSkins_Users_UserID",
                         column: x => x.UserID,
@@ -357,7 +394,7 @@ namespace Pocketree.Api.Migrations
                     VoucherID = table.Column<int>(type: "int", nullable: false),
                     RedemptionCode = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    RedemptionDate = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    RedemptionDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
                     IsRedeemed = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
@@ -368,6 +405,12 @@ namespace Pocketree.Api.Migrations
                         column: x => x.UserID,
                         principalTable: "Users",
                         principalColumn: "UserID",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_UserVouchers_Vouchers_VoucherID",
+                        column: x => x.VoucherID,
+                        principalTable: "Vouchers",
+                        principalColumn: "VoucherID",
                         onDelete: ReferentialAction.Cascade);
                 })
                 .Annotation("MySql:CharSet", "utf8mb4");
@@ -381,6 +424,11 @@ namespace Pocketree.Api.Migrations
                 name: "IX_CommunityForests_MissionID",
                 table: "CommunityForests",
                 column: "MissionID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_NotificationMessages_AdminID",
+                table: "NotificationMessages",
+                column: "AdminID");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Trees_MissionID",
@@ -413,6 +461,11 @@ namespace Pocketree.Api.Migrations
                 column: "CurrentLevelID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserSkins_SkinID",
+                table: "UserSkins",
+                column: "SkinID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UserSkins_UserID",
                 table: "UserSkins",
                 column: "UserID");
@@ -431,6 +484,11 @@ namespace Pocketree.Api.Migrations
                 name: "IX_UserVouchers_UserID",
                 table: "UserVouchers",
                 column: "UserID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_UserVouchers_VoucherID",
+                table: "UserVouchers",
+                column: "VoucherID");
         }
 
         /// <inheritdoc />
@@ -440,7 +498,7 @@ namespace Pocketree.Api.Migrations
                 name: "CommunityForests");
 
             migrationBuilder.DropTable(
-                name: "Skins");
+                name: "NotificationMessages");
 
             migrationBuilder.DropTable(
                 name: "Trees");
@@ -464,19 +522,22 @@ namespace Pocketree.Api.Migrations
                 name: "UserVouchers");
 
             migrationBuilder.DropTable(
-                name: "Vouchers");
-
-            migrationBuilder.DropTable(
                 name: "GlobalMissions");
 
             migrationBuilder.DropTable(
                 name: "Badges");
 
             migrationBuilder.DropTable(
+                name: "Skins");
+
+            migrationBuilder.DropTable(
                 name: "Tasks");
 
             migrationBuilder.DropTable(
                 name: "Users");
+
+            migrationBuilder.DropTable(
+                name: "Vouchers");
 
             migrationBuilder.DropTable(
                 name: "Levels");

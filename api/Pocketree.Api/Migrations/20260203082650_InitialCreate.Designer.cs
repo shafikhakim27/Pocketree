@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Pocketree.Api.Migrations
 {
     [DbContext(typeof(MyDbContext))]
-    [Migration("20260202083344_InitialCreate")]
+    [Migration("20260203082650_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -37,7 +37,6 @@ namespace Pocketree.Api.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("BadgeID"));
 
                     b.Property<string>("BadgeImageURL")
-                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<string>("BadgeName")
@@ -141,7 +140,6 @@ namespace Pocketree.Api.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("LevelID"));
 
                     b.Property<string>("LevelImageURL")
-                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
@@ -269,6 +267,9 @@ namespace Pocketree.Api.Migrations
                     b.Property<int>("FailedVerificationCount")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsOnline")
+                        .HasColumnType("tinyint(1)");
+
                     b.Property<DateTime?>("LastActivityDate")
                         .HasColumnType("datetime(6)");
 
@@ -287,11 +288,29 @@ namespace Pocketree.Api.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<string>("ResetCode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)");
+
+                    b.Property<DateTime>("ResetExpiry")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<string>("SupportQuery")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
                     b.Property<int>("TotalCoins")
                         .HasColumnType("int");
 
                     b.Property<int>("UncompletedTaskCount")
                         .HasColumnType("int");
+
+                    b.Property<string>("UserRole")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -390,7 +409,7 @@ namespace Pocketree.Api.Migrations
                     b.Property<bool>("IsEquipped")
                         .HasColumnType("tinyint(1)");
 
-                    b.Property<DateTime>("RedemptionDate")
+                    b.Property<DateTime?>("RedemptionDate")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("SkinID")
@@ -400,6 +419,8 @@ namespace Pocketree.Api.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("UserSkinID");
+
+                    b.HasIndex("SkinID");
 
                     b.HasIndex("UserID");
 
@@ -453,7 +474,7 @@ namespace Pocketree.Api.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("varchar(20)");
 
-                    b.Property<DateTime>("RedemptionDate")
+                    b.Property<DateTime?>("RedemptionDate")
                         .HasColumnType("datetime(6)");
 
                     b.Property<int>("UserID")
@@ -465,6 +486,8 @@ namespace Pocketree.Api.Migrations
                     b.HasKey("UserVoucherID");
 
                     b.HasIndex("UserID");
+
+                    b.HasIndex("VoucherID");
 
                     b.ToTable("UserVouchers");
                 });
@@ -492,6 +515,31 @@ namespace Pocketree.Api.Migrations
                     b.HasKey("VoucherID");
 
                     b.ToTable("Vouchers");
+                });
+
+            modelBuilder.Entity("Pocketree.Api.Models.Entities.NotificationMessage", b =>
+                {
+                    b.Property<int>("MessageID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("MessageID"));
+
+                    b.Property<int>("AdminID")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<DateTime>("TimeStamp")
+                        .HasColumnType("datetime(6)");
+
+                    b.HasKey("MessageID");
+
+                    b.HasIndex("AdminID");
+
+                    b.ToTable("NotificationMessages");
                 });
 
             modelBuilder.Entity("ADproject.Models.Entities.CommunityForest", b =>
@@ -578,11 +626,19 @@ namespace Pocketree.Api.Migrations
 
             modelBuilder.Entity("ADproject.Models.Entities.UserSkin", b =>
                 {
+                    b.HasOne("ADproject.Models.Entities.Skin", "Skin")
+                        .WithMany()
+                        .HasForeignKey("SkinID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("ADproject.Models.Entities.User", null)
                         .WithMany("UserSkins")
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Skin");
                 });
 
             modelBuilder.Entity("ADproject.Models.Entities.UserTaskHistory", b =>
@@ -611,6 +667,25 @@ namespace Pocketree.Api.Migrations
                         .HasForeignKey("UserID")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.HasOne("ADproject.Models.Entities.Voucher", "Voucher")
+                        .WithMany()
+                        .HasForeignKey("VoucherID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Voucher");
+                });
+
+            modelBuilder.Entity("Pocketree.Api.Models.Entities.NotificationMessage", b =>
+                {
+                    b.HasOne("ADproject.Models.Entities.User", "Admin")
+                        .WithMany()
+                        .HasForeignKey("AdminID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Admin");
                 });
 
             modelBuilder.Entity("ADproject.Models.Entities.Badge", b =>
