@@ -34,14 +34,16 @@ class UserViewModel: ViewModel() {
     val tasks = MutableLiveData<List<Task>?>()
     val latestBadgeName = MutableLiveData<String?>()
     val earnedBadges = MutableLiveData<List<Badge>>()
-    val redeemSkinSuccessEvent = MutableLiveData<String?>()  // by Chenyu
-    val equipSkinSuccessEvent = MutableLiveData<String?>() // by Chenyu
-    val redeemVoucherSuccessEvent = MutableLiveData<String?>() // by Chenyu
 
     // event livedata
     val levelUpEvent = MutableLiveData<Triple<String,String,String>>()
     val isLoading = MutableLiveData<Boolean>(false) // for loading of progress bar (for ML image verification)
-    val errorMessage = MutableLiveData<String>()
+    val errorMessage = MutableLiveData<String?>()
+    val redeemSkinSuccessEvent = MutableLiveData<String?>()  // by Chenyu
+    val equipSkinSuccessEvent = MutableLiveData<String?>() // by Chenyu
+    val redeemVoucherSuccessEvent = MutableLiveData<String?>() // by Chenyu
+    val logoutSuccess = MutableLiveData<Boolean>()
+    val passwordUpdateSuccess = MutableLiveData<Boolean>()
 
     private val client = NetworkClient.okHttpClient
     private val gson = NetworkClient.gson
@@ -527,17 +529,92 @@ class UserViewModel: ViewModel() {
         })
     }
 
-
     fun logout() {
+        val context = MyApplication.getContext()
+
+        val request = Request.Builder()
+            .url("$userBaseUrl/Logout")
+            .post("".toRequestBody(null))
+            .build()
+
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                // Automatically switches to Main Thread to update observers
+                errorMessage.postValue("Network failure")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                response.use {
+                    if (response.isSuccessful) {
+                        performLocalCleanup(context)
+
+                        // Notify the UI that logout was successful
+                        logoutSuccess.postValue(true)
+                    } else {
+                        errorMessage.postValue("Logout failed")
+                    }
+                }
+            }
+        })
+    }
+
+    fun sendPasswordChangeRequest(current:String, new:String, confirm:String) {
+        val jsonObject = JSONObject().apply{
+            put("CurrentPassword", current)
+            put("NewPassword", new)
+            put("ConfirmNewPassword", confirm)
+        }
+
+        val body = jsonObject.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+
+        val request = Request.Builder()
+            .url("$userBaseUrl/change-password")
+            .post(body)
+            .build()
+
+        client.newCall(request).enqueue(object: Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                errorMessage.postValue("Network failure")
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string() ?: ""
+                if (response.isSuccessful) {
+                    passwordUpdateSuccess.postValue(true)
+                } else {
+                    val msg = when (response.code) {
+                        // 400 Bad Request (Business Logic Error)
+                        400 -> {
+                            if (responseBody.contains("incorrect", ignoreCase = true)){
+                                "Invalid password"
+                            } else if (responseBody.contains("match", ignoreCase = true)) {
+                                "Passwords do not match"
+                            } else { // other validation errors
+                                "Validation failed"
+                            }
+                        }
+                        401 -> "Session expired"
+                        500 -> "Server error"
+                        else -> "Error"
+                    }
+                    errorMessage.postValue(msg)
+                }
+            }
+        })
+    }
+
+    fun performLocalCleanup(context:Context) { // "logging out" locally on android device
         // clearing token in Network Client
-        NetworkClient.setToken(MyApplication.getContext(), null)
+        NetworkClient.setToken(context, null)
 
-        // reset state to default
-        userState.value = UserState()
+        // clear user cache
+        val prefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
+        prefs.edit().remove("LAST_USER_DATA").apply()
 
-        // clear lists
-        tasks.value = emptyList()
-        earnedBadges.value = emptyList()
+        // reset ViewModel state
+        userState.postValue(UserState())
+        tasks.postValue(emptyList())
+        earnedBadges.postValue(emptyList())
     }
 }
 

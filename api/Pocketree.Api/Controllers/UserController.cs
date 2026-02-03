@@ -117,7 +117,7 @@ namespace ADproject.Controllers
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpPost("/User/Logout")]
+        [HttpPost("Logout")]
         public async Task<IActionResult> LogoutApi()
         {
             var user = await db.Users.FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
