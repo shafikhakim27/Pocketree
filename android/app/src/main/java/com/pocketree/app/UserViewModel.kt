@@ -41,12 +41,13 @@ class UserViewModel: ViewModel() {
     val tasks = MutableLiveData<List<Task>?>()
     val latestBadgeName = MutableLiveData<String?>()
     val earnedBadges = MutableLiveData<List<Badge>>()
+    val statusMessage = MutableLiveData<String?>() // for status on image verification
+    val adminMessage = MutableLiveData<String?>()
 
     // event livedata
     val levelUpEvent = MutableLiveData<Triple<String,String,String>>()
     val isAiVerifying = MutableLiveData<Boolean>(false) // for loading progress bar (for ML image verification)
     val errorMessage = MutableLiveData<String?>()
-    val statusMessage = MutableLiveData<String?>() // for status on image verification
     val redeemSkinSuccessEvent = MutableLiveData<String?>()  // by Chenyu
     val equipSkinSuccessEvent = MutableLiveData<String?>() // by Chenyu
     val redeemVoucherSuccessEvent = MutableLiveData<String?>() // by Chenyu
@@ -588,6 +589,10 @@ class UserViewModel: ViewModel() {
                 errorMessage.postValue("Network error.")
             }
         })
+    }
+
+    fun postAdminMessage(message:String) {
+        adminMessage.postValue(message)
     }
 
     fun logout() {

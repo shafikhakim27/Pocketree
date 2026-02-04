@@ -140,8 +140,6 @@ class LoginActivity: AppCompatActivity() {
                         NetworkClient.setToken(applicationContext, loginData.token)
                         NetworkClient.saveUserCache(applicationContext, loginData.user)
 
-                        SignalRManager.init(loginData.token)
-
                         runOnUiThread {
                             loginUser(loginData.user)
                         }
@@ -179,6 +177,7 @@ class LoginActivity: AppCompatActivity() {
             putExtra("levelName", user.levelName)
             putExtra("isWithered", user.isWithered)
             putExtra("levelImageUrl", user.levelImageUrl)
+            putExtra("plantHealthPercent", user.plantHealthPercent)
         }
         Toast.makeText(this@LoginActivity,
             "Welcome ${user.username}!",
