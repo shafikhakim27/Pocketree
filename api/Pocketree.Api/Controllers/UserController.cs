@@ -10,8 +10,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
+using Pocketree.Api.Models.Entities;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using System.Buffers.Text;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -28,12 +30,14 @@ namespace ADproject.Controllers
         private readonly IConfiguration _configuration;
         // Define withering threshold (3 days)
         private int witheringThreshold = 3;
+        private readonly string baseURL;
 
         public UserController(MyDbContext db, IPasswordHasher<User> passwordHasher, IConfiguration configuration)
         {
             this.db = db;
             this.passwordHasher = passwordHasher;
-            _configuration = configuration;
+            this._configuration = configuration;
+            baseURL = _configuration["StorageBaseURL"] ?? "";
         }
 
         /**********************
@@ -50,7 +54,7 @@ namespace ADproject.Controllers
 
             // Generate hash
             newUser.PasswordHash = passwordHasher.HashPassword(newUser, dto.Password);
-            newUser.ProfileImageURL = "/images/default-user.jpg";
+            newUser.ProfileImageURL = baseURL + "/images/default-user.jpg";
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
             newUser.LastLoginDate = DateTime.UtcNow;
@@ -212,8 +216,8 @@ namespace ADproject.Controllers
                 TotalCoins = user.TotalCoins,
                 LevelName = levelName ?? "Seedling",
                 LevelID = user.CurrentLevelID,
-                LevelImageURL = user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png",
-                IsWithered = activeTree?.IsWithered ?? false,
+                LevelImageURL = baseURL + (user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png"),
+                IsWithered = activeTree?.IsWithered ?? false
             };
         }
 
@@ -275,7 +279,7 @@ namespace ADproject.Controllers
                 .Select(ub => new
                 {
                     BadgeName = ub.Badge.BadgeName,
-                    BadgeImageURL = ub.Badge.BadgeImageURL,
+                    BadgeImageURL = baseURL + (ub.Badge.BadgeImageURL ?? "default-badge.png"),
                     DateEarned = ub.DateEarned
                 })
                 .ToListAsync();
@@ -283,10 +287,26 @@ namespace ADproject.Controllers
             return Ok(latestBadges);
         }
 
+        // Provide all skins that are offered to every user
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [HttpGet("GetAllSkinsOfferedApi")]
+        public async Task<IActionResult> GetAllSkinsOfferedApi()
+        {
+            return Ok(await db.Skins
+                    .AsNoTracking()
+                    .Select(s => new
+                    {
+                        SkinName = s.SkinName,
+                        SkinPrice = s.SkinPrice,
+                        ImageURL = baseURL + (s.ImageURL ?? "default_skin.png")
+                    })
+                    .ToListAsync());
+        }
+
         // Provide all skins that the user has redeemed
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpGet("GetAllSkinsApi")]
-        public async Task<IActionResult> GetAllSkinsApi()
+        [HttpGet("GetAllRedeemedSkinsApi")]
+        public async Task<IActionResult> GetAllRedeemedSkinsApi()
         {
             var username = User.Identity?.Name;
             var userId = await db.Users
@@ -304,7 +324,7 @@ namespace ADproject.Controllers
                 .Select(us => new
                 {
                     SkinName = us.Skin.SkinName,
-                    ImageURL = us.Skin.ImageURL,
+                    ImageURL = baseURL + (us.Skin.ImageURL ?? "default_skin.png"),
                     RedemptionDate = us.RedemptionDate
                 })
                 .ToListAsync();
@@ -370,7 +390,7 @@ namespace ADproject.Controllers
 
             // Generate hash
             newUser.PasswordHash = passwordHasher.HashPassword(newUser, dto.Password);
-            newUser.ProfileImageURL = "/images/default-user.jpg";
+            newUser.ProfileImageURL = baseURL + "/images/default-user.jpg";
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
             newUser.LastLoginDate = DateTime.UtcNow;
@@ -460,7 +480,7 @@ namespace ADproject.Controllers
             return View(); // Remain on login page
         }
 
-        [HttpGet("/User/LogoutApi")]
+        [HttpGet("/User/Logout")]
         public async Task<IActionResult> Logout()
         {
             var userId = HttpContext.Session.GetString("UserID");
@@ -523,8 +543,8 @@ namespace ADproject.Controllers
                         TotalCoins = user.TotalCoins,
                         LevelName = user.CurrentLevel?.LevelName ?? "Seedling",
                         LevelID = user.CurrentLevelID,
-                        LevelImageURL = user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png",
-                        // If the last login was earlier than the threshold, IsWithered = true 
+                        LevelImageURL = baseURL + (user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png"),
+                        ProfileImageURL = baseURL + (user.ProfileImageURL ?? "~/images/default-user.jpg"),
                         IsWithered = activeTree?.IsWithered ?? false
                     },
                     TaskHistory = history
@@ -670,12 +690,13 @@ namespace ADproject.Controllers
             await db.SaveChangesAsync();
 
             // Send the temporary password to the user's registered email address
-            await SendEmailAsync(user.Email, "PockeTree: Auto-system generated reply", $"Your password has been reset to the following : {tempPW}. " +
+            await SendEmailAsync(user.Email, "[PockeTree] Reset Password - Auto-system generated reply", $"Your password has been reset to the following : {tempPW}. " +
                 "Please remember to change your password after you have logged in.");
 
             return Ok("Password reset successfully and sent to your registered email");
         }
 
+        // Helper function to send email reply to user
         private async System.Threading.Tasks.Task SendEmailAsync(string userEmail, string subject, string body)
         {
             var smtpServer = _configuration["EmailSettings:SmtpServer"];
@@ -691,6 +712,26 @@ namespace ADproject.Controllers
 
             var mailMessage = new System.Net.Mail.MailMessage(senderEmail, userEmail, subject, body);
             await client.SendMailAsync(mailMessage);
+        }
+
+        // Submit user query to administrator
+        [HttpPost("/User/SubmitQuery")]
+        public async Task<IActionResult> SubmitQuery([FromQuery] string identifier, [FromQuery] string userQuery)
+        {
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == identifier || u.Email == identifier);
+            if (user == null) return BadRequest("User not found.");
+
+            // Store the query in the UserQueries table
+            db.UserQueries.Add(new UserQuery
+            {
+                UserID = user.UserID,
+                Query = userQuery,
+                IsResolved = false,
+                CreatedAt = DateTime.UtcNow
+            });
+            await db.SaveChangesAsync();
+
+            return Ok("Query submitted successfully and our admin will get back to you.");
         }
 
         [AllowAnonymous]

@@ -12,7 +12,7 @@ import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.bumptech.glide.Glide
+//import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.FragmentHomeBinding
 
 class HomeFragment: Fragment() {
@@ -53,7 +53,7 @@ class HomeFragment: Fragment() {
             binding.healthBar.progress = state.plantHealthPercent
             Log.d("HomeFragment", "Health: ${state.plantHealthPercent}%")
             binding.levelDisplay.text = "Current Stage: ${state.levelName}"
-
+/*
             Glide.with(requireContext())
                 .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                 .circleCrop() // to make image round

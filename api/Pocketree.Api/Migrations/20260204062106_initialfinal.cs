@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Pocketree.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class initialfinal : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -182,10 +182,8 @@ namespace Pocketree.Api.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     ResetCode = table.Column<string>(type: "varchar(10)", maxLength: 10, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    ResetExpiry = table.Column<DateTime>(type: "datetime(6)", nullable: false),
-                    IsOnline = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    SupportQuery = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
-                        .Annotation("MySql:CharSet", "utf8mb4")
+                    ResetExpiry = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    IsOnline = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -296,6 +294,33 @@ namespace Pocketree.Api.Migrations
                     table.PrimaryKey("PK_UserPreferences", x => x.PreferenceID);
                     table.ForeignKey(
                         name: "FK_UserPreferences_Users_UserID",
+                        column: x => x.UserID,
+                        principalTable: "Users",
+                        principalColumn: "UserID",
+                        onDelete: ReferentialAction.Cascade);
+                })
+                .Annotation("MySql:CharSet", "utf8mb4");
+
+            migrationBuilder.CreateTable(
+                name: "UserQueries",
+                columns: table => new
+                {
+                    QueryID = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("MySql:ValueGenerationStrategy", MySqlValueGenerationStrategy.IdentityColumn),
+                    UserID = table.Column<int>(type: "int", nullable: false),
+                    Query = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    AdminReply = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: true)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    IsResolved = table.Column<bool>(type: "tinyint(1)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime(6)", nullable: false),
+                    ResolvedAt = table.Column<DateTime>(type: "datetime(6)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_UserQueries", x => x.QueryID);
+                    table.ForeignKey(
+                        name: "FK_UserQueries_Users_UserID",
                         column: x => x.UserID,
                         principalTable: "Users",
                         principalColumn: "UserID",
@@ -456,9 +481,20 @@ namespace Pocketree.Api.Migrations
                 column: "UserID");
 
             migrationBuilder.CreateIndex(
+                name: "IX_UserQueries_UserID",
+                table: "UserQueries",
+                column: "UserID");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Users_CurrentLevelID",
                 table: "Users",
                 column: "CurrentLevelID");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Users_Username",
+                table: "Users",
+                column: "Username",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_UserSkins_SkinID",
@@ -508,6 +544,9 @@ namespace Pocketree.Api.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserPreferences");
+
+            migrationBuilder.DropTable(
+                name: "UserQueries");
 
             migrationBuilder.DropTable(
                 name: "UserSettings");

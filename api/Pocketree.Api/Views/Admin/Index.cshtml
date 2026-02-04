@@ -10,10 +10,10 @@
 
         <div class="ms-auto">
             <div class="dropdown">
-                <button class="btn btn-outline-dark dropdown-toggle rounded-pill" type="button" id="accountDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                <button class="btn btn-outline-dark dropdown-toggle rounded-pill" type="button" id="accountDropdown" data-bs-toggle="dropdown">
                     <i class="bi bi-person-circle"></i> My Account
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0" aria-labelledby="accountDropdown">
+                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                     <li>
                         <a class="dropdown-item" href="@Url.Action("ChangePassword", "User")">
                             <i class="bi bi-shield-lock"></i> Change Password
@@ -31,167 +31,292 @@
     </div>
 </nav>
 
-<div class="container mt-4">
+<div class="container py-3">
     <partial name="_Alerts" />
+    <h2 class="fw-bold text-success text-center mb-4">Admin Dashboard</h2>
 
-    <div class="row">
+    <ul class="nav nav-tabs custom-tabs" id="adminDashboardTab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active fw-bold text-success" data-bs-toggle="tab" data-bs-target="#all-users" type="button">
+                <i class="bi bi-people"></i> All Users
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold text-success" data-bs-toggle="tab" data-bs-target="#active-users" type="button">
+                <i class="bi bi-broadcast"></i> Online <span class="badge bg-success ms-1" id="activeCount">0</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold text-success" data-bs-toggle="tab" data-bs-target="#queries" type="button">
+                <i class="bi bi-question-circle"></i> Queries
+                <span class="badge bg-success ms-1" id="queryCount">0</span>
+            </button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold text-success" data-bs-toggle="tab" data-bs-target="#broadcast-tab" type="button">
+                <i class="bi bi-megaphone"></i> Broadcast
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content border border-top-0 p-4 bg-white shadow-sm rounded-bottom mb-5">
+
+        <div class="tab-pane fade show active" id="all-users">
+
+            <!-- Inserted filter function for the All Users tab -->
+            <div class="mb-3">
+                <input type="text" class="form-control form-control-lg border-success"
+                       placeholder="Quick search user..."
+                       onkeyup="filterTable(this, 'allUsersTable')">
+            </div>
+
+            <!-- All Users tab -->
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                <table class="table align-middle table-hover" id="allUsersTable">
+                    <thead class="sticky-top bg-white">
+                        <tr>
+                            <th style="width: 30%;">Username</th>
+                            <th style="width: 45%;">Email/Role</th>
+                            <th style="width: 25%;" class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="active-users">
+
+            <!-- Inserted filter function for Active Users tab -->
+            <div class="mb-3">
+                <input type="text" class="form-control form-control-lg border-success"
+                       placeholder="Quick search user..."
+                       onkeyup="filterTable(this, 'activeUsersTable')">
+            </div>
+
+            <!-- Active Users tab -->
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                <table class="table align-middle table-hover" id="activeUsersTable">
+                    <thead class="sticky-top bg-white">
+                        <tr>
+                            <th style="width: 30%;">Username</th>
+                            <th style="width: 45%;">Last Activity Date</th>
+                            <th style="width: 25%;" class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="queries">
+
+            <!-- Inserted filter function for the Queries tab -->
+            <div class="mb-3">
+                <input type="text" class="form-control form-control-lg border-success"
+                       placeholder="Quick search query..."
+                       onkeyup="filterTable(this, 'queriesTable')">
+            </div>
+
+            <!-- Queries tab -->
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                <table class="table align-middle table-hover" id="queriesTable">
+                    <thead class="sticky-top bg-white">
+                        <tr>
+                            <th style="width: 30%;">Username</th>
+                            <th style="width: 45%;">Query</th>
+                            <th style="width: 25%;" class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Broadcast tab -->
+        <div class="tab-pane fade" id="broadcast-tab">
+            <div class="p-3">
+                <h5 class="text-green fw-bold mb-3">Push Notification to All Users</h5>
+                <form action="/Admin/BroadcastMessage" method="post">
+                    <div class="mb-3">
+                        <textarea name="messageText" class="form-control" rows="5" placeholder="Enter message for everyone..." required></textarea>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-danger rounded-pill px-3">Send Broadcast</button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 </div>
 
-<div class="container py-5">
-    <h2 class="fw-bold text-success text-center mb-5">Admin Dashboard</h2>
-    <hr />
-    <div class="card mt-4 border-success shadow-sm">
-        <div class="card-header green-gradient-bg text-white fw-bold d-flex justify-content-between">
-            <span>All Users</span>
-            <i class="bi bi-people-fill"></i>
-        </div>
-        <div class="card-body">
-            <table class="table align-middle table-hover" id="allUsersTable" style="table-layout: fixed;">
-                <thead>
-                    <tr>
-                        <th style="width: 30%;">Username</th>
-                        <th style="width: 45%;">Email/Role</th>
-                        <th style="width: 25%;" class="text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+<!-- Dialog box for Admin to reply to user's queries -->
+<div class="modal fade" id="replyModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">Reply to <span id="replyTargetUser"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="replyTargetId">
+                <textarea id="replyText" class="form-control" rows="4" placeholder="Enter your reply to resolve this query..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-success" onclick="submitReply()">Send & Resolve</button>
+            </div>
         </div>
     </div>
-
-    <div class="card mt-4 border-success shadow-sm">
-        <div class="card-header green-gradient-bg text-white fw-bold d-flex justify-content-between">
-            <span>Active Users</span>
-            <span class="badge bg-light text-success" id="activeCount">0 Online</span>
-        </div>
-        <div class="card-body">
-            <table class="table align-middle table-hover" id="activeUsersTable" style="table-layout: fixed;">
-                <thead>
-                    <tr>
-                        <th style="width: 30%;">Username</th>
-                        <th style="width: 45%;">Last Activity Date</th>
-                        <th style="width: 25%;" class="text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="card mt-4 border-success shadow-sm">
-        <div class="card-header green-gradient-bg text-white fw-bold">Pending Users Queries</div>
-        <div class="card-body">
-            <table class="table align-middle table-hover" id="queriesTable" style="table-layout: fixed;">
-                <thead>
-                    <tr>
-                        <th style="width: 30%;">Username</th>
-                        <th style="width: 45%;">Query</th>
-                        <th style="width: 25%;" class="text-end">Action</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
-
-    <div class="card mt-4 border-success shadow-sm">
-        <div class="card-header green-gradient-bg text-white fw-bold">Push Notification Message</div>
-        <div class="card-body">
-            <form action="/Admin/BroadcastMessage" method="post">
-                <div class="form-group mb-4">
-                    <textarea name="messageText" class="form-control" rows="3" placeholder="Enter message for all users..." required></textarea>
-                </div>
-                <div class="d-flex justify-content-end mt-1">
-                    <button type="submit" class="btn btn-success">Send Broadcast</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
 </div>
 
-<script>
-    async function loadData() {
-    try {
-        // Fetch All Users
-        const allRes = await fetch('/api/AdminApi/FetchAllUsers');
-        const allUsers = await allRes.json();
-        const allBody = document.querySelector('#allUsersTable tbody');
-        allBody.innerHTML = allUsers.map(u => `
-            <tr>
-                <td>${u.username}</td>
-                <td class="text-muted">${u.email || 'N/A'}</td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-outline-danger" onclick="manualReset(${u.userID})">Reset Password</button>
-                </td>
-            </tr>
-        `).join('');
-
-        // Fetch users who are online and allow private message to be sent
-        const activeRes = await fetch('/api/AdminApi/FetchUsersOnline');
-        const activeUsers = await activeRes.json();
-        document.getElementById('activeCount').innerText = `${activeUsers.length} Online`;
-        const activeBody = document.querySelector('#activeUsersTable tbody');
-        activeBody.innerHTML = activeUsers.map(u => `
-            <tr>
-                <td>${u.username}</td>
-                <td>${u.lastActivityDate ? new Date(u.lastActivityDate).toLocaleString() : 'Just now'}</td>
-                <td class="text-end">
-                    <button class="btn btn-sm btn-success" onclick="sendPrivateMsg(${u.userID}, '${u.username}')">
-                        <i class="bi bi-chat-dots"></i> Send Message
-                    </button>
-                </td>
-            </tr>
-        `).join('');
-
-        // Load users who have queries
-        const queryRes = await fetch('/api/AdminApi/FetchUsersQueries');
-        const queries = await queryRes.json();
-        const queryBody = document.querySelector('#queriesTable tbody');
-
-        queryBody.innerHTML = queries.map(q => {
-            // Button disabled and dimmed if supportQuery is empty/null
-            const isDisabled = !q.supportQuery || q.supportQuery.trim() === "";
-            return `
-            <tr>
-                <td>${q.username}</td>
-                <td class="text-muted">${q.supportQuery || 'No pending query'}</td>
-                <td class="text-end">
-                    <button class="btn btn-sm ${isDisabled ? 'btn-secondary opacity-50' : 'btn-success'}"
-                            ${isDisabled ? 'disabled' : ''}
-                            onclick="resolveQuery(${q.userID})">Mark Resolved
-                    </button>
-                </td>
-            </tr>
-        `}).join('');
-
-    } 
-    catch (e) { console.error("Load failed", e); }
+<!-- Freeze the column tabs -->
+<style>
+    .sticky-top {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        background-color: white !important;
+        border-bottom: 2px solid #dee2e6;
     }
 
+    .custom-tabs .nav-link {
+        border-radius: 10px 10px 0 0;
+        margin-right: 5px;
+    }
+</style>
+
+<script>
+    // Initialize Modal Global Variable
+    let replyModal;
+
+    async function loadData() {
+        try {
+            // Get the data for all users
+            const allRes = await fetch('/api/AdminApi/FetchAllUsers');
+            const allUsers = await allRes.json();
+            const allBody = document.querySelector('#allUsersTable tbody');
+            allBody.innerHTML = allUsers.map(u => `
+                <tr>
+                    <td>${u.username}</td>
+                    <td class="text-muted">${u.email || 'N/A'}</td>
+                    <td class="text-end">
+                        <button class="badge bg-light text-danger border-0" onclick="manualReset(${u.userID})">Reset Password</button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Get the data for all active users
+            const activeRes = await fetch('/api/AdminApi/FetchUsersOnline');
+            const activeUsers = await activeRes.json();
+            document.getElementById('activeCount').innerText = activeUsers.length;
+            const activeBody = document.querySelector('#activeUsersTable tbody');
+            activeBody.innerHTML = activeUsers.map(u => `
+                <tr>
+                    <td>${u.username}</td>
+                    <td>${u.lastActivityDate ? new Date(u.lastActivityDate).toLocaleString() : 'Just now'}</td>
+                    <td class="text-end">
+                        <button class="badge bg-light text-success border-0" onclick="sendPrivateMsg(${u.userID}, '${u.username}')">
+                            <i class="bi bi-chat-dots"></i> Message
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
+            // Get the data for all user queries 
+            const queryRes = await fetch('/api/AdminApi/FetchUsersQueries');
+            const queries = await queryRes.json();
+            document.getElementById('queryCount').innerText = queries.length;
+
+            const queryBody = document.querySelector('#queriesTable tbody');
+            queryBody.innerHTML = queries.map(q => `
+                <tr>
+                        <td>${q.username}</td>
+                        <td class="text-muted">${q.queryContent}</td>
+                        <td class="text-end">
+                            <button id="btn-reply-${q.queryID}" class="btn btn-sm btn-success"
+                                    onclick="openReplyModal(${q.queryID}, '${q.username}')">
+                                    Reply
+                            </button>
+                        </td>
+                    </tr>
+                `).join('');
+        } catch (e) { console.error("Load failed", e); }
+    }
+
+    // Support functions for the dialog box to reply to user's query
+    function openReplyModal(queryId, username) {
+        document.getElementById('replyTargetUser').innerText = username;
+        // Store the QueryID in the hidden input
+        document.getElementById('replyTargetId').value = queryId;
+        document.getElementById('replyText').value = "";
+        replyModal.show();
+    }
+
+    async function submitReply() {
+        // The QueryID from the hidden field is obtained
+        const queryId = document.getElementById('replyTargetId').value;
+        const message = document.getElementById('replyText').value;
+
+        if (!message.trim()) {
+            alert("Please enter a reply.");
+            return;
+        }
+
+        // Pass queryId to the Api as the identifier
+        const response = await fetch(`/api/AdminApi/ClearUserQueryStatus?queryId=${queryId}&reply=${encodeURIComponent(message)}`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            replyModal.hide();
+
+            // Update the UI
+            const btn = document.getElementById(`btn-reply-${queryId}`);
+            if (btn) {
+                btn.disabled = true;
+                btn.classList.replace('btn-success', 'btn-secondary');
+                btn.innerText = "Resolved";
+            }
+
+            await loadData(); // Refresh table to remove the resolved row
+            alert("Reply saved and query marked as resolved!");
+        
+        } else {
+            alert("Error: Could not resolve the query.");
+        }
+    }
+
+    // For sending message to specific user
     async function sendPrivateMsg(id, name) {
         const msg = prompt(`Send private message to ${name}:`);
         if (msg && msg.trim() !== "") {
-            const res = await fetch(`/api/AdminApi/SendPrivateMessage?userId=${id}&message=${encodeURIComponent(msg)}`, { 
-                method: 'POST' 
-            });
-            if(res.ok) alert("Message sent successfully!");
+            const res = await fetch(`/api/AdminApi/SendPrivateMessage?userId=${id}&message=${encodeURIComponent(msg)}`, { method: 'POST' });
+            if(res.ok) alert("Message sent!");
         }
     }
 
+    // For resetting password for specific user
     async function manualReset(id) {
-        if(confirm("Reset user password to 'password'?")) {
+        if(confirm("Reset password to 'password'?")) {
             const response = await fetch('/api/AdminApi/ManualPasswordReset/' + id, { method: 'POST' });
-            if(response.ok) alert("Password reset successful.");
+            if(response.ok) alert("Success!");
         }
     }
 
-    async function resolveQuery(id) {
-        const response = await fetch('/api/AdminApi/ClearUserQueryStatus?userId=' + id, { method: 'POST' });
-        if(response.ok) loadData();
+    // For filtering the list of users based on their usernames
+    function filterTable(input, tableId) {
+        const filter = input.value.toLowerCase();
+        const rows = document.querySelectorAll(`#${tableId} tbody tr`);
+        rows.forEach(row => {
+            const text = row.textContent.toLowerCase();
+            row.style.display = text.includes(filter) ? "" : "none";
+        });
     }
 
-    document.addEventListener("DOMContentLoaded", loadData);
-
+    document.addEventListener("DOMContentLoaded", () => {
+        // Initialize Bootstrap Modal
+        replyModal = new bootstrap.Modal(document.getElementById('replyModal'));
+        loadData();
+    });
 </script>
