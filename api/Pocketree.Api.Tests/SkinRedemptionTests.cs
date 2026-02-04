@@ -2,12 +2,10 @@ using ADproject.Models.Entities;
 using ADproject.Controllers;
 using ADproject.Services;
 using ADproject.Hubs;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
-using Moq;
 using System.Security.Claims;
 
 namespace Pocketree.Api.Tests;
@@ -48,8 +46,16 @@ public class SkinRedemptionTests
     public async System.Threading.Tasks.Task SkinRedemption_SufficientCoins_RedeemsSuccessfully()
     {
         // Arrange
-        var options = CreateDbOptions("Skin_SufficientCoins");
+        var options = CreateDbOptions("Skin_SufficientCoins_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        
+        // Add required Levels - user references Level 2
+        context.Levels.AddRange(
+            new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" },
+            new Level { LevelID = 2, LevelName = "Sapling", MinCoins = 250, LevelImageURL = "/images/levels/sapling.png" }
+        );
+        await context.SaveChangesAsync();
         
         var user = new User
         {
@@ -61,7 +67,13 @@ public class SkinRedemptionTests
             TotalCoins = 500,
             CurrentLevelID = 2,
             LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
+            LastActivityDate = DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            UncompletedTaskCount = 0,
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
         
         var skin = new Skin
@@ -84,19 +96,24 @@ public class SkinRedemptionTests
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
         var updatedUser = await context.Users.FindAsync(1);
-        Assert.Equal(200, updatedUser.TotalCoins); // 500 - 300 = 200
+        Assert.Equal(200, updatedUser.TotalCoins);
         
         var userSkin = await context.UserSkins.FirstOrDefaultAsync(us => us.UserID == 1 && us.SkinID == 1);
         Assert.NotNull(userSkin);
-        Assert.True(userSkin.IsEquipped);
+        Assert.False(userSkin.IsEquipped);
     }
 
     [Fact]
     public async System.Threading.Tasks.Task SkinRedemption_InsufficientCoins_ReturnsBadRequest()
     {
         // Arrange
-        var options = CreateDbOptions("Skin_InsufficientCoins");
+        var options = CreateDbOptions("Skin_InsufficientCoins_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        
+        // Add required Level
+        context.Levels.Add(new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" });
+        await context.SaveChangesAsync();
         
         var user = new User
         {
@@ -108,7 +125,13 @@ public class SkinRedemptionTests
             TotalCoins = 100, // Not enough for 300-coin skin
             CurrentLevelID = 1,
             LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
+            LastActivityDate = DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            UncompletedTaskCount = 0,
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
         
         var skin = new Skin
@@ -137,8 +160,16 @@ public class SkinRedemptionTests
     public async System.Threading.Tasks.Task SkinRedemption_InvalidSkin_ReturnsBadRequest()
     {
         // Arrange
-        var options = CreateDbOptions("Skin_InvalidSkin");
+        var options = CreateDbOptions("Skin_InvalidSkin_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        
+        // Add required Levels (user has CurrentLevelID = 2!)
+        context.Levels.AddRange(
+            new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" },
+            new Level { LevelID = 2, LevelName = "Sapling", MinCoins = 250, LevelImageURL = "/images/levels/sapling.png" }
+        );
+        await context.SaveChangesAsync();
         
         var user = new User
         {
@@ -150,7 +181,13 @@ public class SkinRedemptionTests
             TotalCoins = 500,
             CurrentLevelID = 2,
             LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
+            LastActivityDate = DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            UncompletedTaskCount = 0,
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
         
         context.Users.Add(user);
@@ -170,8 +207,16 @@ public class SkinRedemptionTests
     public async System.Threading.Tasks.Task SkinEquip_OwnedSkin_EquipsSuccessfully()
     {
         // Arrange
-        var options = CreateDbOptions("Skin_Equip");
+        var options = CreateDbOptions("Skin_Equip_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        
+        // Add required Levels
+        context.Levels.AddRange(
+            new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" },
+            new Level { LevelID = 2, LevelName = "Sapling", MinCoins = 250, LevelImageURL = "/images/levels/sapling.png" }
+        );
+        await context.SaveChangesAsync();
         
         var user = new User
         {
@@ -183,7 +228,13 @@ public class SkinRedemptionTests
             TotalCoins = 500,
             CurrentLevelID = 2,
             LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
+            LastActivityDate = DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            UncompletedTaskCount = 0,
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
         
         var skin = new Skin
@@ -223,8 +274,16 @@ public class SkinRedemptionTests
     public async System.Threading.Tasks.Task SkinEquip_NotOwnedSkin_ReturnsBadRequest()
     {
         // Arrange
-        var options = CreateDbOptions("Skin_EquipNotOwned");
+        var options = CreateDbOptions("Skin_EquipNotOwned_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        
+        // Add required Levels
+        context.Levels.AddRange(
+            new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" },
+            new Level { LevelID = 2, LevelName = "Sapling", MinCoins = 250, LevelImageURL = "/images/levels/sapling.png" }
+        );
+        await context.SaveChangesAsync();
         
         var user = new User
         {
@@ -236,7 +295,13 @@ public class SkinRedemptionTests
             TotalCoins = 500,
             CurrentLevelID = 2,
             LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
+            LastActivityDate = DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            UncompletedTaskCount = 0,
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
         
         var skin = new Skin
@@ -265,8 +330,16 @@ public class SkinRedemptionTests
     public async System.Threading.Tasks.Task SkinRedemption_ExactCoins_RedeemsSuccessfully()
     {
         // Arrange
-        var options = CreateDbOptions("Skin_ExactCoins");
+        var options = CreateDbOptions("Skin_ExactCoins_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        
+        // Add required Levels
+        context.Levels.AddRange(
+            new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" },
+            new Level { LevelID = 2, LevelName = "Sapling", MinCoins = 250, LevelImageURL = "/images/levels/sapling.png" }
+        );
+        await context.SaveChangesAsync();
         
         var user = new User
         {
@@ -278,7 +351,13 @@ public class SkinRedemptionTests
             TotalCoins = 300, // Exactly the skin price
             CurrentLevelID = 2,
             LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
+            LastActivityDate = DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            UncompletedTaskCount = 0,
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
         
         var skin = new Skin

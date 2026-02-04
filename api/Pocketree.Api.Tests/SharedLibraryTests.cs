@@ -20,7 +20,7 @@ public class SharedLibraryTests
         var result = AppConstants.Difficulty.IsValid(difficulty);
 
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Theory]
@@ -33,7 +33,7 @@ public class SharedLibraryTests
         var result = AppConstants.CoinRewards.GetRewardForDifficulty(difficulty);
 
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Theory]
@@ -49,7 +49,7 @@ public class SharedLibraryTests
         var result = ValidationHelper.IsValidEmail(email);
 
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Theory]
@@ -66,7 +66,7 @@ public class SharedLibraryTests
         var result = ValidationHelper.IsValidUsername(username);
 
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public class SharedLibraryTests
         var result = ValidationHelper.IsValidPassword(password);
 
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Theory]
@@ -98,7 +98,7 @@ public class SharedLibraryTests
         var result = ValidationHelper.AreValidCoordinates(x, y);
 
         // Assert
-        Assert.Equal(expected, result);
+        result.Should().Be(expected);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public class SharedLibraryTests
         var result = today.IsToday();
 
         // Assert
-        Assert.True(result);
+        result.Should().BeTrue();
     }
 
     [Fact]
@@ -124,7 +124,7 @@ public class SharedLibraryTests
         var result = yesterday.IsToday();
 
         // Assert
-        Assert.False(result);
+        result.Should().BeFalse();
     }
 
     [Fact]
@@ -137,7 +137,7 @@ public class SharedLibraryTests
         var result = threeDaysAgo.DaysSince();
 
         // Assert
-        Assert.Equal(3, result);
+        result.Should().Be(3);
     }
 
     [Fact]
@@ -147,9 +147,7 @@ public class SharedLibraryTests
         var result = Result.Ok("Operation successful");
 
         // Assert
-        Assert.True(result.Success);
-        Assert.Equal("Operation successful", result.Message);
-        Assert.Empty(result.Errors);
+        result.Should().BeEquivalentTo(new { Success = true, Message = "Operation successful", Errors = Array.Empty<string>() });
     }
 
     [Fact]
@@ -159,9 +157,7 @@ public class SharedLibraryTests
         var result = Result.Fail("Operation failed");
 
         // Assert
-        Assert.False(result.Success);
-        Assert.Single(result.Errors);
-        Assert.Equal("Operation failed", result.Errors[0]);
+        result.Should().BeEquivalentTo(new { Success = false, Errors = new[] { "Operation failed" } });
     }
 
     [Fact]
@@ -174,9 +170,7 @@ public class SharedLibraryTests
         var result = Result<object>.Ok(testData, "Data retrieved");
 
         // Assert
-        Assert.True(result.Success);
-        Assert.NotNull(result.Data);
-        Assert.Equal("Data retrieved", result.Message);
+        result.Should().BeEquivalentTo(new { Success = true, Data = testData, Message = "Data retrieved" });
     }
 
     [Fact]

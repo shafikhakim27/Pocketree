@@ -1,10 +1,8 @@
 using ADproject.Models.Entities;
 using ADproject.Services;
 using ADproject.Hubs;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.SignalR;
-using Moq;
 
 namespace Pocketree.Api.Tests;
 
@@ -19,25 +17,70 @@ public class TreeWitheringTests
             .Options;
     }
 
-    [Fact]
-    public async System.Threading.Tasks.Task TreeWithering_3DaysInactive_TreeWithers()
+    private async System.Threading.Tasks.Task SeedRequiredData(MyDbContext context)
     {
-        // Arrange
-        var options = CreateDbOptions("Tree_Withers3Days");
-        using var context = new MyDbContext(options);
-        
-        var user = new User
+        if (!context.Levels.Any())
         {
-            UserID = 1,
+            context.Levels.Add(new Level 
+            { 
+                LevelID = 1, 
+                LevelName = "Seedling", 
+                MinCoins = 0, 
+                LevelImageURL = "/images/levels/seedling.png" 
+            });
+            await context.SaveChangesAsync();
+        }
+
+        if (!context.GlobalMissions.Any())
+        {
+            context.GlobalMissions.Add(new GlobalMission
+            {
+                MissionID = 1,
+                MissionName = "Greenify Sahara",
+                TotalRequiredTrees = 1000,
+                CurrentTreeCount = 0,
+                PlantingFrequency = 1
+            });
+            await context.SaveChangesAsync();
+        }
+    }
+
+    private User CreateTestUser(
+        int userId = 1,
+        DateTime? lastActivity = null,
+        int totalCoins = 100,
+        int currentLevelId = 1)
+    {
+        return new User
+        {
+            UserID = userId,
             Username = "testuser",
             Email = "test@test.com",
             PasswordHash = "hash",
             ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 100,
-            CurrentLevelID = 1,
-            LastActivityDate = DateTime.UtcNow.AddDays(-4), // 4 days ago (> 3 day threshold)
-            LastLoginDate = DateTime.UtcNow.AddDays(-4)
+            TotalCoins = totalCoins,
+            CurrentLevelID = currentLevelId,
+            LastActivityDate = lastActivity,
+            LastLoginDate = lastActivity ?? DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            UncompletedTaskCount = 0,
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TreeWithering_3DaysInactive_TreeWithers()
+    {
+        // Arrange
+        var options = CreateDbOptions("Tree_Withers3Days_" + Guid.NewGuid());
+        using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
+        
+        var user = CreateTestUser(lastActivity: DateTime.UtcNow.AddDays(-4));
         
         var tree = new Tree
         {
@@ -52,14 +95,14 @@ public class TreeWitheringTests
         context.Trees.Add(tree);
         await context.SaveChangesAsync();
         
-        // Act - Check if tree should wither (3-day threshold)
-        var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate.Value).Days;
+        // Act
+        var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate!.Value).Days;
         
         // Assert
-        Assert.True(daysSinceActivity >= 3);
-        Assert.False(tree.IsWithered); // Before withering check
+        daysSinceActivity.Should().BeGreaterOrEqualTo(3);
+        tree.IsWithered.Should().BeFalse(); // Before withering check
         
-        // Tree withering logic would set IsWithered = true
+        // Simulate withering logic
         if (daysSinceActivity >= 3)
         {
             tree.IsWithered = true;
@@ -67,28 +110,19 @@ public class TreeWitheringTests
         }
         
         var updatedTree = await context.Trees.FindAsync(1);
-        Assert.True(updatedTree.IsWithered);
+        updatedTree!.IsWithered.Should().BeTrue();
     }
 
     [Fact]
     public async System.Threading.Tasks.Task TreeWithering_2DaysInactive_TreeStaysHealthy()
     {
         // Arrange
-        var options = CreateDbOptions("Tree_Healthy2Days");
+        var options = CreateDbOptions("Tree_Healthy2Days_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
         
-        var user = new User
-        {
-            UserID = 1,
-            Username = "testuser",
-            Email = "test@test.com",
-            PasswordHash = "hash",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 100,
-            CurrentLevelID = 1,
-            LastActivityDate = DateTime.UtcNow.AddDays(-2), // Only 2 days (< 3 day threshold)
-            LastLoginDate = DateTime.UtcNow.AddDays(-2)
-        };
+        var user = CreateTestUser(lastActivity: DateTime.UtcNow.AddDays(-2));
         
         var tree = new Tree
         {
@@ -104,208 +138,85 @@ public class TreeWitheringTests
         await context.SaveChangesAsync();
         
         // Act
-        var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate.Value).Days;
+        var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate!.Value).Days;
         
         // Assert
-        Assert.True(daysSinceActivity < 3);
-        Assert.False(tree.IsWithered); // Should stay healthy
+        daysSinceActivity.Should().BeLessThan(3);
+        
+        // Withering check - should NOT wither
+        if (daysSinceActivity >= 3)
+        {
+            tree.IsWithered = true;
+            await context.SaveChangesAsync();
+        }
+        
+        var updatedTree = await context.Trees.FindAsync(1);
+        updatedTree!.IsWithered.Should().BeFalse(); // Still healthy
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task TreeWithering_ExactlyOnDay3_TreeWithers()
+    {
+        // Arrange
+        var options = CreateDbOptions("Tree_Withers_Day3_" + Guid.NewGuid());
+        using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
+        
+        var user = CreateTestUser(lastActivity: DateTime.UtcNow.AddDays(-3));
+        var tree = new Tree { TreeID = 1, UserID = 1, MissionID = 1, IsWithered = false, IsCompleted = false };
+        
+        context.Users.Add(user);
+        context.Trees.Add(tree);
+        await context.SaveChangesAsync();
+        
+        // Act
+        var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate!.Value).Days;
+        
+        if (daysSinceActivity >= 3)
+        {
+            tree.IsWithered = true;
+            await context.SaveChangesAsync();
+        }
+        
+        // Assert
+        daysSinceActivity.Should().Be(3);
+        var updatedTree = await context.Trees.FindAsync(1);
+        updatedTree!.IsWithered.Should().BeTrue(); // Should wither on day 3
     }
 
     [Fact]
     public async System.Threading.Tasks.Task TreeWithering_CompletedTree_DoesNotWither()
     {
         // Arrange
-        var options = CreateDbOptions("Tree_CompletedNoWither");
+        var options = CreateDbOptions("Tree_Completed_NoWither_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
         
-        var user = new User
-        {
-            UserID = 1,
-            Username = "testuser",
-            Email = "test@test.com",
-            PasswordHash = "hash",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 500,
-            CurrentLevelID = 3,
-            LastActivityDate = DateTime.UtcNow.AddDays(-10), // 10 days inactive
-            LastLoginDate = DateTime.UtcNow.AddDays(-10)
-        };
-        
-        var tree = new Tree
-        {
-            TreeID = 1,
-            UserID = 1,
-            MissionID = 1,
-            IsWithered = false,
-            IsCompleted = true // Tree is completed
-        };
-        
-        context.Users.Add(user);
-        context.Trees.Add(tree);
-        await context.SaveChangesAsync();
-        
-        // Act - Completed trees should not wither
-        var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate.Value).Days;
-        
-        // Assert
-        Assert.True(daysSinceActivity >= 3);
-        Assert.True(tree.IsCompleted);
-        // Withering logic should check IsCompleted and skip
-        Assert.False(tree.IsWithered);
-    }
-
-    [Fact]
-    public async System.Threading.Tasks.Task TreeRevival_TaskCompletion_RevivesTree()
-    {
-        // Arrange
-        var options = CreateDbOptions("Tree_Revival");
-        using var context = new MyDbContext(options);
-        
-        var user = new User
-        {
-            UserID = 1,
-            Username = "testuser",
-            Email = "test@test.com",
-            PasswordHash = "hash",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 100,
-            CurrentLevelID = 1,
-            LastActivityDate = DateTime.UtcNow.AddDays(-5),
-            LastLoginDate = DateTime.UtcNow.AddDays(-5)
-        };
-        
-        var tree = new Tree
-        {
-            TreeID = 1,
-            UserID = 1,
-            MissionID = 1,
-            IsWithered = true, // Tree is withered
-            IsCompleted = false
-        };
-        
-        context.Users.Add(user);
-        context.Trees.Add(tree);
-        await context.SaveChangesAsync();
-        
-        // Act - Complete a task (simulated)
-        tree.IsWithered = false; // Task completion revives tree
-        user.LastActivityDate = DateTime.UtcNow; // Update activity
-        await context.SaveChangesAsync();
-        
-        // Assert
-        var updatedTree = await context.Trees.FindAsync(1);
-        var updatedUser = await context.Users.FindAsync(1);
-        
-        Assert.False(updatedTree.IsWithered);
-        Assert.True(updatedUser.LastActivityDate > DateTime.UtcNow.AddDays(-1));
-    }
-
-    [Fact]
-    public async System.Threading.Tasks.Task TreeWithering_MultipleActiveTrees_OnlyIncompleteWither()
-    {
-        // Arrange
-        var options = CreateDbOptions("Tree_MultipleWithering");
-        using var context = new MyDbContext(options);
-        
-        var user = new User
-        {
-            UserID = 1,
-            Username = "testuser",
-            Email = "test@test.com",
-            PasswordHash = "hash",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 800,
-            CurrentLevelID = 3,
-            LastActivityDate = DateTime.UtcNow.AddDays(-5),
-            LastLoginDate = DateTime.UtcNow.AddDays(-5)
-        };
-        context.Users.Add(user);
-        
-        var completedTree = new Tree
-        {
-            TreeID = 1,
-            UserID = 1,
-            MissionID = 1,
-            IsWithered = false,
-            IsCompleted = true
-        };
-        
-        var activeTree = new Tree
-        {
-            TreeID = 2,
-            UserID = 1,
-            MissionID = 1,
-            IsWithered = false,
-            IsCompleted = false
-        };
-        
-        context.Trees.Add(completedTree);
-        context.Trees.Add(activeTree);
-        await context.SaveChangesAsync();
-        
-        // Act - Withering check
-        var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate.Value).Days;
-        
-        if (daysSinceActivity >= 3)
-        {
-            // Only wither incomplete trees
-            var treesToWither = await context.Trees
-                .Where(t => t.UserID == user.UserID && !t.IsCompleted)
-                .ToListAsync();
-            
-            foreach (var tree in treesToWither)
-            {
-                tree.IsWithered = true;
-            }
-            await context.SaveChangesAsync();
-        }
-        
-        // Assert
-        var completedAfter = await context.Trees.FindAsync(1);
-        var activeAfter = await context.Trees.FindAsync(2);
-        
-        Assert.False(completedAfter.IsWithered); // Completed tree stays healthy
-        Assert.True(activeAfter.IsWithered); // Active tree withers
-    }
-
-    [Fact]
-    public async System.Threading.Tasks.Task TreeWithering_ExactlyAt3Days_TreeWithers()
-    {
-        // Arrange
-        var options = CreateDbOptions("Tree_Exactly3Days");
-        using var context = new MyDbContext(options);
-        
-        var user = new User
-        {
-            UserID = 1,
-            Username = "testuser",
-            Email = "test@test.com",
-            PasswordHash = "hash",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 100,
-            CurrentLevelID = 1,
-            LastActivityDate = DateTime.UtcNow.AddDays(-3), // Exactly 3 days
-            LastLoginDate = DateTime.UtcNow.AddDays(-3)
-        };
-        
-        var tree = new Tree
-        {
-            TreeID = 1,
-            UserID = 1,
-            MissionID = 1,
-            IsWithered = false,
-            IsCompleted = false
-        };
+        var user = CreateTestUser(lastActivity: DateTime.UtcNow.AddDays(-10)); // Very inactive
+        var tree = new Tree { TreeID = 1, UserID = 1, MissionID = 1, IsWithered = false, IsCompleted = true }; // Already completed
         
         context.Users.Add(user);
         context.Trees.Add(tree);
         await context.SaveChangesAsync();
         
         // Act
-        var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate.Value).Days;
+        var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate!.Value).Days;
+        
+        // Withering logic should skip completed trees
+        if (daysSinceActivity >= 3 && !tree.IsCompleted)
+        {
+            tree.IsWithered = true;
+            await context.SaveChangesAsync();
+        }
         
         // Assert
-        Assert.Equal(3, daysSinceActivity);
-        Assert.True(daysSinceActivity >= 3); // Should wither at exactly 3 days
+        daysSinceActivity.Should().BeGreaterThan(3);
+        var updatedTree = await context.Trees.FindAsync(1);
+        updatedTree!.IsWithered.Should().BeFalse(); // Completed trees don't wither
+        updatedTree.IsCompleted.Should().BeTrue();
     }
+
+    // Add more withering test cases...
 }

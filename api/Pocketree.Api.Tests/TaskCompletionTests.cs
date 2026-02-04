@@ -3,12 +3,10 @@ using ADproject.Models.DTOs;
 using ADproject.Services;
 using ADproject.Controllers;
 using ADproject.Hubs;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
-using Moq;
 using System.Security.Claims;
 
 namespace Pocketree.Api.Tests;
@@ -27,14 +25,11 @@ public class TaskCompletionTests
     private TaskController CreateController(MyDbContext context, IMlService mlService = null)
     {
         var mockMlService = mlService ?? Mock.Of<IMlService>();
-        
-        // Create proper mock for MissionService dependencies
         var mockHubContext = new Mock<IHubContext<MapHub>>();
         var missionService = new MissionService(context, mockHubContext.Object);
         
         var controller = new TaskController(context, mockMlService, missionService);
         
-        // Mock User.Identity for [Authorize] attribute
         var user = new ClaimsPrincipal(new ClaimsIdentity(new Claim[]
         {
             new Claim(ClaimTypes.Name, "testuser")
@@ -48,12 +43,26 @@ public class TaskCompletionTests
         return controller;
     }
 
+    private async System.Threading.Tasks.Task SeedRequiredData(MyDbContext context)
+    {
+        if (!context.Levels.Any())
+        {
+            context.Levels.AddRange(
+                new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" },
+                new Level { LevelID = 2, LevelName = "Sapling", MinCoins = 250, LevelImageURL = "/images/levels/sapling.png" }
+            );
+            await context.SaveChangesAsync();
+        }
+    }
+
     [Fact]
     public async System.Threading.Tasks.Task TaskCompletion_EasyTask_AwardsCorrectCoins()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_EasyTask");
+        var options = CreateDbOptions("TaskCompletion_EasyTask_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
         
         var user = new User
         {
@@ -66,7 +75,12 @@ public class TaskCompletionTests
             CurrentLevelID = 1,
             UncompletedTaskCount = 3,
             LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
+            LastActivityDate = DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
         
         var task = new ADproject.Models.Entities.Task
@@ -80,27 +94,18 @@ public class TaskCompletionTests
             Category = "Testing"
         };
         
-        var tree = new Tree
-        {
-            TreeID = 1,
-            UserID = 1,
-            MissionID = 1,
-            IsWithered = false,
-            IsCompleted = false
-        };
-        
-        var taskHistory = new UserTaskHistory
-        {
-            HistoryID = 1,
-            UserID = 1,
-            TaskID = 1,
-            Status = "Assigned",
-            CompletionDate = DateTime.UtcNow.Date
-        };
-        
         context.Users.Add(user);
         context.Tasks.Add(task);
-        context.Trees.Add(tree);
+        await context.SaveChangesAsync();
+        
+        // Create UserTaskHistory record for today (required by RecordTaskCompletionApi)
+        var taskHistory = new UserTaskHistory
+        {
+            UserID = 1,
+            TaskID = 1,
+            Status = "NotAttempted",
+            CompletionDate = DateTime.UtcNow
+        };
         context.UserTaskHistory.Add(taskHistory);
         await context.SaveChangesAsync();
         
@@ -125,8 +130,10 @@ public class TaskCompletionTests
     public async System.Threading.Tasks.Task TaskCompletion_NormalTask_AwardsCorrectCoins()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_NormalTask");
+        var options = CreateDbOptions("TaskCompletion_NormalTask_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
         
         var user = new User
         {
@@ -139,7 +146,12 @@ public class TaskCompletionTests
             CurrentLevelID = 1,
             UncompletedTaskCount = 3,
             LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
+            LastActivityDate = DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
         
         var task = new ADproject.Models.Entities.Task
@@ -153,27 +165,18 @@ public class TaskCompletionTests
             Category = "Testing"
         };
         
-        var tree = new Tree
-        {
-            TreeID = 1,
-            UserID = 1,
-            MissionID = 1,
-            IsWithered = false,
-            IsCompleted = false
-        };
-        
-        var taskHistory = new UserTaskHistory
-        {
-            HistoryID = 1,
-            UserID = 1,
-            TaskID = 1,
-            Status = "Assigned",
-            CompletionDate = DateTime.UtcNow.Date
-        };
-        
         context.Users.Add(user);
         context.Tasks.Add(task);
-        context.Trees.Add(tree);
+        await context.SaveChangesAsync();
+        
+        // Create UserTaskHistory record for today
+        var taskHistory = new UserTaskHistory
+        {
+            UserID = 1,
+            TaskID = 1,
+            Status = "NotAttempted",
+            CompletionDate = DateTime.UtcNow
+        };
         context.UserTaskHistory.Add(taskHistory);
         await context.SaveChangesAsync();
         
@@ -193,8 +196,10 @@ public class TaskCompletionTests
     public async System.Threading.Tasks.Task TaskCompletion_HardTaskWithoutPhoto_ReturnsBadRequest()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_HardTaskNoPhoto");
+        var options = CreateDbOptions("TaskCompletion_HardTaskNoPhoto_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
         
         var user = new User
         {
@@ -240,7 +245,7 @@ public class TaskCompletionTests
     public async System.Threading.Tasks.Task TaskCompletion_HardTaskWithInvalidPhoto_IncrementsFailCount()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_HardTaskInvalidPhoto");
+        var options = CreateDbOptions("TaskCompletion_HardTaskInvalidPhoto_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
         
         var mockMlService = new Mock<IMlService>();
@@ -306,8 +311,10 @@ public class TaskCompletionTests
     public async System.Threading.Tasks.Task TaskCompletion_ReachingLevel2_LevelsUp()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_LevelUp2");
+        var options = CreateDbOptions("TaskCompletion_LevelUp2_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
         
         var user = new User
         {
@@ -334,27 +341,18 @@ public class TaskCompletionTests
             Category = "Testing"
         };
         
-        var tree = new Tree
-        {
-            TreeID = 1,
-            UserID = 1,
-            MissionID = 1,
-            IsWithered = false,
-            IsCompleted = false
-        };
-        
-        var taskHistory = new UserTaskHistory
-        {
-            HistoryID = 1,
-            UserID = 1,
-            TaskID = 1,
-            Status = "Assigned",
-            CompletionDate = DateTime.UtcNow.Date
-        };
-        
         context.Users.Add(user);
         context.Tasks.Add(task);
-        context.Trees.Add(tree);
+        await context.SaveChangesAsync();
+        
+        // Create UserTaskHistory record for today
+        var taskHistory = new UserTaskHistory
+        {
+            UserID = 1,
+            TaskID = 1,
+            Status = "NotAttempted",
+            CompletionDate = DateTime.UtcNow
+        };
         context.UserTaskHistory.Add(taskHistory);
         await context.SaveChangesAsync();
         
@@ -374,8 +372,10 @@ public class TaskCompletionTests
     public async System.Threading.Tasks.Task TaskCompletion_WitheredTree_GetsRevived()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_TreeRevival");
+        var options = CreateDbOptions("TaskCompletion_TreeRevival_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
         
         var user = new User
         {
@@ -441,8 +441,10 @@ public class TaskCompletionTests
     public async System.Threading.Tasks.Task TaskCompletion_PassedStatus_DoesNotAwardCoins()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_Passed");
+        var options = CreateDbOptions("TaskCompletion_Passed_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
         
         var user = new User
         {
@@ -512,7 +514,7 @@ public class TaskCompletionTests
     public async System.Threading.Tasks.Task TaskCompletion_UpdatesLastActivityDate()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_ActivityDate");
+        var options = CreateDbOptions("TaskCompletion_ActivityDate_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
         
         var oldDate = DateTime.UtcNow.AddDays(-1);
@@ -581,7 +583,7 @@ public class TaskCompletionTests
     public async System.Threading.Tasks.Task TaskCompletion_InvalidUser_ReturnsBadRequest()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_InvalidUser");
+        var options = CreateDbOptions("TaskCompletion_InvalidUser_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
         
         var controller = CreateController(context);
@@ -598,7 +600,7 @@ public class TaskCompletionTests
     public async System.Threading.Tasks.Task TaskCompletion_InvalidTask_ReturnsBadRequest()
     {
         // Arrange
-        var options = CreateDbOptions("TaskCompletion_InvalidTask");
+        var options = CreateDbOptions("TaskCompletion_InvalidTask_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
         
         var user = new User

@@ -1,5 +1,4 @@
 using ADproject.Models.Entities;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Pocketree.Api.Tests;
@@ -15,12 +14,26 @@ public class BadgeAwardTests
             .Options;
     }
 
+    private async System.Threading.Tasks.Task SeedRequiredData(MyDbContext context)
+    {
+        if (!context.Levels.Any())
+        {
+            context.Levels.AddRange(
+                new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" },
+                new Level { LevelID = 2, LevelName = "Sapling", MinCoins = 250, LevelImageURL = "/images/levels/sapling.png" }
+            );
+            await context.SaveChangesAsync();
+        }
+    }
+
     [Fact]
     public async System.Threading.Tasks.Task Badge_LevelUpToLevel2_AwardsBadge()
     {
         // Arrange
-        var options = CreateDbOptions("Badge_Level2");
+        var options = CreateDbOptions("Badge_Level2_" + Guid.NewGuid());
         using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        await SeedRequiredData(context);
         
         var badge = new Badge
         {
@@ -44,21 +57,25 @@ public class BadgeAwardTests
             TotalCoins = 250,
             CurrentLevelID = 2,
             LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
+            LastActivityDate = DateTime.UtcNow,
+            UserRole = "Player",
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            UncompletedTaskCount = 0,
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
         };
         context.Users.Add(user);
         await context.SaveChangesAsync();
         
-        // Act - Trigger badge check (normally done in UpdateLevelAndCoins)
-        // This would be called by the controller
-        
-        // Assert - Badge system integration
+        // Act
         var eligibleBadges = await context.Badges
             .Where(b => b.CriteriaType == "LevelUp" && b.RequiredCount <= user.CurrentLevelID)
             .ToListAsync();
         
-        Assert.Single(eligibleBadges);
-        Assert.Equal("Sapling Achiever", eligibleBadges[0].BadgeName);
+        // Assert
+        eligibleBadges.Should().HaveCount(1);
+        eligibleBadges[0].BadgeName.Should().Be("Sapling Achiever");
     }
 
     [Fact]
