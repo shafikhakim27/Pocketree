@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.os.Bundle
-import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -19,6 +18,18 @@ import com.pocketree.app.databinding.ActivityMainBinding
 class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: UserViewModel
     private lateinit var binding: ActivityMainBinding
+
+    private val logoutReceiver = object: BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            NetworkClient.setToken(this@MainActivity, null)
+
+            // go to Login and clear backstack
+            val loginIntent = Intent(this@MainActivity, LoginActivity::class.java)
+            loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            startActivity(loginIntent)
+            finish()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Force light mode - prevents dark mode from activating
@@ -37,8 +48,16 @@ class MainActivity : AppCompatActivity() {
         }
 
         viewModel = ViewModelProvider(this).get(UserViewModel::class.java)
+
+        // pass viewModel to SignalRManager
+        val token = NetworkClient.loadToken(this)
+        if (!token.isNullOrEmpty()) {
+            SignalRManager.init(token, viewModel)
+        }
+
         initUser()
         setupNavigation()
+        observeViewModel()
     }
 
     private fun initUser(){
@@ -85,25 +104,35 @@ class MainActivity : AppCompatActivity() {
         // links the bottom navigation clicks to the fragment swaps
     }
 
-    private val logoutReceiver = object: BroadcastReceiver() {
-        override fun onReceive(context: Context?, intent: Intent?) {
-            NetworkClient.setToken(this@MainActivity, null)
-
-            // go to Login and clear backstack
-            val loginIntent = Intent(this@MainActivity, LoginActivity::class.java)
-            loginIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            startActivity(loginIntent)
-            finish()
+    fun observeViewModel() {
+        viewModel.adminMessage.observe(this) { message ->
+            message?.let {
+                showAdminDialog(this, it)
+                // Clear the message after showing so it doesn't pop up again on rotation
+                viewModel.adminMessage.value = null
+            }
         }
     }
 
-    override fun onStart(){
+    override fun onStart() {
         super.onStart()
-        registerReceiver(logoutReceiver, IntentFilter("ACTION_LOGOUT"), RECEIVER_NOT_EXPORTED)
+        registerReceiver(logoutReceiver,
+            IntentFilter("ACTION_LOGOUT"),
+            RECEIVER_NOT_EXPORTED
+        )
     }
 
     override fun onStop() {
         super.onStop()
         unregisterReceiver(logoutReceiver)
+    }
+
+    private fun showAdminDialog(activityContext: Context, message: String) {
+        androidx.appcompat.app.AlertDialog.Builder(activityContext)
+            .setTitle("Admin Message")
+            .setMessage(message)
+            .setPositiveButton("OK") {dialog, _ -> dialog.dismiss()}
+            .setCancelable(false)
+            .show()
     }
 }

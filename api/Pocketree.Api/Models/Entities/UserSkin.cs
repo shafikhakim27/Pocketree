@@ -10,6 +10,7 @@ namespace ADproject.Models.Entities
         public int UserID { get; set; }
         public int SkinID { get; set; }
         public DateTime? RedemptionDate { get; set; }
+        public bool IsRedeemed { get; set; } = false;
         public bool IsEquipped { get; set; } = false;
 
         // Navigation Property

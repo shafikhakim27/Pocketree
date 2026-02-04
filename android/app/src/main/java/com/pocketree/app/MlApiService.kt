@@ -11,8 +11,13 @@ import com.google.gson.annotations.SerializedName
 interface MlApiService {
     @Multipart
     @POST("classify")
-    suspend fun verifyImage(
+    fun verifyImage(
         @Part file: MultipartBody.Part,
         @Part("keyword") keyword: RequestBody
-    ): Response<VerificationResponse>
+    ): retrofit2.Call<VerificationResponse>
+
+//    suspend fun verifyImage(
+//        @Part file: MultipartBody.Part,
+//        @Part("keyword") keyword: RequestBody
+//    ): Response<VerificationResponse>
 }

@@ -1,9 +1,15 @@
 package com.pocketree.app
 
 import android.content.Context
+import android.util.Log
+import android.view.View
+import android.widget.Toast
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.lifecycleScope
 import com.google.gson.reflect.TypeToken
+import kotlinx.coroutines.launch
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -35,10 +41,12 @@ class UserViewModel: ViewModel() {
     val tasks = MutableLiveData<List<Task>?>()
     val latestBadgeName = MutableLiveData<String?>()
     val earnedBadges = MutableLiveData<List<Badge>>()
+    val statusMessage = MutableLiveData<String?>() // for status on image verification
+    val adminMessage = MutableLiveData<String?>()
 
     // event livedata
     val levelUpEvent = MutableLiveData<Triple<String,String,String>>()
-    val isLoading = MutableLiveData<Boolean>(false) // for loading of progress bar (for ML image verification)
+    val isAiVerifying = MutableLiveData<Boolean>(false) // for loading progress bar (for ML image verification)
     val errorMessage = MutableLiveData<String?>()
     val redeemSkinSuccessEvent = MutableLiveData<String?>()  // by Chenyu
     val equipSkinSuccessEvent = MutableLiveData<String?>() // by Chenyu
@@ -161,21 +169,32 @@ class UserViewModel: ViewModel() {
     }
 
     fun fetchDailyTasks(){
+        Log.d("UserViewModel", "fetchDailyTasks() called")
+
         val request = Request.Builder()
             .url("${taskBaseUrl}/GetDailyTasksApi")
             .get()
             .build()
 
+        Log.d("UserViewModel", "Request URL: ${taskBaseUrl}/GetDailyTasksApi")
+
         client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
                 val responseBody = response.body?.string() ?: ""
+
+                Log.d("UserViewModel", "Response code: ${response.code}")
+                Log.d("UserViewModel", "Response successful: ${response.isSuccessful}")
+                Log.d("UserViewModel", "Response body length: ${responseBody.length}")
+                Log.d("UserViewModel", "Response body: $responseBody")
 
                 if (response.isSuccessful && responseBody.isNotEmpty()) {
                     try {
                         val taskListType = object : TypeToken<List<Task>>() {}.type
                         val fetchedTasks: List<Task> = gson.fromJson(responseBody, taskListType)
+                        Log.d("UserViewModel", "Tasks fetched: ${fetchedTasks.size}")
                         tasks.postValue(fetchedTasks)
                     } catch (e: Exception) {
+                        Log.e("UserViewModel", "Parsing error: ${e.message}", e)
                         errorMessage.postValue("Parsing error")
                         // keep existing value or set to empty if null
                         if (tasks.value == null) {
@@ -183,6 +202,7 @@ class UserViewModel: ViewModel() {
                         }
                     }
                 } else {
+                    Log.e("UserViewModel", "Failed to load tasks. Code: ${response.code}")
                     errorMessage.postValue("Failed to load tasks.")
                     // keep existing value or set to empty if null
                     if (tasks.value == null) {
@@ -192,6 +212,7 @@ class UserViewModel: ViewModel() {
             }
             override fun onFailure(call: Call, e: IOException) {
                 e.printStackTrace()
+                Log.e("UserViewModel", "Network error: ${e.message}", e)
                 errorMessage.postValue("Network error loading tasks")
                 // ensure tasks is never null
                 if (tasks.value == null) {
@@ -202,7 +223,6 @@ class UserViewModel: ViewModel() {
     }
 
     fun submitTask(taskId: Int, status: String, imageBytes: ByteArray? = null) {
-        isLoading.postValue(true)
 
         val requestBodyBuilder = MultipartBody.Builder()
             .setType(MultipartBody.FORM)
@@ -222,7 +242,6 @@ class UserViewModel: ViewModel() {
 
         client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
-                isLoading.postValue(false)
                 val bodyString = response.body?.string()
 
                 if (response.isSuccessful && !bodyString.isNullOrEmpty()) {
@@ -276,17 +295,66 @@ class UserViewModel: ViewModel() {
                 }
             }
             override fun onFailure(call: Call, e: IOException) {
-                isLoading.postValue(false)
                 errorMessage.postValue("Network error.")
             }
         })
     }
 
-    // used for redemption of skins
-//    fun updateTotalCoins(newTotal:Int) {
-//        val currentState = userState.value ?: UserState()
-//        userState.postValue(currentState.copy(totalCoins=newTotal))
-//    }
+    //ff (partially edited by shirley)
+    fun processTaskWithVerification(id: Int, keyword: String, imageBytes: ByteArray) {
+        isAiVerifying.postValue(true)
+        statusMessage.postValue("AI is verifying your photo...")
+
+        // Prepare the Multipart data for Retrofit
+        val requestFile = imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+        val body = MultipartBody.Part.createFormData("file", "room_with_tv.jpg", requestFile)
+        val keywordBody = keyword.toRequestBody("text/plain".toMediaTypeOrNull())
+
+        RetrofitClient.mlInstance.verifyImage(body, keywordBody).enqueue(object : retrofit2.Callback<VerificationResponse> {
+            override fun onResponse(call: retrofit2.Call<VerificationResponse>, response: retrofit2.Response<VerificationResponse>) {
+                if (response.isSuccessful && response.body()?.isVerified == true) {
+                    // SUCCESS: Proceed to submit to your C# backend
+                    isAiVerifying.postValue(false)
+                    statusMessage.postValue("Verification success")
+                    submitTask(id, "Completed", imageBytes)
+                } else {
+                    // FAILURE
+                    isAiVerifying.postValue(false)
+                    statusMessage.postValue(null)
+                    errorMessage.postValue("$keyword could not be found.\nPlease try again!")
+                }
+            }
+
+            override fun onFailure(call: retrofit2.Call<VerificationResponse>, t: Throwable) {
+                // NETWORK FAILURE
+                isAiVerifying.postValue(false)
+                statusMessage.postValue(null)
+                errorMessage.postValue("Verification error: ${t.message}")
+            }
+        })
+
+//        viewLifecycleOwner.lifecycleScope.launch {
+//            try {
+//                val response = RetrofitClient.mlInstance.verifyImage(body, keywordBody)
+//
+//                if (response.isSuccessful && response.body()?.isVerified == true) {
+//                    // SUCCESS
+//                    sharedViewModel.submitTask(id, "Completed", imageBytes)
+//                    Toast.makeText(requireContext(), "Picture is verified!", Toast.LENGTH_SHORT).show()
+//                } else {
+//                    // FAILURE
+//                    Toast.makeText(requireContext(), "Please try again! $keyword could not be found.", Toast.LENGTH_LONG).show()
+//                }
+//            } catch (e: Exception) {
+//                Log.e("AI_ERROR", "Check your internet or Cold Start: ${e.message}")
+//                Toast.makeText(requireContext(), "Verification error. Please try again.", Toast.LENGTH_SHORT).show()
+//            } finally {
+//                binding.loadingOverlay.visibility = View.GONE
+//                binding.dailyStatusTv.visibility = View.GONE
+//                currentProcessingTaskId = null
+//            }
+//        }
+    }
 
     fun fetchLatestBadges(shouldNotifyBadge:Boolean = false) {
         val request = Request.Builder()
@@ -521,6 +589,10 @@ class UserViewModel: ViewModel() {
                 errorMessage.postValue("Network error.")
             }
         })
+    }
+
+    fun postAdminMessage(message:String) {
+        adminMessage.postValue(message)
     }
 
     fun logout() {

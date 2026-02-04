@@ -75,6 +75,7 @@ namespace ADproject.Models.Entities
         public DbSet<CommunityForest> CommunityForests { get; set; }
         public DbSet<Tree> Trees { get; set; }
         public DbSet<NotificationMessage> NotificationMessages { get; set; }
+        public DbSet<UserQuery> UserQueries { get; set; }
 
     }
 

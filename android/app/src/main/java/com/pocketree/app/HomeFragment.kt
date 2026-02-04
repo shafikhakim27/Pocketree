@@ -9,10 +9,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+//import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.FragmentHomeBinding
 
 class HomeFragment: Fragment() {
@@ -67,11 +69,23 @@ class HomeFragment: Fragment() {
 
             // colour of health bar changes to red when percentage drops below 40%
             // (ie user has not done a task in 2 days and tree will wither in another day)
-            if (state.plantHealthPercent<40) {
-                binding.healthBar.progressTintList = ColorStateList.valueOf(Color.RED)
-            } else { // normal healthy level
-                binding.healthBar.progressTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
+            when {
+                state.plantHealthPercent == 0 || state.isWithered -> {
+                    // withered
+                    binding.healthBar.progressTintList = ColorStateList.valueOf(Color.DKGRAY)
+                }
+                state.plantHealthPercent < 40 -> {
+                    binding.healthBar.progressTintList = ColorStateList.valueOf(Color.RED)
+                }
+                else -> {
+                    binding.healthBar.progressTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
+                }
             }
+//            if (state.plantHealthPercent<40) {
+//                binding.healthBar.progressTintList = ColorStateList.valueOf(Color.RED)
+//            } else { // normal healthy level
+//                binding.healthBar.progressTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
+//            }
 
             // KIV!!!! haoting you can consider these 2 codes, if they help
             // update plant image

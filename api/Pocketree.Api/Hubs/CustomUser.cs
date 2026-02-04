@@ -9,6 +9,9 @@ namespace Pocketree.Api.Hubs
         // Extract UserID claim from the cookie
         public string GetUserId(HubConnectionContext connection)
         {
+            var userIdClaim = connection.User?.FindFirst("userId")?.Value;
+            if (!string.IsNullOrEmpty(userIdClaim)) return userIdClaim;
+
             return connection.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         }
     }
