@@ -1,10 +1,6 @@
 fastapi
 uvicorn
-scikit-learn
-pandas
-pytest
-httpx
 torch
-transformers
-pillow
-numpy
+open_clip_torch
+Pillow
+python-multipart
