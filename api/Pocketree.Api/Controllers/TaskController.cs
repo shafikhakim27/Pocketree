@@ -207,7 +207,8 @@ namespace ADproject.Controllers
                         // Check and update level, coins, badges and vouchers
                         var result = await UpdateLevelAndCoins(user, task);
                         levelUp = result.levelUp;
-                        newLevelName = result.levelName;
+                        //new
+                        if(levelUp) newLevelName = result.levelName;
                         await CheckAndAwardBadges(user);
                         await CheckAndAwardVouchers(user);
                     }
@@ -233,6 +234,7 @@ namespace ADproject.Controllers
                         NewLevel = user.CurrentLevelID,
                         IsWithered = activeTree?.IsWithered ?? false,
                         NewLevelName = newLevelName,
+                        PlantHealthPercent = 100,
                     };
                 }
                 catch (Exception)

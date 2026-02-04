@@ -22,6 +22,7 @@ data class UserState(
     val levelImageUrl: String = "",
     val profileImageUrl: String = "",
     val isWithered: Boolean = false,
+    val plantHealthPercent: Int = 100
 )
 
 class UserViewModel: ViewModel() {
@@ -62,7 +63,8 @@ class UserViewModel: ViewModel() {
             levelName = user.levelName ?: "Seedling",
             levelImageUrl = user.levelImageUrl ?: "",
             profileImageUrl = user.profileImageUrl ?: "",
-            isWithered = user.isWithered ?: false
+            isWithered = user.isWithered ?: false,
+            plantHealthPercent = user.plantHealthPercent ?: 100
         )
         userState.postValue(newState)
 
@@ -79,7 +81,8 @@ class UserViewModel: ViewModel() {
         levelName: String,
         isWithered: Boolean,
         levelImageUrl: String?,
-        profileImageUrl: String?
+        profileImageUrl: String?,
+        plantHealthPercent: Int
     ) {
         val newState = UserState(
             username,
@@ -88,7 +91,8 @@ class UserViewModel: ViewModel() {
             levelName,
             levelImageUrl ?: "",
             profileImageUrl ?:"",
-            isWithered
+            isWithered,
+            plantHealthPercent
         )
         userState.value = newState // use .value for main thread calls
 
@@ -245,7 +249,8 @@ class UserViewModel: ViewModel() {
                                     totalCoins = result.newCoins,
                                     currentLevelID = result.newLevel,
                                     levelName = result.newLevelName ?: current.levelName,  // update level name
-                                    isWithered = result.isWithered
+                                    isWithered = result.isWithered,
+                                    plantHealthPercent = result.plantHealthPercent
                                 )
                             )
 
@@ -536,7 +541,7 @@ class UserViewModel: ViewModel() {
         val context = MyApplication.getContext()
 
         val request = Request.Builder()
-            .url("$userBaseUrl/Logout")
+            .url("$userBaseUrl/LogoutApi")
             .post("".toRequestBody(null))
             .build()
 

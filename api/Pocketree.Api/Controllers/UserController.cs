@@ -69,16 +69,6 @@ namespace ADproject.Controllers
         [HttpPost("LoginApi")]
         public async Task<IActionResult> LoginApi([FromBody] UserLoginDto dto)
         {
-            // var userData = await db.Users
-            //     .Where(u => u.Username == dto.Username)
-            //     .Select(u => new
-            //     {
-            //         User = u,
-            //         ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted),
-            //         LevelName = u.CurrentLevel.LevelName
-            //     })
-            //     .FirstOrDefaultAsync();
-
             // fetch User object so we can update Login/Activity dates directly
             var user = await db.Users
                         .Include(u => u.CurrentLevel)
@@ -97,17 +87,6 @@ namespace ADproject.Controllers
                 // Set tree status
                 await CheckWithering(activeTree, user.LastActivityDate);
 
-                
-                // if (user.LastActivityDate.HasValue)
-                // {
-                //     var daysNoActivity = (DateTime.UtcNow - user.LastActivityDate.Value).TotalDays;
-                //     if (daysNoActivity > witheringThreshold && userData.ActiveTree != null)
-                //     {
-                //         userData.ActiveTree.IsWithered = true;
-                //     }
-                // }
-
-                // var userProfile = GetUserProfile(user, userData.ActiveTree, userData.LevelName);
                 user.IsOnline = true; // Set user's online status to true
                 user.LastLoginDate = DateTime.UtcNow; // Update LastLoginDate
                 
@@ -186,18 +165,42 @@ namespace ADproject.Controllers
 
             await CheckWithering(userData.ActiveTree, userData.LastActivityDate);
 
-            var userProfile = new UserProfileViewModel
+            // new
+            double hoursSinceLastActivity = 0;
+            if (userData.LastActivityDate.HasValue)
+            {
+                hoursSinceLastActivity = (DateTime.UtcNow - userData.LastActivityDate.Value).TotalHours;
+            }
+
+            var totalWindow = 72.0; // 3 days in hours
+            var percent = (int)((1-(hoursSinceLastActivity/totalWindow))*100);
+            int finalPercent = Math.Clamp(percent,0,100);
+
+            var androidProfile = new AndroidUserProfileViewModel
             {
                 Username = userData.Username,
                 TotalCoins = userData.TotalCoins,
                 LevelName = userData.LevelName ?? "Seedling",
-                LevelID = userData.CurrentLevelID,
+                LevelID = userData.CurrentLevelID,                    
                 LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
                 ProfileImageURL = userData.ProfileImageURL ?? "~/images/default-user.jpg",
-                IsWithered = userData.ActiveTree?.IsWithered ?? false
+                IsWithered = userData.ActiveTree?.IsWithered ?? false,              
+                PlantHealthPercent = finalPercent
             };
+            // end of new 
 
-            return Ok(userProfile);
+            // var userProfile = new UserProfileViewModel
+            // {
+            //     Username = userData.Username,
+            //     TotalCoins = userData.TotalCoins,
+            //     LevelName = userData.LevelName ?? "Seedling",
+            //     LevelID = userData.CurrentLevelID,
+            //     LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
+            //     ProfileImageURL = userData.ProfileImageURL ?? "~/images/default-user.jpg",
+            //     IsWithered = userData.ActiveTree?.IsWithered ?? false,
+            // };
+
+            return Ok(androidProfile);
         }
 
         // Private function (not API) for backend use
@@ -210,7 +213,7 @@ namespace ADproject.Controllers
                 LevelName = levelName ?? "Seedling",
                 LevelID = user.CurrentLevelID,
                 LevelImageURL = user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png",
-                IsWithered = activeTree?.IsWithered ?? false
+                IsWithered = activeTree?.IsWithered ?? false,
             };
         }
 
@@ -457,7 +460,7 @@ namespace ADproject.Controllers
             return View(); // Remain on login page
         }
 
-        [HttpGet("/User/Logout")]
+        [HttpGet("/User/LogoutApi")]
         public async Task<IActionResult> Logout()
         {
             var userId = HttpContext.Session.GetString("UserID");

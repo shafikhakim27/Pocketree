@@ -12,5 +12,6 @@ data class User (
     @SerializedName("levelImageURL") val levelImageUrl: String = "",
     @SerializedName("profileImageURL") var profileImageUrl: String = "",
     @SerializedName("isWithered") val isWithered: Boolean = false,
+    @SerializedName("plantHealthPercent") val plantHealthPercent: Int,
     val lastLoginDate: String = "", //Gson unable to parse LocalDateTime
 )

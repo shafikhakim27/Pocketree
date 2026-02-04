@@ -9,5 +9,6 @@ namespace ADproject.Models.DTOs
         public int NewLevel { get; set; }
         public bool IsWithered { get; set; }
         public string NewLevelName { get; set; }
+        public int PlantHealthPercent { get; set; }
     }
 }
