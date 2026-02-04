@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Pocketree.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class initialfinal : Migration
+    public partial class finalDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -85,6 +85,8 @@ namespace Pocketree.Api.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     SkinPrice = table.Column<int>(type: "int", nullable: false),
                     ImageURL = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
+                        .Annotation("MySql:CharSet", "utf8mb4"),
+                    SkinKey = table.Column<string>(type: "varchar(25)", maxLength: 25, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
@@ -359,6 +361,7 @@ namespace Pocketree.Api.Migrations
                     UserID = table.Column<int>(type: "int", nullable: false),
                     SkinID = table.Column<int>(type: "int", nullable: false),
                     RedemptionDate = table.Column<DateTime>(type: "datetime(6)", nullable: true),
+                    IsRedeemed = table.Column<bool>(type: "tinyint(1)", nullable: false),
                     IsEquipped = table.Column<bool>(type: "tinyint(1)", nullable: false)
                 },
                 constraints: table =>

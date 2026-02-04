@@ -272,6 +272,10 @@ namespace ADproject.Controllers
                  .FirstOrDefaultAsync(u => u.Username == User.Identity.Name);
             if (user == null) return Unauthorized();
 
+            var existingSkin = await db.UserSkins
+                .FirstOrDefaultAsync(us => us.UserID == user.UserID && us.SkinID == skinId);
+            if (existingSkin != null) return BadRequest("You already owned this skin.");
+
             var skin = await db.Skins.FindAsync(skinId);
             if (skin == null) return BadRequest("Requested skin cannot be found.");
 
@@ -286,6 +290,7 @@ namespace ADproject.Controllers
                     UserID = user.UserID,
                     SkinID = skinId,
                     RedemptionDate = DateTime.UtcNow,
+                    IsRedeemed = true
                 };
 
             db.UserSkins.Add(userSkinEntry);
@@ -437,6 +442,7 @@ namespace ADproject.Controllers
                 UserID = user.UserID,
                 VoucherID = VoucherId,
                 RedemptionDate = DateTime.UtcNow,
+                RedemptionCode = GenerateRedemptionCode(),
                 IsRedeemed = true
             };
 

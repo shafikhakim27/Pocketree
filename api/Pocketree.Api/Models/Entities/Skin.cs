@@ -11,5 +11,7 @@ namespace ADproject.Models.Entities
         public int SkinPrice { get; set; }
         [Required, StringLength(255)]
         public string? ImageURL { get; set; }
+        [Required, StringLength(25)]
+        public string? SkinKey { get; set; }
     }
 }

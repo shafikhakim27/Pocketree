@@ -9,5 +9,6 @@
         public string? LevelImageURL { get; set; }
         public string? ProfileImageURL { get; set; }
         public bool IsWithered { get; set; }
+        public string? EquippedSkinURL { get; set; }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using ADproject.Models.ViewModels;
+using Pocketree.Api.Models.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
+using Pocketree.Api.Models.DTOs;
 using Pocketree.Api.Models.Entities;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
@@ -151,9 +153,12 @@ namespace ADproject.Controllers
             var userData = await db.Users
                     // .AsNoTracking() - remove so we can update tree status
                     .Where(u => u.Username == User.Identity.Name)
+                    .Include(u => u.UserSkins)
+                        .ThenInclude(us => us.Skin)
+                    .Include(u => u.Trees)
                     .Select(u => new
                     {
-                        User = u, // so as to be able to access LastActivityDate to update tree status
+                        User = u, // so as to be able to access LastActivityDate to update tree status                        
                         u.Username,
                         u.TotalCoins,
                         u.CurrentLevelID,
@@ -169,7 +174,7 @@ namespace ADproject.Controllers
 
             await CheckWithering(userData.ActiveTree, userData.LastActivityDate);
 
-            // new
+            // Check for the withering condition
             double hoursSinceLastActivity = 0;
             if (userData.LastActivityDate.HasValue)
             {
@@ -180,6 +185,36 @@ namespace ADproject.Controllers
             var percent = (int)((1-(hoursSinceLastActivity/totalWindow))*100);
             int finalPercent = Math.Clamp(percent,0,100);
 
+            // Equipping user's skin
+            bool isWithered = userData.ActiveTree?.IsWithered ?? false;
+
+            //dynamically concatenate image file names
+            string stageName = userData.LevelName.Split(' ')[0];
+            string skinSuffix = "";
+            string statusSuffix = "";
+
+            if (isWithered)
+            {
+                finalPercent = 0;
+                statusSuffix = "_Withered";     // Withered trees don't have skin
+            }
+            else
+            {
+                if (userData.CurrentLevelID > 1) // cannot equip skin at Lv1
+                {
+                    var equippedSkin = userData.User.UserSkins.FirstOrDefault(us => us.IsEquipped);
+                    if (equippedSkin != null)
+                    {
+                        skinSuffix = "_" + equippedSkin.Skin.SkinKey;
+                    }
+                }
+            }
+
+            // get the whole file name, e.g. Tree_Sapling_Animals.png
+            string fileName = $"Tree_{stageName}{skinSuffix}{statusSuffix}.png";
+            string finalImageUrl = $"~/images/trees/{fileName}";
+            
+            // Prepare UserProfile data to send back to Android
             var androidProfile = new AndroidUserProfileViewModel
             {
                 Username = userData.Username,
@@ -187,22 +222,10 @@ namespace ADproject.Controllers
                 LevelName = userData.LevelName ?? "Seedling",
                 LevelID = userData.CurrentLevelID,                    
                 LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
-                ProfileImageURL = userData.ProfileImageURL ?? "~/images/default-user.jpg",
+                ProfileImageURL = baseURL + (userData.ProfileImageURL ?? "~/images/default-user.jpg"),
                 IsWithered = userData.ActiveTree?.IsWithered ?? false,              
                 PlantHealthPercent = finalPercent
             };
-            // end of new 
-
-            // var userProfile = new UserProfileViewModel
-            // {
-            //     Username = userData.Username,
-            //     TotalCoins = userData.TotalCoins,
-            //     LevelName = userData.LevelName ?? "Seedling",
-            //     LevelID = userData.CurrentLevelID,
-            //     LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
-            //     ProfileImageURL = userData.ProfileImageURL ?? "~/images/default-user.jpg",
-            //     IsWithered = userData.ActiveTree?.IsWithered ?? false,
-            // };
 
             return Ok(androidProfile);
         }
@@ -305,31 +328,35 @@ namespace ADproject.Controllers
 
         // Provide all skins that the user has redeemed
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [HttpGet("GetAllRedeemedSkinsApi")]
-        public async Task<IActionResult> GetAllRedeemedSkinsApi()
+        [HttpGet("GetSkinsShopApi")]
+        public async Task<IActionResult> GetSkinsShopApi()
         {
             var username = User.Identity?.Name;
-            var userId = await db.Users
-                .AsNoTracking()
-                .Where(u => u.Username == username)
-                .Select(u => u.UserID)
-                .FirstOrDefaultAsync();
+            var user = await db.Users.FirstOrDefaultAsync(u => u.Username == username);
+            if (user == null) return Unauthorized();
 
-            if (userId == 0) return Unauthorized();
+            var allSkins = await db.Skins.AsNoTracking().ToListAsync();
 
-            var allSkins = await db.UserSkins
-                .AsNoTracking()
-                .Where(us => us.UserID == userId)
-                .OrderByDescending(us => us.RedemptionDate) // From latest to oldest
-                .Select(us => new
-                {
-                    SkinName = us.Skin.SkinName,
-                    ImageURL = baseURL + (us.Skin.ImageURL ?? "default_skin.png"),
-                    RedemptionDate = us.RedemptionDate
-                })
+            var userSkins = await db.UserSkins
+                .Where(us => us.UserID == user.UserID)
                 .ToListAsync();
 
-            return Ok(allSkins);
+            var shopList = allSkins.Select(skin =>
+            {
+                var ownedRecord = userSkins.FirstOrDefault(us => us.SkinID == skin.SkinID);
+
+                return new SkinShopDto
+                {
+                    SkinID = skin.SkinID,
+                    SkinName = skin.SkinName,
+                    SkinPrice = skin.SkinPrice,
+                    ImageURL = baseURL + (skin.ImageURL ?? "default_skin.png"),
+                    IsRedeemed = (ownedRecord != null),
+                    IsEquipped = (ownedRecord != null && ownedRecord.IsEquipped)
+                };
+            }).ToList();
+
+            return Ok(shopList);
         }
 
         // Provide all vouchers that the user is awarded and can redeem
@@ -351,9 +378,11 @@ namespace ADproject.Controllers
                 .Where(uv => uv.UserID == userId)
                 .Select(uv => new
                 {
+                    VoucherID = uv.Voucher.VoucherID,
                     VoucherName = uv.Voucher.VoucherName,
                     Description = uv.Voucher.Description,
-                    RedemptionCode = uv.RedemptionCode
+                    RedemptionCode = uv.RedemptionCode,
+                    IsRedeemed = uv.IsRedeemed
                 })
                 .ToListAsync();
 

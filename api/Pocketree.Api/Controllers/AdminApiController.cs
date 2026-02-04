@@ -102,7 +102,7 @@ namespace Pocketree.Api.Controllers
         }
 
         [HttpPost("SendPrivateMessage")]
-        public async Task<IActionResult> SendPrivateMessage(int userId, string message)
+        public async Task<IActionResult> SendPrivateMessage([FromQuery] int userId, [FromQuery] string message)
         {
             // Get the AdminID
             var adminId = HttpContext.Session.GetString("AdminID");
