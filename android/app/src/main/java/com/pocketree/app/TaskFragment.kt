@@ -82,8 +82,27 @@ class TaskFragment: Fragment() {
             }
         }
 
-        sharedViewModel.isLoading.observe(viewLifecycleOwner) { loading ->
-            binding.loadingOverlay.visibility = if (loading) View.VISIBLE else View.GONE
+        sharedViewModel.isAiVerifying.observe(viewLifecycleOwner) { verifying ->
+            binding.loadingOverlay.visibility = if (verifying) View.VISIBLE else View.GONE
+        }
+
+        // ff
+        sharedViewModel.statusMessage.observe(viewLifecycleOwner){ msg ->
+            if (msg != null){
+                binding.dailyStatusTv.text = msg
+                binding.dailyStatusTv.visibility = View.VISIBLE
+            } else {
+                if (binding.dailyStatusTv.text != "Come back tomorrow for new tasks!"){
+                    binding.dailyStatusTv.visibility = View.GONE
+                }
+            }
+        }
+
+        sharedViewModel.errorMessage.observe(viewLifecycleOwner) { error ->
+            error?.let{
+                Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                sharedViewModel.errorMessage.value = null
+            }
         }
 
         sharedViewModel.levelUpEvent.observe(viewLifecycleOwner) { details ->
@@ -177,7 +196,8 @@ class TaskFragment: Fragment() {
         val keyword = task?.keyword ?: ""
 
         if (keyword.isEmpty()) {
-            Toast.makeText(requireContext(), "Error: Task has no keyword", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Error: Task has no keyword", Toast.LENGTH_SHORT)
+                .show()
             currentProcessingTaskId = null // Clean up
             return@registerForActivityResult
         }
@@ -189,21 +209,15 @@ class TaskFragment: Fragment() {
             // converting the image taken into data (90 to balance quality and upload speed)
             val imageBytes = stream.toByteArray()
 
-            verifyAndSubmit(id = currentProcessingTaskId!!, keyword = keyword, imageBytes = imageBytes)
-
-            currentProcessingTaskId?.let { id ->
-                sharedViewModel.submitTask(id, "Completed", imageBytes)
-                // this part checks if there is an active task ID
-                // and converts that memory stream into a Byte Array and tells userViewModel to upload it
-                currentProcessingTaskId = null
-            } ?: run {
-                Toast.makeText(requireContext(),
-                    "Error: Task ID missing",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+            sharedViewModel.processTaskWithVerification(
+                id = currentProcessingTaskId!!,
+                keyword = keyword,
+                imageBytes = imageBytes
+            )
+            currentProcessingTaskId = null
         } catch (e:Exception) {
-            Toast.makeText(requireContext(),
+            Toast.makeText(
+                requireContext(),
                 "Error processing photo",
                 Toast.LENGTH_SHORT
             ).show()
@@ -211,39 +225,26 @@ class TaskFragment: Fragment() {
         }
     }
 
-    //ff
-    private fun verifyAndSubmit(id: Int, keyword: String, imageBytes: ByteArray) {
-        binding.loadingOverlay.visibility = View.VISIBLE
-        binding.dailyStatusTv.text = "AI is verifying your photo..."
-        binding.dailyStatusTv.visibility = View.VISIBLE
 
-        // Prepare the Multipart data for Retrofit
-        val requestFile = imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
-        val body = MultipartBody.Part.createFormData("file", "room_with_tv.jpg", requestFile)
-        val keywordBody = keyword.toRequestBody("text/plain".toMediaTypeOrNull())
-
-        viewLifecycleOwner.lifecycleScope.launch {
-            try {
-                val response = RetrofitClient.mlInstance.verifyImage(body, keywordBody)
-
-                if (response.isSuccessful && response.body()?.isVerified == true) {
-                    // SUCCESS
-                    sharedViewModel.submitTask(id, "Completed", imageBytes)
-                    Toast.makeText(requireContext(), "Picture is verified!", Toast.LENGTH_SHORT).show()
-                } else {
-                    // FAILURE
-                    Toast.makeText(requireContext(), "Please try again! $keyword could not be found.", Toast.LENGTH_LONG).show()
-                }
-            } catch (e: Exception) {
-                Log.e("AI_ERROR", "Check your internet or Cold Start: ${e.message}")
-                Toast.makeText(requireContext(), "Verification error. Please try again.", Toast.LENGTH_SHORT).show()
-            } finally {
-                binding.loadingOverlay.visibility = View.GONE
-                binding.dailyStatusTv.visibility = View.GONE
-                currentProcessingTaskId = null
-            }
-        }
-    }
+//            currentProcessingTaskId?.let { id ->
+//                sharedViewModel.submitTask(id, "Completed", imageBytes)
+//                // this part checks if there is an active task ID
+//                // and converts that memory stream into a Byte Array and tells userViewModel to upload it
+//                currentProcessingTaskId = null
+//            } ?: run {
+//                Toast.makeText(requireContext(),
+//                    "Error: Task ID missing",
+//                    Toast.LENGTH_SHORT
+//                ).show()
+//            }
+//        } catch (e:Exception) {
+//            Toast.makeText(requireContext(),
+//                "Error processing photo",
+//                Toast.LENGTH_SHORT
+//            ).show()
+//            currentProcessingTaskId = null
+//        }
+//    }
 
     override fun onDestroyView() {
         super.onDestroyView()
