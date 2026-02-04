@@ -382,7 +382,7 @@ class UserViewModel: ViewModel() {
 
     fun fetchSkins() {
         val request = Request.Builder()
-            .url("$userBaseUrl/GetAllSkinsApi")
+            .url("$userBaseUrl/GetSkinsShopApi")
             .get()
             .build()
 
@@ -412,11 +412,7 @@ class UserViewModel: ViewModel() {
 
     // check back again
     fun redeemSkin(skinId:Int) {
-        val json = JSONObject().apply {
-            put("SkinID", skinId)
-        }
-
-        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val body = skinId.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
             .url("$taskBaseUrl/RedeemSkinApi")
@@ -428,13 +424,11 @@ class UserViewModel: ViewModel() {
                 if (response.isSuccessful) {
                     val json = response.body?.string()
                     val result = gson.fromJson(json, Map::class.java)
-
                     val newBalance = (result["newCoins"] as Double).toInt()
                     // Gson defaults to treating all numbers as Doubles
                     // when parsing into a generic Map<String, Any>
                     val currentState = userState.value ?: UserState()
                     userState.postValue(currentState.copy(totalCoins=newBalance))
-
                     redeemSkinSuccessEvent.postValue("Skin redeemed successfully!")
                 } else {
                     val errorBody = response.body?.string() ?: "Unknown error"
@@ -449,11 +443,7 @@ class UserViewModel: ViewModel() {
 
 
     fun equipSkin(skinId: Int) {
-        val json = JSONObject().apply {
-            put("SkinID", skinId)
-        }
-
-        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val body = skinId.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
             .url("$taskBaseUrl/EquipSkinApi")
@@ -504,11 +494,7 @@ class UserViewModel: ViewModel() {
 
 
     fun redeemVoucher(voucherId: Int) {
-        val json = JSONObject().apply {
-            put("VoucherID", voucherId)
-        }
-
-        val body = json.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
+        val body = voucherId.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
         val request = Request.Builder()
             .url("$taskBaseUrl/RedeemVoucherApi")
@@ -536,7 +522,7 @@ class UserViewModel: ViewModel() {
         val context = MyApplication.getContext()
 
         val request = Request.Builder()
-            .url("$userBaseUrl/Logout")
+            .url("$userBaseUrl/LogoutApi")
             .post("".toRequestBody(null))
             .build()
 
