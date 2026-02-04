@@ -24,10 +24,10 @@ The system is composed of three primary services orchestrated via Docker.
 
 ---
 
-![API Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/api.yml/badge.svg)
-![ML Service Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/ml-service.yml/badge.svg)
-![Android Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/android.yml/badge.svg)
-![Azure API Deployment](https://github.com/shafikhakim27/Pocketree/actions/workflows/azure-deploy.yml/badge.svg)
+![API Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/api-ci.yml/badge.svg)
+![ML Service Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/ml-service-ci.yml/badge.svg)
+![Android Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/android-ci.yml/badge.svg)
+![Azure API Deployment](https://github.com/shafikhakim27/Pocketree/actions/workflows/api-cd.yml/badge.svg)
 
 **Azure Deployment Status:**
 - 🌐 **API**: [![Deploy to Azure](https://img.shields.io/badge/Azure-Deployed-blue?logo=microsoft-azure)](https://pocketree-api.azurewebsites.net)
