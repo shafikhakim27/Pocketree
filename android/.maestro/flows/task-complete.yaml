@@ -1,0 +1,13 @@
+﻿# --- Complete a Task ---
+- tapOn: "Tasks"
+- assertVisible:
+    id: "taskList"
+# This assumes the first task in the list is tappable
+- tapOn:
+    id: "taskListItem-0"
+- assertVisible:
+    id: "taskDetailView"
+- assertVisible: "Complete Task"
+- tapOn: "Complete Task"
+- assertVisible: "Task Completed!"
+- takeScreenshot: .maestro/screenshots/Task_Completion_Success

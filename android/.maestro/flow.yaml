@@ -1,7 +1,10 @@
-appId: com.pocketree.app
+﻿appId: com.pocketree.app
+name: Main Flow
 ---
-- launchApp
-- waitForAnimationToEnd:
-    timeout: 5000
-- assertVisible: "Welcome! Please log in"
-- takeScreenshot: .maestro/screenshots/Startup_Success
+- runFlow: flows/login.yaml
+- runFlow: flows/home.yaml
+- runFlow: flows/tasks.yaml
+- runFlow: flows/task-complete.yaml
+- runFlow: flows/redeem-skin.yaml
+- runFlow: flows/settings.yaml
+- runFlow: flows/logout.yaml
