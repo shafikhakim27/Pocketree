@@ -1,12 +1,10 @@
-using ADproject.Models.Entities;
+﻿using ADproject.Models.Entities;
 using ADproject.Models.DTOs;
 using ADproject.Controllers;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
-using Moq;
 
 namespace Pocketree.Api.Tests;
 
@@ -23,7 +21,6 @@ public class AuthenticationTests
 
     private async System.Threading.Tasks.Task SeedRequiredData(MyDbContext context)
     {
-        // Add Levels (required for user registration and login)
         if (!context.Levels.Any())
         {
             context.Levels.AddRange(
@@ -33,7 +30,6 @@ public class AuthenticationTests
             );
         }
 
-        // Add GlobalMission (required for tree planting)
         if (!context.GlobalMissions.Any())
         {
             context.GlobalMissions.Add(new GlobalMission
@@ -53,11 +49,10 @@ public class AuthenticationTests
     {
         var mockHasher = hasher ?? Mock.Of<IPasswordHasher<User>>();
         var mockConfig = CreateMockConfiguration();
-        
         return new UserController(context, mockHasher, mockConfig);
     }
 
-    private Microsoft.Extensions.Configuration.IConfiguration CreateMockConfiguration()
+    private IConfiguration CreateMockConfiguration()
     {
         var inMemorySettings = new Dictionary<string, string>
         {
@@ -66,11 +61,38 @@ public class AuthenticationTests
             {"Jwt:Audience", "PocketreeApp"}
         };
 
-        Microsoft.Extensions.Configuration.IConfiguration configuration = new ConfigurationBuilder()
+        return new ConfigurationBuilder()
             .AddInMemoryCollection(inMemorySettings!)
             .Build();
+    }
 
-        return configuration;
+    private User CreateTestUser(
+        int userId = 1,
+        string username = "testuser",
+        string email = "test@test.com",
+        string passwordHash = "hashed_password",
+        string role = "Player",
+        int coins = 0,
+        DateTime? lastLogin = null)
+    {
+        return new User
+        {
+            UserID = userId,
+            Username = username,
+            Email = email,
+            PasswordHash = passwordHash,
+            ProfileImageURL = "/images/default-user.jpg",
+            CurrentLevelID = 1,
+            TotalCoins = coins,
+            LastLoginDate = lastLogin ?? DateTime.UtcNow,
+            LastActivityDate = null,
+            UserRole = role,
+            IsOnline = false,
+            ResetExpiry = default(DateTime),
+            UncompletedTaskCount = 0,
+            NotAttemptedTaskCount = 0,
+            FailedVerificationCount = 0
+        };
     }
 
     [Fact]
@@ -106,6 +128,8 @@ public class AuthenticationTests
         Assert.Equal("hashed_password_123", createdUser.PasswordHash);
         Assert.Equal(0, createdUser.TotalCoins);
         Assert.Equal(1, createdUser.CurrentLevelID);
+        Assert.Equal("Player", createdUser.UserRole);
+        Assert.False(createdUser.IsOnline);
     }
 
     [Fact]
@@ -116,18 +140,7 @@ public class AuthenticationTests
         using var context = new MyDbContext(options);
         await SeedRequiredData(context);
         
-        var existingUser = new User
-        {
-            UserID = 1,
-            Username = "existinguser",
-            Email = "existing@test.com",
-            PasswordHash = "hash",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 0,
-            CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
-        };
+        var existingUser = CreateTestUser(username: "existinguser", email: "existing@test.com");
         context.Users.Add(existingUser);
         await context.SaveChangesAsync();
         
@@ -157,18 +170,7 @@ public class AuthenticationTests
         await SeedRequiredData(context);
         
         var mockHasher = new Mock<IPasswordHasher<User>>();
-        var user = new User
-        {
-            UserID = 1,
-            Username = "testuser",
-            Email = "test@test.com",
-            PasswordHash = "hashed_password",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 100,
-            CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
-        };
+        var user = CreateTestUser(coins: 100);
         context.Users.Add(user);
         await context.SaveChangesAsync();
         
@@ -189,7 +191,6 @@ public class AuthenticationTests
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(okResult.Value);
-        // Token should be in the response
     }
 
     [Fact]
@@ -224,18 +225,7 @@ public class AuthenticationTests
         await SeedRequiredData(context);
         
         var mockHasher = new Mock<IPasswordHasher<User>>();
-        var user = new User
-        {
-            UserID = 1,
-            Username = "testuser",
-            Email = "test@test.com",
-            PasswordHash = "hashed_password",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 100,
-            CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
-        };
+        var user = CreateTestUser();
         context.Users.Add(user);
         await context.SaveChangesAsync();
         
@@ -266,18 +256,7 @@ public class AuthenticationTests
         await SeedRequiredData(context);
         
         var mockHasher = new Mock<IPasswordHasher<User>>();
-        var user = new User
-        {
-            UserID = 1,
-            Username = "testuser",
-            Email = "test@test.com",
-            PasswordHash = "old_hashed_password",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 100,
-            CurrentLevelID = 1,
-            LastLoginDate = DateTime.UtcNow,
-            LastActivityDate = DateTime.UtcNow
-        };
+        var user = CreateTestUser(passwordHash: "old_hashed_password");
         context.Users.Add(user);
         await context.SaveChangesAsync();
         
@@ -350,18 +329,7 @@ public class AuthenticationTests
         
         var oldLoginDate = DateTime.UtcNow.AddDays(-5);
         var mockHasher = new Mock<IPasswordHasher<User>>();
-        var user = new User
-        {
-            UserID = 1,
-            Username = "testuser",
-            Email = "test@test.com",
-            PasswordHash = "hashed_password",
-            ProfileImageURL = "/images/default-user.jpg",
-            TotalCoins = 100,
-            CurrentLevelID = 1,
-            LastLoginDate = oldLoginDate,
-            LastActivityDate = oldLoginDate
-        };
+        var user = CreateTestUser(lastLogin: oldLoginDate, coins: 100);
         context.Users.Add(user);
         await context.SaveChangesAsync();
         
@@ -383,5 +351,71 @@ public class AuthenticationTests
         var okResult = Assert.IsType<OkObjectResult>(result);
         var updatedUser = await context.Users.FindAsync(1);
         Assert.True(updatedUser.LastLoginDate > oldLoginDate);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task Login_Should_ReturnUserRole()
+    {
+        // Arrange
+        var options = CreateDbOptions("Login_ReturnsUserRole");
+        using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
+        
+        var mockHasher = new Mock<IPasswordHasher<User>>();
+        var user = CreateTestUser(username: "playeruser", email: "player@test.com");
+        context.Users.Add(user);
+        await context.SaveChangesAsync();
+        
+        mockHasher.Setup(h => h.VerifyHashedPassword(It.IsAny<User>(), "hashed_password", "Password123"))
+                  .Returns(PasswordVerificationResult.Success);
+        
+        var controller = CreateController(context, mockHasher.Object);
+        
+        var dto = new UserLoginDto
+        {
+            Username = "playeruser",
+            Password = "Password123"
+        };
+        
+        // Act
+        var result = await controller.LoginApi(dto);
+        
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var loggedInUser = await context.Users.FirstAsync(u => u.Username == "playeruser");
+        Assert.Equal("Player", loggedInUser.UserRole);
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task AdminLogin_Should_ReturnAdminRole()
+    {
+        // Arrange
+        var options = CreateDbOptions("AdminLogin");
+        using var context = new MyDbContext(options);
+        await SeedRequiredData(context);
+        
+        var mockHasher = new Mock<IPasswordHasher<User>>();
+        var adminUser = CreateTestUser(username: "adminuser", email: "admin@test.com", role: "Admin");
+        context.Users.Add(adminUser);
+        await context.SaveChangesAsync();
+        
+        mockHasher.Setup(h => h.VerifyHashedPassword(It.IsAny<User>(), "hashed_password", "AdminPass123"))
+                  .Returns(PasswordVerificationResult.Success);
+        
+        var controller = CreateController(context, mockHasher.Object);
+        
+        var dto = new UserLoginDto
+        {
+            Username = "adminuser",
+            Password = "AdminPass123"
+        };
+        
+        // Act
+        var result = await controller.LoginApi(dto);
+        
+        // Assert
+        var okResult = Assert.IsType<OkObjectResult>(result);
+        var loggedInUser = await context.Users.FirstAsync(u => u.Username == "adminuser");
+        Assert.Equal("Admin", loggedInUser.UserRole);
     }
 }

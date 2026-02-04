@@ -318,6 +318,9 @@ namespace Pocketree.Api.Migrations
 
                     b.HasIndex("CurrentLevelID");
 
+                    b.HasIndex("Username")
+                        .IsUnique();
+
                     b.ToTable("Users");
                 });
 

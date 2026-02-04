@@ -11,9 +11,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.google.android.material.textfield.TextInputEditText
+import com.google.android.material.textfield.TextInputLayout
 import com.pocketree.app.databinding.FragmentSettingsBinding
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -28,9 +30,6 @@ class SettingsFragment: Fragment() {
     private val sharedViewModel: UserViewModel by activityViewModels()
     private var mediaPlayer: MediaPlayer? = null    // for background music
     private lateinit var prefs: SharedPreferences    // to save user settings
-
-    private val baseUrl = "http://10.0.2.2:5042/api/User"
-    private val client = NetworkClient.okHttpClient
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -142,10 +141,31 @@ class SettingsFragment: Fragment() {
         }
     }
 
+//    private fun logOut() {
+//        binding.btnLogout.setOnClickListener {
+//            SignalRManager.stopConnection()
+//            sharedViewModel.logout()
+//        }
+//    }
+
     private fun logOut() {
         binding.btnLogout.setOnClickListener {
-            SignalRManager.stopConnection()
+            // clear data in ViewModel
             sharedViewModel.logout()
+
+            // 2. Navigate back to Login
+            val loginIntent = Intent(requireContext(), LoginActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                // clears app history so user can't press Back button to head back to Settings tab
+            }
+            startActivity(loginIntent) // start the login activity
+            activity?.finish() // ensures the activity holding the fragment is closed
+
+            Toast.makeText(
+                context,
+                "You have logged out successfully",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 
@@ -168,9 +188,19 @@ class SettingsFragment: Fragment() {
     private fun showChangePasswordDialog(){
         val dialogView = LayoutInflater.from(requireContext()).inflate(
             R.layout.dialog_change_password, null)
+
+        val layoutCurrent = dialogView.findViewById<TextInputLayout>(R.id.tilCurrentPassword)
+        val layoutNew = dialogView.findViewById<TextInputLayout>(R.id.tilNewPassword)
+        val layoutConfirm = dialogView.findViewById<TextInputLayout>(R.id.tilConfirmPassword)
+
         val etCurrent = dialogView.findViewById<TextInputEditText>(R.id.etCurrentPassword)
         val etNew = dialogView.findViewById<TextInputEditText>(R.id.etNewPassword)
         val etConfirm = dialogView.findViewById<TextInputEditText>(R.id.etConfirmPassword)
+
+       // real time validation within dialog context
+        etCurrent.doAfterTextChanged { layoutCurrent.error = null }
+        etNew.doAfterTextChanged { layoutNew.error = null }
+        etConfirm.doAfterTextChanged { layoutConfirm.error = null }
 
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
@@ -187,37 +217,72 @@ class SettingsFragment: Fragment() {
             val newPass = etNew.text.toString()
             val confirmPass = etConfirm.text.toString()
 
-            if (validatePasswordInput(currentPass, newPass, confirmPass)) {
+            val isValid = validatePasswordInput(
+                currentPass, newPass, confirmPass,
+                layoutCurrent, layoutNew, layoutConfirm
+            )
+
+//            if (validatePasswordInput(currentPass, newPass, confirmPass)) {
+//                sharedViewModel.sendPasswordChangeRequest(currentPass, newPass, confirmPass)
+//            }
+
+            if (isValid){
                 sharedViewModel.sendPasswordChangeRequest(currentPass, newPass, confirmPass)
+                dialog.dismiss() // close dialog only on success
             }
         }
     }
 
-    private fun validatePasswordInput(current:String,
-                                      new:String,
-                                      confirm:String):Boolean{
-        if (current.isEmpty() || new.isEmpty() || confirm.isEmpty()) {
-            Toast.makeText(
-                context, "All fields are required",
-                Toast.LENGTH_SHORT
-            ).show()
-            return false
+    private fun validatePasswordInput(
+        current:String, new:String, confirm:String,
+        layoutCurrent: TextInputLayout, layoutNew: TextInputLayout, layoutConfirm: TextInputLayout
+    ):Boolean{
+        var isValid = true
+
+        if (current.isEmpty()) {
+            layoutCurrent.error = "Current password required"
+            isValid = false
         }
+
+        if (new.isEmpty()) {
+            layoutNew.error = "New password required"
+            isValid = false
+        }
+
+        if (confirm.isEmpty()) {
+            layoutConfirm.error = "Please confirm your password"
+            isValid = false
+        }
+
+//        if (current.isEmpty() || new.isEmpty() || confirm.isEmpty()) {
+//            Toast.makeText(
+//                context, "All fields are required",
+//                Toast.LENGTH_SHORT
+//            ).show()
+//            return false
+//        }
+
         if (new.length <8) {
-            Toast.makeText(
-                context, "Password must be at least 8 characters",
-                Toast.LENGTH_SHORT
-            ).show()
-            return false
+//            Toast.makeText(
+//                context, "Password must be at least 8 characters",
+//                Toast.LENGTH_SHORT
+//            ).show()
+//            return false
+            layoutNew.error = "Password must be at least 8 characters"
+            isValid = false
         }
+
         if (new != confirm) {
-            Toast.makeText(
-                context, "New passwords do not match",
-                Toast.LENGTH_SHORT
-            ).show()
-            return false
+//            Toast.makeText(
+//                context, "New passwords do not match",
+//                Toast.LENGTH_SHORT
+//            ).show()
+//            return false
+            layoutConfirm.error = "Passwords do not match"
+            isValid = false
         }
-        return true
+        // return true
+        return isValid
     }
 
 //    private fun sendChangePasswordRequest(current: String,

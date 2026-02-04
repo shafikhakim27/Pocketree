@@ -8,6 +8,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
@@ -20,6 +21,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Force light mode - prevents dark mode from activating
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
+
         super.onCreate(savedInstanceState)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -59,7 +63,8 @@ class MainActivity : AppCompatActivity() {
                 levelName = intent.getStringExtra("levelName") ?: "Seedling",
                 isWithered = intent.getBooleanExtra("isWithered", false),
                 levelImageUrl = intent.getStringExtra("levelImageUrl"),
-                profileImageUrl = intent.getStringExtra("profileImageUrl")
+                profileImageUrl = intent.getStringExtra("profileImageUrl"),
+                plantHealthPercent = intent.getIntExtra("plantHealthPercent", 100)
             )
         } else {
             // fallback - in case intent is empty (e.g. app was killed/restored)

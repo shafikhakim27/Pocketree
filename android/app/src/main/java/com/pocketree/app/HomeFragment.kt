@@ -1,7 +1,11 @@
 package com.pocketree.app
 
+import android.animation.ObjectAnimator
 import android.app.AlertDialog
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -46,15 +50,28 @@ class HomeFragment: Fragment() {
         sharedViewModel.userState.observe(viewLifecycleOwner) { state ->
             binding.accountInfo.text = state.username
             binding.coinDisplay.text = "${state.totalCoins} coins"
-
+            binding.healthBar.progress = state.plantHealthPercent
+            Log.d("HomeFragment", "Health: ${state.plantHealthPercent}%")
             binding.levelDisplay.text = "Current Stage: ${state.levelName}"
 
             Glide.with(requireContext())
                 .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                 .circleCrop() // to make image round
                 .placeholder(R.drawable.profile_pic)
-                .error(R.drawable.profile_pic)
                 .into(binding.profilePic)
+
+            // to create "health bar" for plant (based on number of inactive days)
+            ObjectAnimator.ofInt(binding.healthBar, "progress", state.plantHealthPercent)
+                .setDuration(1000) // takes 1 sec to complete "animation" of change in bar color
+                .start()
+
+            // colour of health bar changes to red when percentage drops below 40%
+            // (ie user has not done a task in 2 days and tree will wither in another day)
+            if (state.plantHealthPercent<40) {
+                binding.healthBar.progressTintList = ColorStateList.valueOf(Color.RED)
+            } else { // normal healthy level
+                binding.healthBar.progressTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
+            }
 
             // KIV!!!! haoting you can consider these 2 codes, if they help
             // update plant image
@@ -81,12 +98,12 @@ class HomeFragment: Fragment() {
 //                    .grayscale() // Optional: some versions of Glide or transformations allow this
 //                    .into(plantView)
 //            }
+        }
 
-            sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
-                if (!badges.isNullOrEmpty()) {
-                    binding.badgesHeader.visibility = View.VISIBLE
-                    binding.recyclerViewBadges.adapter = BadgeAdapter(badges)
-                }
+        sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
+            if (!badges.isNullOrEmpty()) {
+                binding.badgesHeader.visibility = View.VISIBLE
+                binding.recyclerViewBadges.adapter = BadgeAdapter(badges)
             }
         }
     }
@@ -102,7 +119,7 @@ class HomeFragment: Fragment() {
                 .show()
         }
         if (withered) {
-            binding.statusWarning.text = "Your plant has withered. Complete a task to revive it!"
+            binding.statusWarning.text = "Your plant has withered.\nComplete a task to revive it!"
             binding.statusWarning.visibility = View.VISIBLE
             // remove below if changing to picture of dying tree
             binding.plant.alpha = 0.3f // make the plant look "faded"

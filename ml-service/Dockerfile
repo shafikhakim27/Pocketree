@@ -1,31 +1,16 @@
-# 1. Base Image
-FROM python:3.11-slim
+FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 
-# 2. Set Environment Variables
-# Prevents Python from writing pyc files and buffering stdout/stderr
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
-ENV PORT=5000
+RUN apt-get update && apt-get install -y python3.10 python3-pip libgl1 libglib2.0-0 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# 3. Install System Dependencies
-# libgl1 and libglib2.0 are required for OpenCV/ML libraries
-RUN apt-get update && apt-get install -y \
-    libgl1 \
-    libglib2.0-0 \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# COPY EVERYTHING FIRST - This is the "Nuke" strategy to ensure nothing is missed
+COPY . .
 
-# 4. Install Python Dependencies
-COPY ml-service/requirements.txt .
-RUN pip install --no-cache-dir --default-timeout=100 -r requirements.txt
+# Now install from the file we just copied
+RUN pip3 install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
-# 5. Copy ML source code
-COPY ml-service/ .
+# Pre-download weights
+RUN python3 -c "import open_clip; open_clip.create_model_and_transforms('MobileCLIP2-S0', pretrained='dfndr2b')"
 
-# 6. Expose the port
-EXPOSE 5000
-
-# 7. Start the application
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "5000"]
+CMD ["python3", "CLIPModelMobile-donotmerge.py"]

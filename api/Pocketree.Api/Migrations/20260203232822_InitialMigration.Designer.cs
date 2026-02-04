@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Pocketree.Api.Migrations
 {
     [DbContext(typeof(MyDbContext))]
-    [Migration("20260203091024_AddUserRoleResetExpiryIsOnline")]
-    partial class AddUserRoleResetExpiryIsOnline
+    [Migration("20260203232822_InitialMigration")]
+    partial class InitialMigration
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -320,6 +320,9 @@ namespace Pocketree.Api.Migrations
                     b.HasKey("UserID");
 
                     b.HasIndex("CurrentLevelID");
+
+                    b.HasIndex("Username")
+                        .IsUnique();
 
                     b.ToTable("Users");
                 });

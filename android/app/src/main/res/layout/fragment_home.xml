@@ -35,22 +35,42 @@
 
     </LinearLayout>
 
-    <TextView
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Nutrients and Water Progress Bar here"
-        android:textSize="20sp"
-        android:padding="8dp"/>
+        android:orientation="vertical"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/plant_health"
+            android:textSize="14sp"
+            android:paddingBottom="4dp"
+            android:textStyle="bold"/>
+
+        <ProgressBar
+            android:id="@+id/healthBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="20dp"
+            android:max="100"
+            android:progress="100"
+            android:progressDrawable="@drawable/custom_progress_bar"/>
+    </LinearLayout>
 
     <TextView
         android:id="@+id/status_warning"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="warning message here"
-        android:textColor="#FF0000"
+        android:text="@string/warning_message"
+        android:textColor="#F86262"
         android:gravity="center"
         android:visibility="gone"
-        android:textSize="18sp"/>
+        android:textSize="18sp"
+        android:padding="4dp"/>
 
     <ImageView
         android:id="@+id/plant"

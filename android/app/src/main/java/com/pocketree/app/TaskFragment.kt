@@ -3,6 +3,7 @@ package com.pocketree.app
 import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,9 +11,14 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.FragmentTaskBinding
+import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 
 class TaskFragment: Fragment() {
@@ -58,7 +64,6 @@ class TaskFragment: Fragment() {
                     .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                     .circleCrop() // to make image round
                     .placeholder(R.drawable.profile_pic)
-                    .error(R.drawable.profile_pic)
                     .into(binding.profilePic)
             }
         }
@@ -167,12 +172,24 @@ class TaskFragment: Fragment() {
             return@registerForActivityResult
         }
 
+        //ff
+        val task = sharedViewModel.tasks.value?.find { it.taskID == currentProcessingTaskId }
+        val keyword = task?.keyword ?: ""
+
+        if (keyword.isEmpty()) {
+            Toast.makeText(requireContext(), "Error: Task has no keyword", Toast.LENGTH_SHORT).show()
+            currentProcessingTaskId = null // Clean up
+            return@registerForActivityResult
+        }
+
         try {
             // camera returns a bitmap if photo is taken
             val stream = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, stream)
             // converting the image taken into data (90 to balance quality and upload speed)
             val imageBytes = stream.toByteArray()
+
+            verifyAndSubmit(id = currentProcessingTaskId!!, keyword = keyword, imageBytes = imageBytes)
 
             currentProcessingTaskId?.let { id ->
                 sharedViewModel.submitTask(id, "Completed", imageBytes)
@@ -191,6 +208,40 @@ class TaskFragment: Fragment() {
                 Toast.LENGTH_SHORT
             ).show()
             currentProcessingTaskId = null
+        }
+    }
+
+    //ff
+    private fun verifyAndSubmit(id: Int, keyword: String, imageBytes: ByteArray) {
+        binding.loadingOverlay.visibility = View.VISIBLE
+        binding.dailyStatusTv.text = "AI is verifying your photo..."
+        binding.dailyStatusTv.visibility = View.VISIBLE
+
+        // Prepare the Multipart data for Retrofit
+        val requestFile = imageBytes.toRequestBody("image/jpeg".toMediaTypeOrNull())
+        val body = MultipartBody.Part.createFormData("file", "room_with_tv.jpg", requestFile)
+        val keywordBody = keyword.toRequestBody("text/plain".toMediaTypeOrNull())
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            try {
+                val response = RetrofitClient.mlInstance.verifyImage(body, keywordBody)
+
+                if (response.isSuccessful && response.body()?.isVerified == true) {
+                    // SUCCESS
+                    sharedViewModel.submitTask(id, "Completed", imageBytes)
+                    Toast.makeText(requireContext(), "Picture is verified!", Toast.LENGTH_SHORT).show()
+                } else {
+                    // FAILURE
+                    Toast.makeText(requireContext(), "Please try again! $keyword could not be found.", Toast.LENGTH_LONG).show()
+                }
+            } catch (e: Exception) {
+                Log.e("AI_ERROR", "Check your internet or Cold Start: ${e.message}")
+                Toast.makeText(requireContext(), "Verification error. Please try again.", Toast.LENGTH_SHORT).show()
+            } finally {
+                binding.loadingOverlay.visibility = View.GONE
+                binding.dailyStatusTv.visibility = View.GONE
+                currentProcessingTaskId = null
+            }
         }
     }
 

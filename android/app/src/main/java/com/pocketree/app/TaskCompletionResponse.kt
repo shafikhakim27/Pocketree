@@ -9,5 +9,6 @@ data class TaskCompletionResponse (
     @SerializedName("newCoins") val newCoins:Int,
     @SerializedName("newLevel") val newLevel:Int,
     @SerializedName("isWithered") val isWithered:Boolean,
-    @SerializedName("newLevelName") val newLevelName: String
+    @SerializedName("newLevelName") val newLevelName: String,
+    @SerializedName("plantHealthPercent") val plantHealthPercent: Int
 )
