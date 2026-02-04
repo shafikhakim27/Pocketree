@@ -9,6 +9,7 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 
 // interceptor object for Json Web Token
+// NetworkClient is "provider" of authenticated connection
 
 object NetworkClient {
 

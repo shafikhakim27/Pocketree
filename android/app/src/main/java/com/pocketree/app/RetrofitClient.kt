@@ -7,6 +7,8 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
+// ff
+// RetrofitClient is the "builder of API services"
 object RetrofitClient {
     private const val MAIN_URL = "http://10.113.238.196:5042/"
     private const val AI_URL = "https://clip-verifier-476909679179.us-central1.run.app/"
@@ -40,7 +42,7 @@ object RetrofitClient {
     val pocketreeInstance: PocketreeApi by lazy {
         Retrofit.Builder()
             .baseUrl(MAIN_URL)
-            .client(okHttpClient)
+            .client(NetworkClient.okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(PocketreeApi::class.java)
