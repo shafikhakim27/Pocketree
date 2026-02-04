@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Pocketree.Api.Migrations
 {
     [DbContext(typeof(MyDbContext))]
-    [Migration("20260203232822_InitialMigration")]
-    partial class InitialMigration
+    [Migration("20260204110447_finalDB")]
+    partial class finalDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -169,6 +169,11 @@ namespace Pocketree.Api.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<string>("SkinKey")
+                        .IsRequired()
+                        .HasMaxLength(25)
+                        .HasColumnType("varchar(25)");
+
                     b.Property<string>("SkinName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -293,13 +298,8 @@ namespace Pocketree.Api.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("varchar(10)");
 
-                    b.Property<DateTime>("ResetExpiry")
+                    b.Property<DateTime?>("ResetExpiry")
                         .HasColumnType("datetime(6)");
-
-                    b.Property<string>("SupportQuery")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
 
                     b.Property<int>("TotalCoins")
                         .HasColumnType("int");
@@ -410,6 +410,9 @@ namespace Pocketree.Api.Migrations
                     MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("UserSkinID"));
 
                     b.Property<bool>("IsEquipped")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<bool>("IsRedeemed")
                         .HasColumnType("tinyint(1)");
 
                     b.Property<DateTime?>("RedemptionDate")
@@ -543,6 +546,42 @@ namespace Pocketree.Api.Migrations
                     b.HasIndex("AdminID");
 
                     b.ToTable("NotificationMessages");
+                });
+
+            modelBuilder.Entity("Pocketree.Api.Models.Entities.UserQuery", b =>
+                {
+                    b.Property<int>("QueryID")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    MySqlPropertyBuilderExtensions.UseMySqlIdentityColumn(b.Property<int>("QueryID"));
+
+                    b.Property<string>("AdminReply")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<bool>("IsResolved")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Query")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("datetime(6)");
+
+                    b.Property<int>("UserID")
+                        .HasColumnType("int");
+
+                    b.HasKey("QueryID");
+
+                    b.HasIndex("UserID");
+
+                    b.ToTable("UserQueries");
                 });
 
             modelBuilder.Entity("ADproject.Models.Entities.CommunityForest", b =>
@@ -689,6 +728,17 @@ namespace Pocketree.Api.Migrations
                         .IsRequired();
 
                     b.Navigation("Admin");
+                });
+
+            modelBuilder.Entity("Pocketree.Api.Models.Entities.UserQuery", b =>
+                {
+                    b.HasOne("ADproject.Models.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ADproject.Models.Entities.Badge", b =>

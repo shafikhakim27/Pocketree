@@ -14,6 +14,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
+//import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.FragmentHomeBinding
 
 class HomeFragment: Fragment() {

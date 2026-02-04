@@ -54,22 +54,37 @@ namespace Pocketree.Api.Controllers
         [HttpGet("FetchUsersQueries")]
         public async Task<IActionResult> FetchUsersQueries()
         {
-            var usersQueries = await db.Users
-                .Where(u => u.UserRole == "Player" && u.SupportQuery != null && u.SupportQuery != "")
-                .Select(u => new { u.UserID, u.Username, u.SupportQuery })
+            var pendingQueries = await db.UserQueries
+                .AsNoTracking()
+                .Include(q => q.User)
+                .Where(q => q.IsResolved == false) 
+                .Select(q => new {
+                    q.QueryID,
+                    Username = q.User != null ? q.User.Username : "Unknown",
+                    QueryContent = q.Query,
+                    q.CreatedAt
+                })
+                .OrderByDescending(q => q.CreatedAt) // Latest to oldest query
                 .ToListAsync();
-            return Ok(usersQueries);
+
+            return Ok(pendingQueries);
         }
 
         // Clear user's pending query status when it is resolved
         [HttpPost("ClearUserQueryStatus")]
-        public async Task<IActionResult> ClearUserQueryStatus(int userId)
+        public async Task<IActionResult> ClearUserQueryStatus([FromQuery] int queryId, [FromQuery] string reply)
         {
-            var user = await db.Users.FindAsync(userId);
-            if (user == null) return NotFound();
+            var userQuery = await db.UserQueries.FindAsync(queryId);
+            if (userQuery == null) return NotFound("User query not found.");
 
-            user.SupportQuery = null; // Clear the pending status
+            userQuery.AdminReply = reply;
+            userQuery.IsResolved = true;
+            userQuery.ResolvedAt = DateTime.UtcNow;
+
             await db.SaveChangesAsync();
+
+            await SendEmailAsync(userQuery.User.Email, "[PockeTree] RE: Query", $"Thank you for your query. {reply}\n\n Regards, Pocketree Admin");
+
             return Ok();
         }
 
@@ -87,7 +102,7 @@ namespace Pocketree.Api.Controllers
         }
 
         [HttpPost("SendPrivateMessage")]
-        public async Task<IActionResult> SendPrivateMessage(int userId, string message)
+        public async Task<IActionResult> SendPrivateMessage([FromQuery] int userId, [FromQuery] string message)
         {
             // Get the AdminID
             var adminId = HttpContext.Session.GetString("AdminID");
@@ -111,6 +126,24 @@ namespace Pocketree.Api.Controllers
             await hub.Clients.User(userId.ToString()).SendAsync("ReceiveMessage", message);
             
             return Ok();
+        }
+
+        // Helper function to send email reply to user
+        private async System.Threading.Tasks.Task SendEmailAsync(string userEmail, string subject, string body)
+        {
+            var smtpServer = _configuration["EmailSettings:SmtpServer"];
+            var senderEmail = _configuration["EmailSettings:SenderEmail"];
+            var appPassword = _configuration["EmailSettings:AppPassword"];
+
+            using var client = new System.Net.Mail.SmtpClient(smtpServer)
+            {
+                Port = 587,
+                Credentials = new System.Net.NetworkCredential(senderEmail, appPassword),
+                EnableSsl = true,
+            };
+
+            var mailMessage = new System.Net.Mail.MailMessage(senderEmail, userEmail, subject, body);
+            await client.SendMailAsync(mailMessage);
         }
     }
 }

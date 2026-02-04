@@ -25,11 +25,10 @@ namespace ADproject.Models.Entities
         [Required, StringLength(20)]
         public string UserRole { get; set; } = "Player";
         [Required, StringLength(10)]
-        public string ResetCode { get; set; } = "";
-        public DateTime ResetExpiry { get; set; }
+        public string? ResetCode { get; set; } = "";
+        public DateTime? ResetExpiry { get; set; }
         public bool IsOnline { get; set; } = false;
         [StringLength(255)]
-        public string SupportQuery { get; set; } = "";
 
         // Navigation Properties
         [ForeignKey("CurrentLevelID")]

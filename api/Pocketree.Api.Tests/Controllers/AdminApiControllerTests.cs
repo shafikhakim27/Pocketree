@@ -138,8 +138,8 @@ public class AdminApiControllerTests
         context.Levels.Add(new Level { LevelID = 1, LevelName = "Seedling", MinCoins = 0, LevelImageURL = "/images/levels/seedling.png" });
 
         context.Users.AddRange(
-            new User { UserID = 1, Username = "player1", Email = "p1@test.com", PasswordHash = "hash", ProfileImageURL = "/images/default-user.jpg", CurrentLevelID = 1, TotalCoins = 100, LastLoginDate = DateTime.UtcNow, UserRole = "Player", IsOnline = false, SupportQuery = "Help with task", ResetCode = "", ResetExpiry = default(DateTime), UncompletedTaskCount = 0, NotAttemptedTaskCount = 0, FailedVerificationCount = 0 },
-            new User { UserID = 2, Username = "player2", Email = "p2@test.com", PasswordHash = "hash", ProfileImageURL = "/images/default-user.jpg", CurrentLevelID = 1, TotalCoins = 200, LastLoginDate = DateTime.UtcNow, UserRole = "Player", IsOnline = false, SupportQuery = "", ResetCode = "", ResetExpiry = default(DateTime), UncompletedTaskCount = 0, NotAttemptedTaskCount = 0, FailedVerificationCount = 0 }
+            new User { UserID = 1, Username = "player1", Email = "p1@test.com", PasswordHash = "hash", ProfileImageURL = "/images/default-user.jpg", CurrentLevelID = 1, TotalCoins = 100, LastLoginDate = DateTime.UtcNow, UserRole = "Player", IsOnline = false, ResetCode = "", ResetExpiry = default(DateTime), UncompletedTaskCount = 0, NotAttemptedTaskCount = 0, FailedVerificationCount = 0 },
+            new User { UserID = 2, Username = "player2", Email = "p2@test.com", PasswordHash = "hash", ProfileImageURL = "/images/default-user.jpg", CurrentLevelID = 1, TotalCoins = 200, LastLoginDate = DateTime.UtcNow, UserRole = "Player", IsOnline = false, ResetCode = "", ResetExpiry = default(DateTime), UncompletedTaskCount = 0, NotAttemptedTaskCount = 0, FailedVerificationCount = 0 }
         );
         await context.SaveChangesAsync();
 
@@ -177,7 +177,6 @@ public class AdminApiControllerTests
             LastLoginDate = DateTime.UtcNow,
             UserRole = "Player",
             IsOnline = false,
-            SupportQuery = "Help needed",
             ResetCode = "",
             ResetExpiry = default(DateTime),
             UncompletedTaskCount = 0,
@@ -190,13 +189,6 @@ public class AdminApiControllerTests
 
         var controller = CreateController(context, adminId: "1");
 
-        // Act
-        var result = await controller.ClearUserQueryStatus(1);
-
-        // Assert
-        result.Should().BeOfType<OkResult>();
-        var updatedUser = await context.Users.FindAsync(1);
-        updatedUser!.SupportQuery.Should().BeNull();
     }
 
     [Fact]
