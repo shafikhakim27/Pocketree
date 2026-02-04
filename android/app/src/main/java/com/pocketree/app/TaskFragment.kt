@@ -229,10 +229,10 @@ class TaskFragment: Fragment() {
                 if (response.isSuccessful && response.body()?.isVerified == true) {
                     // SUCCESS
                     sharedViewModel.submitTask(id, "Completed", imageBytes)
-                    Toast.makeText(requireContext(), "Picture verified!", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Picture is verified!", Toast.LENGTH_SHORT).show()
                 } else {
                     // FAILURE
-                    Toast.makeText(requireContext(), "$keyword in this photo could not be found. Please try again!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(requireContext(), "Please try again! $keyword could not be found.", Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
                 Log.e("AI_ERROR", "Check your internet or Cold Start: ${e.message}")
