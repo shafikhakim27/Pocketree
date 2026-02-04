@@ -150,6 +150,7 @@ class SettingsFragment: Fragment() {
 
     private fun logOut() {
         binding.btnLogout.setOnClickListener {
+            SignalRManager.stopConnection()
             // clear data in ViewModel
             sharedViewModel.logout()
 
