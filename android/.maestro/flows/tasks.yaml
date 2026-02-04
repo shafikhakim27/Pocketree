@@ -1,0 +1,5 @@
+﻿# --- Navigate to Tasks ---
+- tapOn: "Tasks"
+- assertVisible:
+    id: "taskList"
+- takeScreenshot: .maestro/screenshots/Tasks_Screen

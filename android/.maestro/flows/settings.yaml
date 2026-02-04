@@ -1,0 +1,9 @@
+﻿# --- Navigate to Settings ---
+- tapOn:
+    id: "settingsButton"
+- assertVisible:
+    id: "settingsView"
+- assertVisible: "Notifications"
+- assertVisible: "Account"
+- assertVisible: "Logout"
+- takeScreenshot: .maestro/screenshots/Settings_Screen

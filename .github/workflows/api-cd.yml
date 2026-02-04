@@ -1,11 +1,11 @@
-name: ☁️ Backend API CI/CD
+name: Backend API CD
 
 on:
   push:
-    branches: ["main", "develop"]
+    branches: ["main"]
     paths:
-      - 'api/**'  # Matches Title Case folder
-      - '.github/workflows/api.yml'
+      - 'api/**'
+      - '.github/workflows/api-cd.yml'
   workflow_dispatch:
 
 env:
@@ -23,22 +23,6 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 9.0.x
-
-      - name: Restore Dependencies
-        run: dotnet restore api/api.sln
-
-      # 🛡️ Snyk Security Scan
-      - name: 🛡️ Snyk Security Scan
-        uses: snyk/actions/dotnet@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --file=api/api.sln --severity-threshold=high
-
-      # 🧪 RUN TESTS
-      - name: 🧪 Run Tests
-        # Path updated to match your screenshot: Pocketree.Api.Tests/
-        run: dotnet test api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj --no-restore --verbosity normal
 
       # Docker Build & Push
       - name: Set up Docker Buildx
@@ -63,7 +47,6 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          # Ensure this path matches the physical location of the Dockerfile
           file: api/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
@@ -71,10 +54,9 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: 🛡️ Run Trivy Vulnerability Scanner
+      - name: Run Trivy Vulnerability Scanner
         uses: aquasecurity/trivy-action@0.28.0
         with:
-          # Use the variable you defined at the top + the SHA tag
           image-ref: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           format: 'table'
           exit-code: '1'
@@ -90,5 +72,4 @@ jobs:
         uses: azure/webapps-deploy@v3
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
-          # Uses the exact SHA tag for deterministic deployment
           images: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'

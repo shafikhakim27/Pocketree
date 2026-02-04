@@ -1,0 +1,4 @@
+﻿# --- Logout ---
+- tapOn: "Logout"
+- assertVisible: "Welcome! Please log in"
+- takeScreenshot: .maestro/screenshots/Logout_Success

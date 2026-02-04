@@ -272,4 +272,83 @@ public class AdminApiControllerTests
         // Assert
         result.Should().BeOfType<BadRequestObjectResult>();
     }
+
+    [Fact]
+    public async System.Threading.Tasks.Task ClearUserQueryStatus_WhenMissing_ReturnsNotFound()
+    {
+        // Arrange
+        var options = CreateDbOptions("AdminApi_ClearQuery_NotFound_" + Guid.NewGuid());
+        using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+
+        var controller = CreateController(context, adminId: "1");
+
+        // Act
+        var result = await controller.ClearUserQueryStatus(queryId: 1234, reply: "Thanks!");
+
+        // Assert
+        result.Should().BeOfType<NotFoundObjectResult>();
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task SendPrivateMessage_WithSession_PersistsNotification()
+    {
+        // Arrange
+        var options = CreateDbOptions("AdminApi_SendPrivateMessage_" + Guid.NewGuid());
+        using var context = new MyDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+
+        var mockClients = new Mock<IHubClients>();
+        var mockClientProxy = new Mock<IClientProxy>();
+        mockClients.Setup(c => c.User(It.IsAny<string>())).Returns(mockClientProxy.Object);
+
+        var mockHubContext = new Mock<IHubContext<NotificationHub>>();
+        mockHubContext.SetupGet(h => h.Clients).Returns(mockClients.Object);
+
+        var mockHasher = new Mock<IPasswordHasher<User>>();
+        var mockConfig = new Mock<Microsoft.Extensions.Configuration.IConfiguration>();
+
+        var controller = new AdminApiController(context, mockHubContext.Object, mockHasher.Object, mockConfig.Object);
+
+        var sessionData = new Dictionary<string, byte[]>
+        {
+            ["AdminID"] = System.Text.Encoding.UTF8.GetBytes("1")
+        };
+
+        var mockSession = new Mock<ISession>();
+        mockSession.Setup(m => m.TryGetValue(It.IsAny<string>(), out It.Ref<byte[]>.IsAny))
+            .Returns((string key, out byte[] value) =>
+            {
+                value = null;
+                if (sessionData.TryGetValue(key, out var data))
+                {
+                    value = data;
+                    return true;
+                }
+                return false;
+            });
+
+        var claims = new List<Claim>
+        {
+            new Claim(ClaimTypes.Name, "admin"),
+            new Claim(ClaimTypes.Role, "Admin")
+        };
+
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext
+            {
+                Session = mockSession.Object,
+                User = new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"))
+            }
+        };
+
+        // Act
+        var result = await controller.SendPrivateMessage(5, "Hello");
+
+        // Assert
+        result.Should().BeOfType<OkResult>();
+        context.NotificationMessages.Should().HaveCount(1);
+        context.NotificationMessages.Single().Message.Should().Contain("Hello");
+    }
 }
