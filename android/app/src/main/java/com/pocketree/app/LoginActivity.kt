@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doAfterTextChanged
@@ -131,7 +132,8 @@ class LoginActivity: AppCompatActivity() {
                             runOnUiThread {
                                 Toast.makeText(this@LoginActivity,
                                     "Login failed",
-                                    Toast.LENGTH_SHORT).show()
+                                    Toast.LENGTH_SHORT
+                                ).show()
                             }
                             return
                         }
@@ -155,13 +157,39 @@ class LoginActivity: AppCompatActivity() {
                     }
                 } else {
                     runOnUiThread{
-                        // user not authorised or not found
-                        setLoadingState(false)
-                        Toast.makeText(
-                            this@LoginActivity,
-                            "Invalid username or password, please try again",
-                            Toast.LENGTH_SHORT
-                        ).show()
+                        // user not authorised or not found (401, 400, etc)
+                        runOnUiThread {
+                            setLoadingState(false)
+
+                            val errorMessage = responseBody ?: "Invalid username or password"
+
+                            when {
+                                errorMessage.contains("Web portal", ignoreCase = true) ||
+                                        errorMessage.contains("Admin", ignoreCase = true) -> {
+                                    Toast.makeText(
+                                        this@LoginActivity,
+                                        "Please login via the web portal!",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+
+                                errorMessage.contains("Invalid credentials", ignoreCase = true) -> {
+                                    Toast.makeText(
+                                        this@LoginActivity,
+                                        "Invalid username or password",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+
+                                else -> {
+                                    Toast.makeText(
+                                        this@LoginActivity,
+                                        "Login failed",
+                                        Toast.LENGTH_SHORT
+                                    ).show()
+                                }
+                            }
+                        }
                     }
                 }
             }
