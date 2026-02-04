@@ -141,10 +141,31 @@ class SettingsFragment: Fragment() {
         }
     }
 
+//    private fun logOut() {
+//        binding.btnLogout.setOnClickListener {
+//            SignalRManager.stopConnection()
+//            sharedViewModel.logout()
+//        }
+//    }
+
     private fun logOut() {
         binding.btnLogout.setOnClickListener {
-            SignalRManager.stopConnection()
+            // clear data in ViewModel
             sharedViewModel.logout()
+
+            // 2. Navigate back to Login
+            val loginIntent = Intent(requireContext(), LoginActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                // clears app history so user can't press Back button to head back to Settings tab
+            }
+            startActivity(loginIntent) // start the login activity
+            activity?.finish() // ensures the activity holding the fragment is closed
+
+            Toast.makeText(
+                context,
+                "You have logged out successfully",
+                Toast.LENGTH_SHORT
+            ).show()
         }
     }
 

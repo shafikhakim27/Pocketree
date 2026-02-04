@@ -6,3 +6,8 @@ data class LoginResponse (
     @SerializedName("token") val token: String, // needed for interceptor to work
     @SerializedName("user") val user: User
 )
+
+data class UserLoginDto(
+    val Username: String,
+    val Password: String
+)
