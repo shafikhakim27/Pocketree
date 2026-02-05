@@ -1,5 +1,6 @@
 ﻿using ADproject.Models.Entities;
 using ADproject.Services;
+using ADproject.Hubs;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -182,8 +183,8 @@ public class TaskControllerTests
         });
 
         context.Skins.AddRange(
-            new Skin { SkinID = 1, SkinName = "A", SkinPrice = 10, SkinKey = "a" },
-            new Skin { SkinID = 2, SkinName = "B", SkinPrice = 10, SkinKey = "b" }
+            new Skin { SkinID = 1, SkinName = "A", SkinPrice = 10, ImageURL = "a.png", SkinKey = "a" },
+            new Skin { SkinID = 2, SkinName = "B", SkinPrice = 10, ImageURL = "b.png", SkinKey = "b" }
         );
 
         context.UserSkins.AddRange(

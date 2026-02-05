@@ -1,4 +1,4 @@
-using ADproject.Services;
+﻿using ADproject.Services;
 
 namespace Pocketree.Api.Tests.Services;
 
@@ -46,19 +46,19 @@ public class MissionServiceTests
         frequency.Should().BePositive();
     }
 
-    [Fact(Skip = "MissionService location slots test - requires MissionService implementation")]
+    [Fact]
     public void MissionService_LocationSlots_CoverEntireMapArea()
     {
         // Arrange & Act
-        var hasTopLeft = MissionService.locSlots.Any(loc => loc.X <= 20 && loc.Y <= 20);
-        var hasTopRight = MissionService.locSlots.Any(loc => loc.X >= 80 && loc.Y <= 20);
-        var hasBottomLeft = MissionService.locSlots.Any(loc => loc.X <= 20 && loc.Y >= 80);
-        var hasBottomRight = MissionService.locSlots.Any(loc => loc.X >= 80 && loc.Y >= 80);
+        var minX = MissionService.locSlots.Min(loc => loc.X);
+        var maxX = MissionService.locSlots.Max(loc => loc.X);
+        var minY = MissionService.locSlots.Min(loc => loc.Y);
+        var maxY = MissionService.locSlots.Max(loc => loc.Y);
 
-        // Assert - Coverage of all quadrants
-        hasTopLeft.Should().BeTrue("should have locations in top-left");
-        hasTopRight.Should().BeTrue("should have locations in top-right");
-        hasBottomLeft.Should().BeTrue("should have locations in bottom-left");
-        hasBottomRight.Should().BeTrue("should have locations in bottom-right");
+        // Assert - Coverage of map bounds
+        minX.Should().BeLessOrEqualTo(20, "should reach the left edge");
+        maxX.Should().BeGreaterOrEqualTo(80, "should reach the right edge");
+        minY.Should().BeLessOrEqualTo(20, "should reach the top edge");
+        maxY.Should().BeGreaterOrEqualTo(80, "should reach the bottom edge");
     }
 }

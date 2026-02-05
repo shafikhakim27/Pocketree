@@ -414,8 +414,7 @@ public class AuthenticationTests
         var result = await controller.LoginApi(dto);
         
         // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result);
-        var loggedInUser = await context.Users.FirstAsync(u => u.Username == "adminuser");
-        Assert.Equal("Admin", loggedInUser.UserRole);
+        var badRequest = Assert.IsType<BadRequestObjectResult>(result);
+        Assert.Equal("Admins must use the Web portal.", badRequest.Value);
     }
 }

@@ -8,6 +8,8 @@
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
     <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -64,5 +66,12 @@
     <ProjectReference Include="..\Pocketree.Api\Pocketree.Api.csproj" />
     <ProjectReference Include="..\Pocketree.Shared\Pocketree.Shared.csproj" />
   </ItemGroup>
+
+  <Target Name="CopyTesthostDeps" AfterTargets="Build">
+    <Copy
+      SourceFiles="..\Pocketree.Api\bin\$(Configuration)\net9.0\Pocketree.Api.deps.json"
+      DestinationFiles="$(OutputPath)testhost.deps.json"
+      Condition="Exists('..\Pocketree.Api\bin\$(Configuration)\net9.0\Pocketree.Api.deps.json')" />
+  </Target>
 
 </Project>

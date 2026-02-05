@@ -1,11 +1,11 @@
-using ADproject.Models.Entities;
+﻿using ADproject.Models.Entities;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace Pocketree.Api.Tests.Entities;
 
 public class GlobalMissionTests
 {
-    [Fact(Skip = "GlobalMission entity model test - requires complex test data setup")]
+    [Fact]
     public async System.Threading.Tasks.Task GlobalMission_TreeCount_CanBeIncremented()
     {
         // Arrange
@@ -20,7 +20,7 @@ public class GlobalMissionTests
         
         var mission = new GlobalMission
         {
-            MissionID = 1,
+            MissionID = 2,
             MissionName = "Greenify Sahara",
             TotalRequiredTrees = 1000,
             CurrentTreeCount = 0,
@@ -35,11 +35,11 @@ public class GlobalMissionTests
         await context.SaveChangesAsync();
         
         // Assert
-        var updatedMission = await context.GlobalMissions.FindAsync(1);
+        var updatedMission = await context.GlobalMissions.FindAsync(2);
         updatedMission!.CurrentTreeCount.Should().Be(10);
     }
 
-    [Fact(Skip = "GlobalMission entity model test - requires complex test data setup")]
+    [Fact]
     public async System.Threading.Tasks.Task GlobalMission_IsCompleted_WhenTargetReached()
     {
         // Arrange
@@ -54,7 +54,7 @@ public class GlobalMissionTests
         
         var mission = new GlobalMission
         {
-            MissionID = 1,
+            MissionID = 2,
             MissionName = "Small Mission",
             TotalRequiredTrees = 100,
             CurrentTreeCount = 99,

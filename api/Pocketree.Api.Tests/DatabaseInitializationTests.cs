@@ -147,7 +147,8 @@ public class DatabaseInitializationTests
             SkinID = 1, 
             SkinName = "Item1", 
             SkinPrice = 10,
-            ImageURL = ""
+            ImageURL = "",
+            SkinKey = "item1"
         });
 
         context.Vouchers.Add(new Voucher 

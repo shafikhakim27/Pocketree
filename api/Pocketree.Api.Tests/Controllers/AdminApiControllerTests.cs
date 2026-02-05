@@ -143,6 +143,16 @@ public class AdminApiControllerTests
         );
         await context.SaveChangesAsync();
 
+        context.UserQueries.Add(new UserQuery
+        {
+            QueryID = 1,
+            UserID = 1,
+            Query = "Help needed",
+            IsResolved = false,
+            CreatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
         var controller = CreateController(context, adminId: "1");
 
         // Act

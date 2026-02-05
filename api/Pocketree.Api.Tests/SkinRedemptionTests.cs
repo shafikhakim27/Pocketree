@@ -81,7 +81,8 @@ public class SkinRedemptionTests
             SkinID = 1,
             SkinName = "Golden Tree",
             ImageURL = "golden_tree.png",
-            SkinPrice = 300
+            SkinPrice = 300,
+            SkinKey = "golden"
         };
         
         context.Users.Add(user);
@@ -139,7 +140,8 @@ public class SkinRedemptionTests
             SkinID = 1,
             SkinName = "Expensive Tree",
             ImageURL = "expensive_tree.png",
-            SkinPrice = 300
+            SkinPrice = 300,
+            SkinKey = "expensive"
         };
         
         context.Users.Add(user);
@@ -242,7 +244,8 @@ public class SkinRedemptionTests
             SkinID = 1,
             SkinName = "Cool Tree",
             ImageURL = "cool_tree.png",
-            SkinPrice = 100
+            SkinPrice = 100,
+            SkinKey = "cool"
         };
         
         var userSkin = new UserSkin
@@ -309,7 +312,8 @@ public class SkinRedemptionTests
             SkinID = 1,
             SkinName = "Unowned Tree",
             ImageURL = "unowned_tree.png",
-            SkinPrice = 100
+            SkinPrice = 100,
+            SkinKey = "unowned"
         };
         
         context.Users.Add(user);
@@ -365,7 +369,8 @@ public class SkinRedemptionTests
             SkinID = 1,
             SkinName = "Exact Price Tree",
             ImageURL = "exact_price_tree.png",
-            SkinPrice = 300
+            SkinPrice = 300,
+            SkinKey = "exact"
         };
         
         context.Users.Add(user);

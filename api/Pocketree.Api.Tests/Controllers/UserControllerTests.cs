@@ -57,15 +57,18 @@ public class UserControllerTests
         using var context = new MyDbContext(options);
         await context.Database.EnsureCreatedAsync();
 
-        context.GlobalMissions.Add(new GlobalMission
+        if (!context.GlobalMissions.Any())
         {
-            MissionID = 1,
-            MissionName = "Greenify Sahara",
-            TotalRequiredTrees = 10,
-            CurrentTreeCount = 0,
-            PlantingFrequency = 1
-        });
-        await context.SaveChangesAsync();
+            context.GlobalMissions.Add(new GlobalMission
+            {
+                MissionID = 1,
+                MissionName = "Greenify Sahara",
+                TotalRequiredTrees = 10,
+                CurrentTreeCount = 0,
+                PlantingFrequency = 1
+            });
+            await context.SaveChangesAsync();
+        }
 
         var mockHasher = new Mock<IPasswordHasher<User>>();
         mockHasher.Setup(h => h.HashPassword(It.IsAny<User>(), It.IsAny<string>())).Returns("hash");
