@@ -15,14 +15,14 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: 🛡️ Snyk Python Scan
+      - name: Snyk Python Scan
         uses: snyk/actions/python@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --file=ml-service/requirements.txt --severity-threshold=high --skip-unresolved
 
-      - name: 🐍 Run Bandit
+      - name: Run Bandit
         run: |
           pip install bandit
           bandit -r ml-service/ -lll -iii

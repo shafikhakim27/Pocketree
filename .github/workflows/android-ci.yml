@@ -5,7 +5,7 @@ on:
     branches: ["main", "develop"]
     paths:
       - 'android/**'
-      - '.github/workflows/android-build.yml'
+      - '.github/workflows/android-ci.yml'
 
 jobs:
   build-android:

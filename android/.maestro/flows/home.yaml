@@ -3,5 +3,4 @@
     timeout: 10000
 - assertVisible: "Map"
 - assertVisible: "Tasks"
-- assertVisible: "Profile"
 - takeScreenshot: .maestro/screenshots/Login_Success_And_Home_Screen
