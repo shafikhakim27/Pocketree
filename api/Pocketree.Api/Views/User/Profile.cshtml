@@ -1,4 +1,6 @@
-﻿@model ADproject.Models.Entities.User
+﻿@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+@model ADproject.Models.Entities.User
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm mb-4">
     <div class="container">
@@ -17,7 +19,16 @@
                     
                     <div class="d-flex align-items-center mt-4">
                         <div class="me-4">
-                            <img src="@(Model.ProfileImageURL ?? "/images/default-user.png")"
+
+                            @{
+                                var baseUrl = Configuration["BaseURL"];
+                                var imagePath = Model.ProfileImageURL ?? "/images/default-user.png";
+
+                                // Combine them, ensuring we don't have double slashes if the path starts with /
+                                var finalUrl = imagePath.StartsWith("http") ? imagePath : $"{baseUrl.TrimEnd('/')}/{imagePath.TrimStart('/')}";
+                            }
+
+                            <img src="@finalUrl" alt="Profile Picture" 
                                 class="rounded-circle border mb-3" style="width: 120px; height: 120px; object-fit: cover;" />
                         </div>
                 

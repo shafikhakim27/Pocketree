@@ -39,7 +39,7 @@ namespace ADproject.Controllers
             this.db = db;
             this.passwordHasher = passwordHasher;
             this._configuration = configuration;
-            baseURL = _configuration["StorageBaseURL"] ?? "";
+            baseURL = _configuration["BaseURL"] ?? "";
         }
 
         /**********************
@@ -56,7 +56,7 @@ namespace ADproject.Controllers
 
             // Generate hash
             newUser.PasswordHash = passwordHasher.HashPassword(newUser, dto.Password);
-            newUser.ProfileImageURL = baseURL + "/images/default-user.jpg";
+            newUser.ProfileImageURL = "images/default-user.jpg";
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
             newUser.LastLoginDate = DateTime.UtcNow;
@@ -165,7 +165,7 @@ namespace ADproject.Controllers
                         u.ProfileImageURL,
                         u.LastActivityDate,
                         LevelName = u.CurrentLevel.LevelName,
-                        LevelImageURL = u.CurrentLevel.LevelImageURL,
+                        LevelImageURL = baseURL + u.CurrentLevel.LevelImageURL,
                         ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted), // Get active tree
                     })
                     .FirstOrDefaultAsync();
@@ -212,8 +212,16 @@ namespace ADproject.Controllers
 
             // get the whole file name, e.g. Tree_Sapling_Animals.png
             string fileName = $"Tree_{stageName}{skinSuffix}{statusSuffix}.png";
-            string finalImageUrl = $"~/images/trees/{fileName}";
-            
+            string finalImageUrl = $"images/trees/{fileName}";
+
+            // Determine the base URL based on the incoming request
+            string host = Request.Host.Value; // e.g., "localhost:5042"
+
+            // If the request is coming from the Android emulator's network bridge
+            string dynamicBaseUrl = host.Contains("localhost") && IsAndroidRequest(Request)
+                ? "http://10.0.2.2:5042/"
+                : $"http://{host}/";
+
             // Prepare UserProfile data to send back to Android
             var androidProfile = new AndroidUserProfileViewModel
             {
@@ -221,13 +229,18 @@ namespace ADproject.Controllers
                 TotalCoins = userData.TotalCoins,
                 LevelName = userData.LevelName ?? "Seedling",
                 LevelID = userData.CurrentLevelID,                    
-                LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
-                ProfileImageURL = baseURL + (userData.ProfileImageURL ?? "~/images/default-user.jpg"),
+                LevelImageURL = baseURL + finalImageUrl, // ?? baseURL + "images/levels/seedling.png",
+                ProfileImageURL = baseURL + userData.ProfileImageURL,
                 IsWithered = userData.ActiveTree?.IsWithered ?? false,              
                 PlantHealthPercent = finalPercent
             };
 
             return Ok(androidProfile);
+        }
+
+        private bool IsAndroidRequest(HttpRequest request)
+        {
+            return request.Headers["User-Agent"].ToString().Contains("Android", StringComparison.OrdinalIgnoreCase);
         }
 
         // Private function (not API) for backend use
@@ -239,7 +252,7 @@ namespace ADproject.Controllers
                 TotalCoins = user.TotalCoins,
                 LevelName = levelName ?? "Seedling",
                 LevelID = user.CurrentLevelID,
-                LevelImageURL = baseURL + (user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png"),
+                LevelImageURL = baseURL + user.CurrentLevel?.LevelImageURL, //?? baseURL + "images/levels/seedling.png",
                 IsWithered = activeTree?.IsWithered ?? false
             };
         }
@@ -302,7 +315,7 @@ namespace ADproject.Controllers
                 .Select(ub => new
                 {
                     BadgeName = ub.Badge.BadgeName,
-                    BadgeImageURL = baseURL + (ub.Badge.BadgeImageURL ?? "default-badge.png"),
+                    BadgeImageURL = ub.Badge.BadgeImageURL ?? baseURL + "default-badge.png",
                     DateEarned = ub.DateEarned
                 })
                 .ToListAsync();
@@ -321,7 +334,7 @@ namespace ADproject.Controllers
                     {
                         SkinName = s.SkinName,
                         SkinPrice = s.SkinPrice,
-                        ImageURL = baseURL + (s.ImageURL ?? "default_skin.png")
+                        ImageURL = s.ImageURL ?? baseURL + "default_skin.png"
                     })
                     .ToListAsync());
         }
@@ -350,7 +363,7 @@ namespace ADproject.Controllers
                     SkinID = skin.SkinID,
                     SkinName = skin.SkinName,
                     SkinPrice = skin.SkinPrice,
-                    ImageURL = baseURL + (skin.ImageURL ?? "default_skin.png"),
+                    ImageURL = skin.ImageURL ?? baseURL + "default_skin.png",
                     IsRedeemed = (ownedRecord != null),
                     IsEquipped = (ownedRecord != null && ownedRecord.IsEquipped)
                 };
@@ -419,7 +432,7 @@ namespace ADproject.Controllers
 
             // Generate hash
             newUser.PasswordHash = passwordHasher.HashPassword(newUser, dto.Password);
-            newUser.ProfileImageURL = baseURL + "/images/default-user.jpg";
+            newUser.ProfileImageURL = "images/default-user.jpg";
             newUser.TotalCoins = 0;
             newUser.CurrentLevelID = 1;
             newUser.LastLoginDate = DateTime.UtcNow;
@@ -572,8 +585,8 @@ namespace ADproject.Controllers
                         TotalCoins = user.TotalCoins,
                         LevelName = user.CurrentLevel?.LevelName ?? "Seedling",
                         LevelID = user.CurrentLevelID,
-                        LevelImageURL = baseURL + (user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png"),
-                        ProfileImageURL = baseURL + (user.ProfileImageURL ?? "~/images/default-user.jpg"),
+                        LevelImageURL = user.CurrentLevel?.LevelImageURL, //?? baseURL + "images/levels/seedling.png",
+                        ProfileImageURL = user.ProfileImageURL, //?? baseURL + "images/default-user.jpg",
                         IsWithered = activeTree?.IsWithered ?? false
                     },
                     TaskHistory = history
@@ -656,7 +669,7 @@ namespace ADproject.Controllers
 
             // Update User record in database
             var user = await db.Users.FindAsync(int.Parse(userId));
-            user.ProfileImageURL = "/uploads/" + filename;
+            user.ProfileImageURL = "uploads/" + filename;
             await db.SaveChangesAsync();
 
             return RedirectToAction("Profile");

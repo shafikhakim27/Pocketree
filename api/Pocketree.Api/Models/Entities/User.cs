@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Configuration.UserSecrets;
+using System.Buffers.Text;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -12,7 +13,7 @@ namespace ADproject.Models.Entities
         public string? Username { get; set; }
         [Required, StringLength(255)]
         public string? PasswordHash { get; set; }
-        public string ProfileImageURL { get; set; } = "/images/default-user.jpg";
+        public string ProfileImageURL { get; set; } = "images/default-user.jpg";
         public int TotalCoins { get; set; }
         public int CurrentLevelID { get; set; }
         public DateTime? LastLoginDate { get; set; }

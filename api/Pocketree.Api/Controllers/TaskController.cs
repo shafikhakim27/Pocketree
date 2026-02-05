@@ -436,17 +436,17 @@ namespace ADproject.Controllers
             var voucher = await db.Vouchers.FindAsync(VoucherId);
             if (voucher == null) return BadRequest("Requested voucher cannot be found.");
 
-            // Update UserVouchers 
-            var userVoucherEntry = new UserVoucher
-            {
-                UserID = user.UserID,
-                VoucherID = VoucherId,
-                RedemptionDate = DateTime.UtcNow,
-                RedemptionCode = GenerateRedemptionCode(),
-                IsRedeemed = true
-            };
+            var userVoucherEntry = await db.UserVouchers.FirstOrDefaultAsync(uv => uv.UserID == user.UserID && uv.VoucherID == VoucherId);
 
-            db.UserVouchers.Update(userVoucherEntry);
+            if (userVoucherEntry == null)
+                return BadRequest("You do not possess this voucher.");
+
+            if (userVoucherEntry.IsRedeemed)
+                return BadRequest("Voucher already used.");
+
+            userVoucherEntry.RedemptionDate = DateTime.UtcNow;
+            userVoucherEntry.IsRedeemed = true;
+
             await db.SaveChangesAsync();
 
             return Ok(new { IsRedeemed = true });

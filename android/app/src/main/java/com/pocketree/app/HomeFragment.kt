@@ -37,7 +37,7 @@ class HomeFragment: Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // test - to remove later on
-        binding.plant.setImageResource(R.drawable.mighty_oak)
+    // * ->    // binding.plant.setImageResource(R.drawable.mighty_oak)
 
         // set up recyclerview layout manager for badges
         binding.recyclerViewBadges.layoutManager = LinearLayoutManager(requireContext(),
@@ -45,6 +45,7 @@ class HomeFragment: Fragment() {
 
         sharedViewModel.fetchLatestBadges() // fetch data
         observeViewModel()
+        sharedViewModel.fetchUserProfile()   ///////////// <-*
     }
 
     fun observeViewModel() {
@@ -55,7 +56,14 @@ class HomeFragment: Fragment() {
             binding.healthBar.progress = state.plantHealthPercent
             Log.d("HomeFragment", "Health: ${state.plantHealthPercent}%")
             binding.levelDisplay.text = "Current Stage: ${state.levelName}"
-
+////////////////
+// -> *
+            Glide.with(this@HomeFragment)
+                .load(state.levelImageUrl)
+            //    .placeholder(R.drawable.mighty_oak)
+                .into(binding.plant)
+// -> *
+///////////////
             Glide.with(requireContext())
                 .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                 .circleCrop() // to make image round

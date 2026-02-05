@@ -51,6 +51,7 @@ class TaskFragment: Fragment() {
 
         // start observers (update UI if anything in View Model changes)
         observeViewModel()
+        sharedViewModel.fetchDailyTasks()  //////////////// <- *
     }
 
     private fun observeViewModel() {
@@ -124,9 +125,11 @@ class TaskFragment: Fragment() {
                 // show badge dialog next
                 if (badgeName.isNotEmpty()) {
                     showBadgeDialog(badgeName, voucherName)
+                    ////////// -> * sharedViewModel.fetchUserProfile()
                 } else if (voucherName.isNotEmpty()) {
                     showVoucherDialog(voucherName)
                 }
+                sharedViewModel.fetchUserProfile()   ///////////////// <-*
             }
             .setCancelable(false)
             .show()

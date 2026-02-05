@@ -130,7 +130,7 @@ class UserViewModel: ViewModel() {
                             updateLiveData(user)
 
                             // fetch tasks and badges after user profile is loaded
-                            fetchDailyTasks()
+             /////////// -> * fetchDailyTasks()
                             fetchLatestBadges()
                         } else {
                             errorMessage.postValue("Invalid user data")
