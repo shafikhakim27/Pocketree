@@ -285,7 +285,7 @@ namespace ADproject.Controllers
                 TotalCoins = user.TotalCoins,
                 LevelName = levelName ?? "Seedling",
                 LevelID = user.CurrentLevelID,
-                LevelImageURL = finalImageUrl,
+                LevelImageURL = baseURL + finalImageUrl,
                 ProfileImageURL = baseURL + (user.ProfileImageURL?.Replace("~/","")?? "images/default-user.jpg"),
                 IsWithered = isWithered,
                 // LevelImageURL = baseURL + (user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png"),
@@ -293,6 +293,8 @@ namespace ADproject.Controllers
                 // IsWithered = activeTree?.IsWithered ?? false,
                 PlantHealthPercent = finalPercent
             };
+
+            return androidProfile;
         }
 
         private bool IsAndroidRequest(HttpRequest request)

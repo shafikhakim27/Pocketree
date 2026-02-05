@@ -194,8 +194,8 @@ namespace Pocketree.Api.Migrations
 
                     b.Property<string>("Category")
                         .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("varchar(80)");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<int>("CoinReward")
                         .HasColumnType("int");
@@ -210,8 +210,8 @@ namespace Pocketree.Api.Migrations
 
                     b.Property<string>("Keyword")
                         .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("varchar(80)");
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
 
                     b.Property<bool>("RequiresEvidence")
                         .HasColumnType("tinyint(1)");

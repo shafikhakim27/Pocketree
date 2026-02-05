@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace Pocketree.Api.Migrations
 {
     /// <inheritdoc />
-    public partial class finalDB : Migration
+    public partial class updatedDB : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -107,9 +107,9 @@ namespace Pocketree.Api.Migrations
                         .Annotation("MySql:CharSet", "utf8mb4"),
                     CoinReward = table.Column<int>(type: "int", nullable: false),
                     RequiresEvidence = table.Column<bool>(type: "tinyint(1)", nullable: false),
-                    Keyword = table.Column<string>(type: "varchar(80)", maxLength: 80, nullable: false)
+                    Keyword = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4"),
-                    Category = table.Column<string>(type: "varchar(80)", maxLength: 80, nullable: false)
+                    Category = table.Column<string>(type: "varchar(255)", maxLength: 255, nullable: false)
                         .Annotation("MySql:CharSet", "utf8mb4")
                 },
                 constraints: table =>
