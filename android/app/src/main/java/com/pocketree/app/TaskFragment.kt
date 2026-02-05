@@ -3,7 +3,6 @@ package com.pocketree.app
 import android.app.AlertDialog
 import android.graphics.Bitmap
 import android.os.Bundle
-import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -11,14 +10,9 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.FragmentTaskBinding
-import kotlinx.coroutines.launch
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.MultipartBody
-import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.ByteArrayOutputStream
 
 class TaskFragment: Fragment() {
@@ -51,7 +45,7 @@ class TaskFragment: Fragment() {
 
         // start observers (update UI if anything in View Model changes)
         observeViewModel()
-        sharedViewModel.fetchDailyTasks()  //////////////// <- *
+        sharedViewModel.fetchDailyTasks()
     }
 
     private fun observeViewModel() {
@@ -129,7 +123,7 @@ class TaskFragment: Fragment() {
                 } else if (voucherName.isNotEmpty()) {
                     showVoucherDialog(voucherName)
                 }
-                sharedViewModel.fetchUserProfile()   ///////////////// <-*
+                sharedViewModel.fetchUserProfile()
             }
             .setCancelable(false)
             .show()
@@ -227,27 +221,6 @@ class TaskFragment: Fragment() {
             currentProcessingTaskId = null
         }
     }
-
-
-//            currentProcessingTaskId?.let { id ->
-//                sharedViewModel.submitTask(id, "Completed", imageBytes)
-//                // this part checks if there is an active task ID
-//                // and converts that memory stream into a Byte Array and tells userViewModel to upload it
-//                currentProcessingTaskId = null
-//            } ?: run {
-//                Toast.makeText(requireContext(),
-//                    "Error: Task ID missing",
-//                    Toast.LENGTH_SHORT
-//                ).show()
-//            }
-//        } catch (e:Exception) {
-//            Toast.makeText(requireContext(),
-//                "Error processing photo",
-//                Toast.LENGTH_SHORT
-//            ).show()
-//            currentProcessingTaskId = null
-//        }
-//    }
 
     override fun onDestroyView() {
         super.onDestroyView()

@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat.startActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.widget.doAfterTextChanged
@@ -20,7 +19,7 @@ import kotlin.jvm.java
 class LoginActivity: AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private val client = NetworkClient.okHttpClient
-    private val baseUrl = "http://10.0.2.2:5042/api/User"
+    private val baseUrl = ApiConfiguration.USER_API_URL
     private val gson = NetworkClient.gson
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -9,12 +9,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.bumptech.glide.Glide
-//import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.FragmentHomeBinding
 
 class HomeFragment: Fragment() {
@@ -36,16 +34,13 @@ class HomeFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        // test - to remove later on
-    // * ->    // binding.plant.setImageResource(R.drawable.mighty_oak)
-
         // set up recyclerview layout manager for badges
         binding.recyclerViewBadges.layoutManager = LinearLayoutManager(requireContext(),
             LinearLayoutManager.HORIZONTAL, false)
 
         sharedViewModel.fetchLatestBadges() // fetch data
         observeViewModel()
-        sharedViewModel.fetchUserProfile()   ///////////// <-*
+        sharedViewModel.fetchUserProfile()
     }
 
     fun observeViewModel() {
@@ -54,16 +49,13 @@ class HomeFragment: Fragment() {
             binding.accountInfo.text = state.username
             binding.coinDisplay.text = "${state.totalCoins} coins"
             binding.healthBar.progress = state.plantHealthPercent
-            Log.d("HomeFragment", "Health: ${state.plantHealthPercent}%")
             binding.levelDisplay.text = "Current Stage: ${state.levelName}"
-////////////////
-// -> *
+
             Glide.with(this@HomeFragment)
                 .load(state.levelImageUrl)
-            //    .placeholder(R.drawable.mighty_oak)
+                .placeholder(R.drawable.mighty_oak)
                 .into(binding.plant)
-// -> *
-///////////////
+
             Glide.with(requireContext())
                 .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                 .circleCrop() // to make image round
@@ -89,37 +81,7 @@ class HomeFragment: Fragment() {
                     binding.healthBar.progressTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
                 }
             }
-//            if (state.plantHealthPercent<40) {
-//                binding.healthBar.progressTintList = ColorStateList.valueOf(Color.RED)
-//            } else { // normal healthy level
-//                binding.healthBar.progressTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
-//            }
-
-            // KIV!!!! haoting you can consider these 2 codes, if they help
-            // update plant image
-            //if (state.levelImageUrl.isNotEmpty()) {
-                // val fullUrl = state.levelImageUrl.replace("~/", baseUrl + "/")
-                // Glide.with(this).load(fullUrl).into(binding.plant)
-            //}
-
-            // OR THIS:
-            // viewModel.levelImageURL.observe(this) { url ->
-            //    // Use a library like Glide or Picasso to load the image from the URL
-            //    // Note: Since your API returns "~/images/...", you may need to
-            //    // clean the URL to match your server's public address.
-            //    val fullUrl = url.replace("~/", baseUrl + "/")
-            //    Glide.with(this).load(fullUrl).into(binding.plantImageView)
-            //}
-
             handleWithering(state.isWithered)
-
-            // kiv use this for withering logic (if need to change)
-//            if (state.isWithered) {
-//                Glide.with(this)
-//                    .load(state.levelImageUrl)
-//                    .grayscale() // Optional: some versions of Glide or transformations allow this
-//                    .into(plantView)
-//            }
         }
 
         sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
@@ -136,7 +98,7 @@ class HomeFragment: Fragment() {
         if (wasWithered == true && !withered) {
             AlertDialog.Builder(requireContext())
                 .setTitle("Plant Revived")
-                .setMessage("Your plant has revived! Good job!")
+                .setMessage("Your plant has revived!\nTake good care of it!")
                 .setPositiveButton("Yay!", null)
                 .show()
         }
@@ -159,6 +121,4 @@ class HomeFragment: Fragment() {
         super.onDestroyView()
         _binding = null
     }
-
-    // need to work on getting the tree images up (finish Redeem portion first)
 }
