@@ -1,0 +1,6 @@
+﻿# --- Home Screen ---
+- waitForAnimationToEnd:
+    timeout: 10000
+- assertVisible: "Map"
+- assertVisible: "Tasks"
+- takeScreenshot: .maestro/screenshots/Login_Success_And_Home_Screen

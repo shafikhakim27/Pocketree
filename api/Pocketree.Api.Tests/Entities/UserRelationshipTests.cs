@@ -110,7 +110,8 @@ public class UserRelationshipTests
             SkinID = 1,
             SkinName = "Golden Tree",
             SkinPrice = 300,
-            ImageURL = "/images/skins/golden.png"
+            ImageURL = "/images/skins/golden.png",
+            SkinKey = "golden"
         };
         
         context.Users.Add(user);
@@ -169,8 +170,8 @@ public class UserRelationshipTests
             FailedVerificationCount = 0
         };
         
-        var skin1 = new Skin { SkinID = 1, SkinName = "Skin 1", SkinPrice = 100, ImageURL = "/images/skins/1.png" };
-        var skin2 = new Skin { SkinID = 2, SkinName = "Skin 2", SkinPrice = 100, ImageURL = "/images/skins/2.png" };
+        var skin1 = new Skin { SkinID = 1, SkinName = "Skin 1", SkinPrice = 100, ImageURL = "/images/skins/1.png", SkinKey = "skin1" };
+        var skin2 = new Skin { SkinID = 2, SkinName = "Skin 2", SkinPrice = 100, ImageURL = "/images/skins/2.png", SkinKey = "skin2" };
         
         context.Users.Add(user);
         context.Skins.AddRange(skin1, skin2);

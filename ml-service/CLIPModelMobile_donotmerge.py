@@ -5,7 +5,7 @@ import open_clip
 
 app = FastAPI()
 
-# Global placeholders - NO LOADING AT STARTUP
+# Global placeholders - no loading at startup
 model, preprocess, tokenizer = None, None, None
 
 @app.post("/classify")
@@ -15,12 +15,12 @@ def classify(keyword: str = Form(...), file: UploadFile = File(...)):
     
     # Lazy Load: Only load the model when the first request hits
     if model is None:
-        print("⏳ First request: Loading model...")
+        print("Loading model...")
         m, _, p = open_clip.create_model_and_transforms('MobileCLIP2-S0', pretrained='dfndr2b')
         model = m.to("cpu").eval()
         preprocess = p
         tokenizer = open_clip.get_tokenizer('MobileCLIP2-S0')
-        print("✅ Model Loaded!")
+        print("Model Loaded!")
 
     # Fast Image Logic
     img = Image.open(io.BytesIO(file.file.read())).convert("RGB")
@@ -39,7 +39,7 @@ def classify(keyword: str = Form(...), file: UploadFile = File(...)):
         probs = (100.0 * image_feat @ text_feat.T).softmax(dim=-1).cpu().numpy()[0]
 
     verified = bool(probs.argmax() == 0 and probs[0] >= 0.55 and raw_sim > 0.15)
-    print(f"⏱️ Done in {time.time()-start:.2f}s")
+    print(f"Done in {time.time()-start:.2f}s")
     return {"verified": verified}
 
 if __name__ == "__main__":

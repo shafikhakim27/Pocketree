@@ -1,0 +1,14 @@
+﻿# --- Redeem Skin ---
+- tapOn: "Redeem"
+- assertVisible: "Redeem Items"
+- assertVisible:
+    id: "recyclerViewSkin"
+# Tap the first skin item in the grid
+- tapOn:
+    id: "itemContainer"
+    index: 0
+- assertVisible: "Confirm Redemption"
+- tapOn: "Confirm"
+- assertVisible: "Redemption Successful!"
+- tapOn: "OK"
+- takeScreenshot: .maestro/screenshots/Redeem_Skin_Success

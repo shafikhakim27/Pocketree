@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -8,6 +8,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.AspNetCore.Identity;
 using ADproject.Models.Entities;
 using Microsoft.VisualStudio.TestPlatform.TestHost;
+using Microsoft.Extensions.Configuration;
+using System;
 
 namespace Pocketree.Api.Tests.Helpers;
 
@@ -33,13 +35,29 @@ public class TestWebApplicationFactory : WebApplicationFactory<Program>
                 services.Remove(descriptor);
             }
 
-            // ✅ Add ONLY InMemory database for testing
-            services.AddDbContext<MyDbContext>(options =>
+            var useInMemoryDatabase = Environment.GetEnvironmentVariable("USE_IN_MEMORY_DATABASE") ?? "true";
+
+            if (useInMemoryDatabase.Equals("true", StringComparison.OrdinalIgnoreCase))
             {
-                options.UseInMemoryDatabase("IntegrationTestDb")
-                    .UseLazyLoadingProxies()
-                    .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
-            });
+                // ✅ Add ONLY InMemory database for testing
+                services.AddDbContext<MyDbContext>(options =>
+                {
+                    options.UseInMemoryDatabase("IntegrationTestDb")
+                        .UseLazyLoadingProxies()
+                        .ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
+                });
+            }
+            else
+            {
+                // Use real database from docker-compose
+                var connectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+
+                services.AddDbContext<MyDbContext>(options =>
+                {
+                    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString))
+                        .UseLazyLoadingProxies();
+                });
+            }
         });
     }
 

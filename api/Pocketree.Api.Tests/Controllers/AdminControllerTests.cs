@@ -1,4 +1,4 @@
-using ADproject.Models.Entities;
+﻿using ADproject.Models.Entities;
 using ADproject.Hubs;
 using Pocketree.Api.Controllers;
 using Pocketree.Api.Models.Entities;
@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc.Routing;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using System.Security.Claims;
 
@@ -95,11 +97,14 @@ public class AdminControllerTests
         {
             HttpContext = httpContext
         };
+
+        controller.Url = new Mock<IUrlHelper>().Object;
+        controller.TempData = new TempDataDictionary(httpContext, new Mock<ITempDataProvider>().Object);
         
         return controller;
     }
 
-    [Fact(Skip = "Requires full ASP.NET MVC services for View() call")]
+    [Fact]
     public async System.Threading.Tasks.Task Admin_Index_WithValidSession_ReturnsView()
     {
         // Arrange
@@ -137,7 +142,7 @@ public class AdminControllerTests
         result.Should().BeOfType<ViewResult>();
     }
 
-    [Fact(Skip = "Requires full ASP.NET MVC services for RedirectToAction() call")]
+    [Fact]
     public async System.Threading.Tasks.Task Admin_Index_WithoutSession_RedirectsToLogin()
     {
         // Arrange
@@ -157,7 +162,7 @@ public class AdminControllerTests
         redirect.ControllerName.Should().Be("User");
     }
 
-    [Fact(Skip = "Requires full ASP.NET MVC services for RedirectToAction")]
+    [Fact]
     public async System.Threading.Tasks.Task Admin_Logout_SetsIsOnlineToFalse()
     {
         // Arrange
@@ -213,7 +218,7 @@ public class AdminControllerTests
         result.Should().BeOfType<BadRequestObjectResult>();
     }
 
-    [Fact(Skip = "Requires full ASP.NET MVC services for RedirectToAction")]
+    [Fact]
     public async System.Threading.Tasks.Task Admin_BroadcastMessage_CreatesNotificationRecord()
     {
         // Arrange

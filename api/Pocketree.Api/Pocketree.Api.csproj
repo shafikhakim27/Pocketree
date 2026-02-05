@@ -5,6 +5,7 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <OpenApiGenerateDocumentsOnBuild>false</OpenApiGenerateDocumentsOnBuild>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
 
     <AnalysisLevel>latest</AnalysisLevel> 
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild> 

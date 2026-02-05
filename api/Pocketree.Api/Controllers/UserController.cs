@@ -78,6 +78,8 @@ namespace ADproject.Controllers
             // fetch User object so we can update Login/Activity dates directly
             var user = await db.Users
                         .Include(u => u.CurrentLevel)
+                        .Include(u => u.UserSkins)
+                            .ThenInclude(us => us.Skin)
                         .Include(u => u.Trees) 
                         .FirstOrDefaultAsync(u => u.Username == dto.Username);
 
@@ -88,6 +90,11 @@ namespace ADproject.Controllers
 
             if (result == PasswordVerificationResult.Success)
             {
+                 if (user.UserRole == "Admin") 
+                {
+                    return BadRequest("Admins must use the Web portal.");
+                }
+
                 var activeTree = user.Trees?.FirstOrDefault(t => !t.IsCompleted);
 
                 // Set tree status
@@ -98,7 +105,8 @@ namespace ADproject.Controllers
                 
                 await db.SaveChangesAsync();
 
-                var userProfile = GetUserProfile(user, activeTree, user.CurrentLevel?.LevelName);
+                var androidProfile = GetAndroidUserProfile (user, activeTree, user.CurrentLevel?.LevelName);
+                // var userProfile = GetUserProfile(user, activeTree, user.CurrentLevel?.LevelName);
 
                 // GenerateJwtToken
                 var claims = new[]
@@ -109,7 +117,7 @@ namespace ADproject.Controllers
                 };
 
                 var token = GenerateJwtToken(claims);
-                return Ok(new { Token = token, User = userProfile });
+                return Ok(new { Token = token, User = androidProfile });
             }
 
             return Unauthorized("Invalid credentials.");
@@ -153,12 +161,13 @@ namespace ADproject.Controllers
             var userData = await db.Users
                     // .AsNoTracking() - remove so we can update tree status
                     .Where(u => u.Username == User.Identity.Name)
+                    .Include(u => u.CurrentLevel)
                     .Include(u => u.UserSkins)
                         .ThenInclude(us => us.Skin)
                     .Include(u => u.Trees)
                     .Select(u => new
                     {
-                        User = u, // so as to be able to access LastActivityDate to update tree status                        
+                        UserEntity = u, // so as to be able to access LastActivityDate to update tree status                        
                         u.Username,
                         u.TotalCoins,
                         u.CurrentLevelID,
@@ -174,22 +183,72 @@ namespace ADproject.Controllers
 
             await CheckWithering(userData.ActiveTree, userData.LastActivityDate);
 
-            // Check for the withering condition
+            var androidProfile = GetAndroidUserProfile(userData.UserEntity, userData.ActiveTree, userData.LevelName);
+
+            return Ok(androidProfile);
+        }
+
+            // // Equipping user's skin
+            // bool isWithered = userData.ActiveTree?.IsWithered ?? false;
+
+            // //dynamically concatenate image file names
+            // string stageName = userData.LevelName.Split(' ')[0];
+            // string skinSuffix = "";
+            // string statusSuffix = "";
+
+            // if (isWithered)
+            // {
+            //     finalPercent = 0;
+            //     statusSuffix = "_Withered";     // Withered trees don't have skin
+            // }
+            // else
+            // {
+            //     if (userData.CurrentLevelID > 1) // cannot equip skin at Lv1
+            //     {
+            //         var equippedSkin = userData.User.UserSkins.FirstOrDefault(us => us.IsEquipped);
+            //         if (equippedSkin != null)
+            //         {
+            //             skinSuffix = "_" + equippedSkin.Skin.SkinKey;
+            //         }
+            //     }
+            // }
+
+            // // get the whole file name, e.g. Tree_Sapling_Animals.png
+            // string fileName = $"Tree_{stageName}{skinSuffix}{statusSuffix}.png";
+            // string finalImageUrl = $"~/images/trees/{fileName}";
+            
+            // Prepare UserProfile data to send back to Android
+            // var androidProfile = new AndroidUserProfileViewModel
+            // {
+            //     Username = userData.Username,
+            //     TotalCoins = userData.TotalCoins,
+            //     LevelName = userData.LevelName ?? "Seedling",
+            //     LevelID = userData.CurrentLevelID,                    
+            //     LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
+            //     ProfileImageURL = baseURL + (userData.ProfileImageURL ?? "~/images/default-user.jpg"),
+            //     IsWithered = userData.ActiveTree?.IsWithered ?? false,              
+            //     PlantHealthPercent = finalPercent
+            // };
+
+        // Private function (not API) for backend use
+        private AndroidUserProfileViewModel GetAndroidUserProfile (User user, Tree? activeTree, string levelName)
+        {
             double hoursSinceLastActivity = 0;
-            if (userData.LastActivityDate.HasValue)
+            if (user.LastActivityDate.HasValue)
             {
-                hoursSinceLastActivity = (DateTime.UtcNow - userData.LastActivityDate.Value).TotalHours;
+                hoursSinceLastActivity = (DateTime.UtcNow - user.LastActivityDate.Value).TotalHours;
             }
+        
+            var totalWindow = 72.0;
+            var percent = (int)((1-(hoursSinceLastActivity/totalWindow)) * 100);
+            int finalPercent = Math.Clamp(percent, 0, 100);
 
-            var totalWindow = 72.0; // 3 days in hours
-            var percent = (int)((1-(hoursSinceLastActivity/totalWindow))*100);
-            int finalPercent = Math.Clamp(percent,0,100);
-
-            // Equipping user's skin
-            bool isWithered = userData.ActiveTree?.IsWithered ?? false;
-
+            // Check withering status
+            bool isWithered = activeTree?.IsWithered ?? false;
+                
             //dynamically concatenate image file names
-            string stageName = userData.LevelName.Split(' ')[0];
+            string stageName = (levelName ?? "Seedling").Split(' ')[0];
+            // string stageName = userData.LevelName.Split(' ')[0];
             string skinSuffix = "";
             string statusSuffix = "";
 
@@ -198,15 +257,12 @@ namespace ADproject.Controllers
                 finalPercent = 0;
                 statusSuffix = "_Withered";     // Withered trees don't have skin
             }
-            else
+            else if (user.CurrentLevelID > 1) // cannot equip skin at Lv1
             {
-                if (userData.CurrentLevelID > 1) // cannot equip skin at Lv1
+                var equippedSkin = user.UserSkins?.FirstOrDefault(us => us.IsEquipped);
+                if (equippedSkin?.Skin != null)
                 {
-                    var equippedSkin = userData.User.UserSkins.FirstOrDefault(us => us.IsEquipped);
-                    if (equippedSkin != null)
-                    {
-                        skinSuffix = "_" + equippedSkin.Skin.SkinKey;
-                    }
+                    skinSuffix = "_" + equippedSkin.Skin.SkinKey;
                 }
             }
 
@@ -225,17 +281,18 @@ namespace ADproject.Controllers
             // Prepare UserProfile data to send back to Android
             var androidProfile = new AndroidUserProfileViewModel
             {
-                Username = userData.Username,
-                TotalCoins = userData.TotalCoins,
-                LevelName = userData.LevelName ?? "Seedling",
-                LevelID = userData.CurrentLevelID,                    
-                LevelImageURL = baseURL + finalImageUrl, // ?? baseURL + "images/levels/seedling.png",
-                ProfileImageURL = baseURL + userData.ProfileImageURL,
-                IsWithered = userData.ActiveTree?.IsWithered ?? false,              
+                Username = user.Username,
+                TotalCoins = user.TotalCoins,
+                LevelName = levelName ?? "Seedling",
+                LevelID = user.CurrentLevelID,
+                LevelImageURL = finalImageUrl,
+                ProfileImageURL = baseURL + (user.ProfileImageURL?.Replace("~/","")?? "images/default-user.jpg"),
+                IsWithered = isWithered,
+                // LevelImageURL = baseURL + (user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png"),
+                // ProfileImageURL = baseURL + (user.ProfileImageURL ?? "~/images/default-user.jpg"),
+                // IsWithered = activeTree?.IsWithered ?? false,
                 PlantHealthPercent = finalPercent
             };
-
-            return Ok(androidProfile);
         }
 
         private bool IsAndroidRequest(HttpRequest request)

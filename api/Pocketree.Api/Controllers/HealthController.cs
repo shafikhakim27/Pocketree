@@ -186,7 +186,9 @@ namespace ADproject.Controllers
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(timeout));
                 
                 // Simple HTTP check to ML service
-                var mlServiceUrl = _configuration["ML_SERVICE_URL"] ?? "http://localhost:5000";
+                var mlServiceUrl = _configuration["MlService:Url"]
+                    ?? _configuration["ML_SERVICE_URL"]
+                    ?? "http://localhost:5000";
                 using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(timeout) };
                 
                 var response = await httpClient.GetAsync(mlServiceUrl, cts.Token);

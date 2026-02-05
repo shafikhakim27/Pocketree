@@ -1,0 +1,15 @@
+﻿- launchApp
+- clearState
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# --- Login Screen ---
+- assertVisible: "Welcome! Please log in"
+- tapOn:
+    id: "emailInput"
+- inputText: "testuser@pocketree.com"
+- tapOn:
+    id: "passwordInput"
+- inputText: "password123"
+- tapOn:
+    id: "loginButton"

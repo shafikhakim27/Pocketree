@@ -1,0 +1,28 @@
+name: ML Service CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'ml-service/**'
+      - '.github/workflows/ml-service-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  security-scans:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Snyk Python Scan
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=ml-service/requirements.txt --severity-threshold=high --skip-unresolved
+
+      - name: Run Bandit
+        run: |
+          pip install bandit
+          bandit -r ml-service/ -lll -iii

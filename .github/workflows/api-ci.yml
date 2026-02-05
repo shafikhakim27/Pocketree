@@ -1,0 +1,113 @@
+name: Backend API CI
+
+on:
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'api/**'
+      - '.github/workflows/api-ci.yml'
+  workflow_dispatch:
+
+env:
+  IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-api
+  AZURE_WEBAPP_NAME: pocketree-api
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore Dependencies
+        run: dotnet restore api/api.sln
+
+      - name: Snyk Security Scan
+        uses: snyk/actions/dotnet@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=api/api.sln --severity-threshold=high
+
+      - name: Build Solution
+        run: dotnet build api/api.sln --no-restore --configuration Release
+
+      - name: Publish Test Project
+        run: dotnet publish api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj --configuration Release --output ./test-artifacts
+      
+      - name: Upload Test Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-artifacts
+          path: test-artifacts/
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download Test Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: test-artifacts
+          path: ./test-artifacts
+
+      - name: Run Unit Tests
+        run: dotnet test ./test-artifacts/Pocketree.Api.Tests.dll --logger "trx;logfilename=unit_test_results.trx" --filter "FullyQualifiedName!~Pocketree.Api.Tests.Integration"
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-test-results
+          path: '**/*.trx'
+          
+  integration-tests:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start services
+        run: docker compose -f "docker compose.yml" up -d pocketree-db
+
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {1..30}; do
+            if docker compose -f "docker compose.yml" exec -T pocketree-db env MYSQL_PWD=password mysqladmin ping -h "localhost" -u "root" --silent; then
+              echo "MySQL is ready."
+              exit 0
+            fi
+            echo "Waiting for MySQL..."
+            sleep 2
+          done
+          echo "MySQL did not become ready in time."
+          exit 1
+
+      - name: Download Test Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: test-artifacts
+          path: ./test-artifacts
+
+      - name: Run Integration Tests
+        env:
+          ConnectionStrings__DefaultConnection: Server=localhost;Port=3306;Database=pocketree;User=root;Password=password
+          USE_IN_MEMORY_DATABASE: false
+        run: dotnet test ./test-artifacts/Pocketree.Api.Tests.dll --logger "trx;logfilename=integration_test_results.trx" --filter "FullyQualifiedName~Pocketree.Api.Tests.Integration"
+
+      - name: Stop services
+        if: always()
+        run: docker compose -f "docker compose.yml" down
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: '**/*.trx'
