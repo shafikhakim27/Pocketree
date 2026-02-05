@@ -2,6 +2,7 @@
 using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -71,6 +72,11 @@ public class UserApiIntegrationTests
             .Returns(PasswordVerificationResult.Success);
 
         var controller = new UserController(context, mockHasher.Object, CreateConfiguration());
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("localhost:5042");
 
         var result = await controller.LoginApi(new UserLoginDto
         {

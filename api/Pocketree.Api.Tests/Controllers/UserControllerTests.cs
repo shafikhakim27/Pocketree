@@ -42,7 +42,7 @@ public class UserControllerTests
             ["Jwt:Key"] = "TestSecretKey123456789012345678901234567890",
             ["Jwt:Issuer"] = "TestIssuer",
             ["Jwt:Audience"] = "TestAudience",
-            ["StorageBaseURL"] = "https://cdn.test"
+            ["BaseURL"] = "https://cdn.test/"
         };
 
         return new ConfigurationBuilder()
@@ -86,7 +86,7 @@ public class UserControllerTests
 
         var user = await context.Users.FirstOrDefaultAsync(u => u.Username == "newuser");
         user.Should().NotBeNull();
-        user!.ProfileImageURL.Should().Be("https://cdn.test/images/default-user.jpg");
+        user!.ProfileImageURL.Should().Be("images/default-user.jpg");
 
         var tree = await context.Trees.FirstOrDefaultAsync(t => t.UserID == user.UserID);
         tree.Should().NotBeNull();
@@ -188,6 +188,6 @@ public class UserControllerTests
         items!.Should().HaveCount(1);
 
         var json = System.Text.Json.JsonSerializer.Serialize(items);
-        json.Should().Contain("https://cdn.test/forest.png");
+        json.Should().Contain("/forest.png");
     }
 }
