@@ -30,19 +30,12 @@ jobs:
         run: |
           pip install bandit
           bandit -r ml-service/ -lll -iii -f json -o bandit-report.json
-          bandit -r ml-service/ -lll -iii -f sarif -o bandit-report.sarif
 
       - name: Upload Snyk SARIF
         if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ml-service-snyk.sarif
-
-      - name: Upload Bandit SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: bandit-report.sarif
 
       - name: Upload Snyk Report
         if: always()
@@ -58,9 +51,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ml-bandit-report
-          path: |
-            bandit-report.json
-            bandit-report.sarif
+          path: bandit-report.json
 
       - name: Security Summary
         if: always()

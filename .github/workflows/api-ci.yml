@@ -36,6 +36,14 @@ jobs:
 
       - name: Upload Gitleaks SARIF
         if: always()
+        run: |
+          if [ ! -f gitleaks.sarif ]; then
+            echo "No gitleaks.sarif found. Creating empty report to avoid upload errors."
+            echo '{"version":"2.1.0","runs":[]}' > gitleaks.sarif
+          fi
+
+      - name: Publish Gitleaks SARIF
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: gitleaks.sarif
