@@ -6,6 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.GridLayoutManager
@@ -32,6 +33,10 @@ class RedeemFragment: Fragment() {
         sharedViewModel.fetchSkins()
         sharedViewModel.fetchVouchers()
 
+        observeViewModel()
+    }
+
+    private fun observeViewModel(){
         sharedViewModel.skins.observe(viewLifecycleOwner) { skinList ->
             binding.recyclerViewSkin.adapter = RedeemAdapter(skinList) { item ->
                 if (item is Skin) {
@@ -65,7 +70,7 @@ class RedeemFragment: Fragment() {
                 .circleCrop() // to make image round
                 .placeholder(R.drawable.profile_pic)
                 .into(binding.profilePic)
-            }
+        }
 
         sharedViewModel.redeemSkinSuccessEvent.observe(viewLifecycleOwner) { message ->
             message?.let {
@@ -103,6 +108,7 @@ class RedeemFragment: Fragment() {
             }
         }
     }
+
 
     private fun setupRecyclerView() {
         // GridLayoutManager: parameter 3 indicates that 3 items are displayed in one row.

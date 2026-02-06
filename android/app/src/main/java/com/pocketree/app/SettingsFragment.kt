@@ -11,9 +11,11 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.core.content.ContentProviderCompat.requireContext
+import androidx.core.content.ContextCompat.startActivity
 import androidx.core.widget.doAfterTextChanged
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import com.bumptech.glide.Glide
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.pocketree.app.databinding.FragmentSettingsBinding
@@ -45,8 +47,56 @@ class SettingsFragment: Fragment() {
         backgroundMusic()
         soundEffects()
         changePassword()
-        setupObservers()
+        observeViewModel()
         logOut()
+    }
+
+    private fun observeViewModel(){
+        // observe consolidated userState
+        sharedViewModel.userState.observe(viewLifecycleOwner) { state ->
+            // update UI using properties of state object
+            binding.accountInfo.text = state.username
+            binding.coinDisplay.text="${state.totalCoins} coins"
+
+            Glide.with(requireContext())
+                .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
+                .circleCrop() // to make image round
+                .placeholder(R.drawable.profile_pic)
+                .into(binding.profilePic)
+        }
+
+
+        // listen for any error messages and show a Toast
+        sharedViewModel.errorMessage.observe(viewLifecycleOwner) { msg ->
+            msg?.let{
+                Toast.makeText(requireContext(), it,
+                    Toast.LENGTH_SHORT
+                ).show()
+                sharedViewModel.errorMessage.value = null // clear error after showing
+            }
+        }
+
+        // listen for logout success
+        sharedViewModel.logoutSuccess.observe(viewLifecycleOwner) {success ->
+            if (success) {
+                Toast.makeText(requireContext(),
+                    "You have logged out successfully!",
+                    Toast.LENGTH_SHORT
+                ).show()
+                navigateToLogin()
+            }
+        }
+
+        // listen for password success
+        sharedViewModel.passwordUpdateSuccess.observe(viewLifecycleOwner) { success ->
+            if (success) {
+                Toast.makeText(
+                    context,
+                    "Password updated successfully!",
+                    Toast.LENGTH_SHORT
+                ).show()
+            }
+        }
     }
 
     private fun backgroundMusic() {
@@ -111,47 +161,6 @@ class SettingsFragment: Fragment() {
         sfxPlayer.start()
     }
 
-    private fun setupObservers() {
-        // listen for any error messages and show a Toast
-        sharedViewModel.errorMessage.observe(viewLifecycleOwner) { msg ->
-            msg?.let{
-                Toast.makeText(requireContext(), it,
-                    Toast.LENGTH_SHORT
-                ).show()
-                sharedViewModel.errorMessage.value = null // clear error after showing
-            }
-        }
-
-        // listen for logout success
-        sharedViewModel.logoutSuccess.observe(viewLifecycleOwner) {success ->
-            if (success) {
-                Toast.makeText(requireContext(),
-                    "You have logged out successfully!",
-                    Toast.LENGTH_SHORT
-                ).show()
-                navigateToLogin()
-            }
-        }
-
-        // listen for password success
-        sharedViewModel.passwordUpdateSuccess.observe(viewLifecycleOwner) { success ->
-            if (success) {
-                Toast.makeText(
-                    context,
-                    "Password updated successfully!",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
-        }
-    }
-
-//    private fun logOut() {
-//        binding.btnLogout.setOnClickListener {
-//            SignalRManager.stopConnection()
-//            sharedViewModel.logout()
-//        }
-//    }
-
     private fun logOut() {
         binding.btnLogout.setOnClickListener {
             SignalRManager.stopConnection()
@@ -214,10 +223,6 @@ class SettingsFragment: Fragment() {
                 layoutCurrent, layoutNew, layoutConfirm
             )
 
-//            if (validatePasswordInput(currentPass, newPass, confirmPass)) {
-//                sharedViewModel.sendPasswordChangeRequest(currentPass, newPass, confirmPass)
-//            }
-
             if (isValid){
                 sharedViewModel.sendPasswordChangeRequest(currentPass, newPass, confirmPass)
                 dialog.dismiss() // close dialog only on success
@@ -246,116 +251,18 @@ class SettingsFragment: Fragment() {
             isValid = false
         }
 
-//        if (current.isEmpty() || new.isEmpty() || confirm.isEmpty()) {
-//            Toast.makeText(
-//                context, "All fields are required",
-//                Toast.LENGTH_SHORT
-//            ).show()
-//            return false
-//        }
-
         if (new.length <8) {
-//            Toast.makeText(
-//                context, "Password must be at least 8 characters",
-//                Toast.LENGTH_SHORT
-//            ).show()
-//            return false
             layoutNew.error = "Password must be at least 8 characters"
             isValid = false
         }
 
         if (new != confirm) {
-//            Toast.makeText(
-//                context, "New passwords do not match",
-//                Toast.LENGTH_SHORT
-//            ).show()
-//            return false
             layoutConfirm.error = "Passwords do not match"
             isValid = false
         }
         // return true
         return isValid
     }
-
-//    private fun sendChangePasswordRequest(current: String,
-//                                          new:String,
-//                                          confirm:String,
-//                                          dialog: AlertDialog
-//    ) {
-//        // Get Token
-//        val token = NetworkClient.loadToken(requireContext())
-//        android.util.Log.d("DEBUG_TOKEN", "Token is: $token") // 查看 Logcat
-//        android.util.Log.e("DEBUG_PASSWORD", "Token sending: '$token'")
-//        if (token.isNullOrEmpty() || token == "no_token") {
-//            Toast.makeText(context, "Authentication error. Please login again.", Toast.LENGTH_SHORT).show()
-//            return
-//        }
-//        // 2. Prepare JSON data
-//        val jsonObject = JSONObject().apply {
-//            put("CurrentPassword", current)
-//            put("NewPassword", new)
-//            put("ConfirmNewPassword", confirm)
-//        }
-//
-//        val body = jsonObject.toString()
-//            .toRequestBody("application/json; charset=utf-8".toMediaType())
-//
-//        // 3. Build Request
-//        val request = Request.Builder()
-//            .url("$baseUrl/change-password")
-//            //.addHeader("Authorization", "Bearer $token")
-//            .post(body)
-//            .build()
-//
-//        // 4. Send Request
-//        client.newCall(request).enqueue(object : Callback {
-//            // Case 1: Network Failure (Server down, no wifi, etc.)
-//            override fun onFailure(call: Call, e: IOException) {
-//                activity?.runOnUiThread {
-//                    Toast.makeText(context, "Cannot connect to backend: ${e.message}", Toast.LENGTH_SHORT).show()
-//                }
-//            }
-//
-//            override fun onResponse(call: Call, response: Response) {
-//                // Note: response.body?.string() can only be called once
-//                val responseBody = response.body?.string() ?: ""
-//
-//                activity?.runOnUiThread {
-//                    if (response.isSuccessful) {
-//                        Toast.makeText(context, "Password updated successfully!", Toast.LENGTH_LONG).show()
-//                        dialog.dismiss() // Close dialog only on success
-//                    } else {
-//                        // Error Handling based on HTTP Status Code
-//                        when (response.code) {
-//                            400 -> {
-//                                // backend returns 400 Bad Request (Business Logic Error)
-//                                if (responseBody.contains("incorrect", ignoreCase = true)) {
-//                                    Toast.makeText(context, "Invalid password", Toast.LENGTH_SHORT).show()
-//                                } else if (responseBody.contains("match", ignoreCase = true)) {
-//                                    Toast.makeText(context, "Passwords do not match", Toast.LENGTH_SHORT).show()
-//                                } else {
-//                                    // Other validation errors
-//                                    Toast.makeText(context, "Validation failed: $responseBody", Toast.LENGTH_SHORT).show()
-//                                }
-//                            }
-//                            401 -> {
-//                                // 401 Unauthorized (Token expired or invalid)
-//                                Toast.makeText(context, "Session expired, please login again", Toast.LENGTH_SHORT).show()
-//                            }
-//                            500 -> {
-//                                // 500 Internal Server Error
-//                                Toast.makeText(context, "Server error, please try again later", Toast.LENGTH_SHORT).show()
-//                            }
-//                            else -> {
-//                                // Other errors
-//                                Toast.makeText(context, "Error ${response.code}: $responseBody", Toast.LENGTH_SHORT).show()
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        })
-//    }
 
     override fun onDestroyView(){
         super.onDestroyView()
