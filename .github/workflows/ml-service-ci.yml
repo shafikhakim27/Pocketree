@@ -31,8 +31,16 @@ jobs:
           pip install bandit
           bandit -r ml-service/ -lll -iii -f json -o bandit-report.json
 
-      - name: Upload Snyk SARIF
+      - name: Check Snyk SARIF
         if: always()
+        run: |
+          if [ ! -s ml-service-snyk.sarif ]; then
+            echo "SKIP_SNYK_SARIF=true" >> $GITHUB_ENV
+            echo "Snyk SARIF missing or empty, skipping upload."
+          fi
+
+      - name: Upload Snyk SARIF
+        if: always() && env.SKIP_SNYK_SARIF != 'true'
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ml-service-snyk.sarif

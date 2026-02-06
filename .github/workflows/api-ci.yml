@@ -33,13 +33,18 @@ jobs:
         with:
           report-format: sarif
           report-path: gitleaks.sarif
+          args: --config .gitleaks.toml
 
       - name: Upload Gitleaks SARIF
         if: always()
         run: |
           if [ ! -f gitleaks.sarif ]; then
-            echo "No gitleaks.sarif found. Creating empty report to avoid upload errors."
-            echo '{"version":"2.1.0","runs":[]}' > gitleaks.sarif
+            echo "No gitleaks.sarif found. Skipping SARIF upload."
+            exit 0
+          fi
+          if [ ! -s gitleaks.sarif ]; then
+            echo "gitleaks.sarif is empty. Skipping SARIF upload."
+            exit 0
           fi
 
       - name: Publish Gitleaks SARIF
