@@ -13,7 +13,7 @@ env:
   GCP_REGION: asia-southeast1
   AR_REPO: pocketree-ml
   IMAGE_NAME: pocketree-ml
-  ENDPOINT_NAME: pocketree-ml-endpoint
+  SERVICE_NAME: pocketree-ml
 
 jobs:
   build-and-deploy-ml:
@@ -54,65 +54,21 @@ jobs:
           docker build -f ml-service/Dockerfile -t "$IMAGE_URI" ml-service
           docker push "$IMAGE_URI"
 
-      - name: Upload model to Vertex AI
+      - name: Deploy to Cloud Run
         run: |
           set -euo pipefail
-          MODEL_ID=$(gcloud ai models upload \
+          gcloud run deploy "${{ env.SERVICE_NAME }}" \
             --project "${{ env.GCP_PROJECT_ID }}" \
             --region "${{ env.GCP_REGION }}" \
-            --display-name "${{ env.IMAGE_NAME }}" \
-            --container-image-uri "$IMAGE_URI" \
-            --container-ports 8080 \
-            --container-predict-route /predict \
-            --container-health-route /health \
-            --format="value(name)")
-          if [ -z "$MODEL_ID" ]; then
-            echo "Model upload did not return a model ID. Trying to resolve from list..."
-            MODEL_ID=$(gcloud ai models list \
-              --project "${{ env.GCP_PROJECT_ID }}" \
-              --region "${{ env.GCP_REGION }}" \
-              --filter="displayName=${{ env.IMAGE_NAME }}" \
-              --sort-by="~createTime" \
-              --limit=1 \
-              --format="value(name)")
-          fi
-          if [ -z "$MODEL_ID" ]; then
-            echo "Model upload did not return a model ID and list lookup failed."
-            exit 1
-          fi
-          echo "MODEL_ID=$MODEL_ID" >> $GITHUB_ENV
-
-      - name: Create endpoint if missing
-        run: |
-          set -euo pipefail
-          ENDPOINT_ID=$(gcloud ai endpoints list \
-            --project "${{ env.GCP_PROJECT_ID }}" \
-            --region "${{ env.GCP_REGION }}" \
-            --filter="displayName=${{ env.ENDPOINT_NAME }}" \
-            --format="value(name)" | head -n 1)
-          if [ -z "$ENDPOINT_ID" ]; then
-            ENDPOINT_ID=$(gcloud ai endpoints create \
-              --project "${{ env.GCP_PROJECT_ID }}" \
-              --region "${{ env.GCP_REGION }}" \
-              --display-name "${{ env.ENDPOINT_NAME }}" \
-              --format="value(name)")
-          fi
-          if [ -z "$ENDPOINT_ID" ]; then
-            echo "Endpoint create/list did not return an endpoint ID."
-            exit 1
-          fi
-          echo "ENDPOINT_ID=$ENDPOINT_ID" >> $GITHUB_ENV
-
-      - name: Deploy model to endpoint
-        run: |
-          set -euo pipefail
-          echo "Deploying MODEL_ID=$MODEL_ID to ENDPOINT_ID=$ENDPOINT_ID"
-          gcloud ai endpoints deploy-model "$ENDPOINT_ID" \
-            --project "${{ env.GCP_PROJECT_ID }}" \
-            --region "${{ env.GCP_REGION }}" \
-            --model "$MODEL_ID" \
-            --display-name "${{ env.IMAGE_NAME }}-sha-${{ github.sha }}" \
-            --machine-type "e2-standard-4" \
-            --min-replica-count 1 \
-            --max-replica-count 1 \
-            --traffic-split=0=100
+            --platform managed \
+            --image "$IMAGE_URI" \
+            --port 8080 \
+            --cpu 2 \
+            --memory 8Gi \
+            --timeout 600 \
+            --concurrency 10 \
+            --min-instances 1 \
+            --max-instances 1 \
+            --ingress all \
+            --set-env-vars "GUNICORN_CMD_ARGS=--timeout 600 --preload --workers 1" \
+            --allow-unauthenticated
