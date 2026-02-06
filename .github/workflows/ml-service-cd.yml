@@ -51,7 +51,7 @@ jobs:
         run: |
           IMAGE_URI="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
-          docker build -f ml-service/Dockerfile -t "$IMAGE_URI" .
+          docker build -f ml-service/Dockerfile -t "$IMAGE_URI" ml-service
           docker push "$IMAGE_URI"
 
       - name: Upload model to Vertex AI
