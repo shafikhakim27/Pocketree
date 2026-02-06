@@ -8,6 +8,10 @@ on:
       - '.github/workflows/ml-service-ci.yml'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   security-scans:
     runs-on: ubuntu-latest
@@ -20,9 +24,59 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=ml-service/requirements.txt --severity-threshold=high --skip-unresolved
+          args: --file=ml-service/requirements.txt --severity-threshold=high --skip-unresolved --json-file-output=ml-service-snyk.json --sarif-file-output=ml-service-snyk.sarif
 
       - name: Run Bandit
         run: |
           pip install bandit
-          bandit -r ml-service/ -lll -iii
+          bandit -r ml-service/ -lll -iii -f json -o bandit-report.json
+          bandit -r ml-service/ -lll -iii -f sarif -o bandit-report.sarif
+
+      - name: Upload Snyk SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ml-service-snyk.sarif
+
+      - name: Upload Bandit SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit-report.sarif
+
+      - name: Upload Snyk Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-snyk-report
+          path: |
+            ml-service-snyk.json
+            ml-service-snyk.sarif
+
+      - name: Upload Bandit Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-bandit-report
+          path: |
+            bandit-report.json
+            bandit-report.sarif
+
+      - name: Security Summary
+        if: always()
+        run: |
+          echo "ML Service Security Scans: Completed" >> $GITHUB_STEP_SUMMARY
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "ML Service CI Summary" > summary.txt
+          echo "Snyk: Completed" >> summary.txt
+          echo "Bandit: Completed" >> summary.txt
+
+      - name: Upload Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ml-service-ci-summary
+          path: summary.txt

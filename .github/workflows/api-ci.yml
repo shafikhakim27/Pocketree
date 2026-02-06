@@ -6,13 +6,47 @@ on:
     paths:
       - 'api/**'
       - '.github/workflows/api-ci.yml'
+  pull_request:
+    branches: ["main", "develop"]
+    paths:
+      - 'api/**'
+      - '.github/workflows/api-ci.yml'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-api
   AZURE_WEBAPP_NAME: pocketree-api
 
 jobs:
+  secrets-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Gitleaks Scan
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          report-format: sarif
+          report-path: gitleaks.sarif
+
+      - name: Upload Gitleaks SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: gitleaks.sarif
+
+      - name: Upload Gitleaks Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks.sarif
+
   build:
     runs-on: ubuntu-latest
     steps:
@@ -65,6 +99,11 @@ jobs:
         with:
           name: unit-test-results
           path: '**/*.trx'
+
+      - name: Unit Test Summary
+        if: always()
+        run: |
+          echo "Unit Tests: Completed" >> $GITHUB_STEP_SUMMARY
           
   integration-tests:
     runs-on: ubuntu-latest
@@ -111,3 +150,33 @@ jobs:
         with:
           name: integration-test-results
           path: '**/*.trx'
+
+      - name: Integration Test Summary
+        if: always()
+        run: |
+          echo "Integration Tests: Completed" >> $GITHUB_STEP_SUMMARY
+
+  summary:
+    runs-on: ubuntu-latest
+    needs: [secrets-scan, unit-tests, integration-tests]
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
+
+      - name: Build Summary
+        run: |
+          echo "API CI Summary" > summary.txt
+          echo "Secrets Scan: Completed" >> summary.txt
+          echo "Unit Tests: Completed" >> summary.txt
+          echo "Integration Tests: Completed" >> summary.txt
+          echo "" >> summary.txt
+          echo "Artifacts:" >> summary.txt
+          ls -R ./artifacts >> summary.txt
+
+      - name: Upload Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-ci-summary
+          path: summary.txt

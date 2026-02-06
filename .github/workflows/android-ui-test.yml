@@ -96,3 +96,16 @@ jobs:
             maestro-report/
             .maestro/recordings/
             .maestro/screenshots/
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "Android UI Test Summary" > summary.txt
+          echo "Maestro UI Tests: Completed" >> summary.txt
+
+      - name: Upload Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ui-test-summary
+          path: summary.txt

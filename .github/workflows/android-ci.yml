@@ -34,8 +34,31 @@ jobs:
       - name: Build APK (Debug)
         run: ./gradlew assembleDebug
 
+      - name: Upload Unit Test Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-unit-test-reports
+          path: |
+            android/app/build/reports/tests/testDebugUnitTest/
+            android/app/build/test-results/testDebugUnitTest/
+
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: pocketree-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "Android CI Summary" > summary.txt
+          echo "Unit Tests: Completed" >> summary.txt
+          echo "APK Build: Completed" >> summary.txt
+
+      - name: Upload Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ci-summary
+          path: summary.txt
