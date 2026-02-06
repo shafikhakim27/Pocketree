@@ -1,7 +1,7 @@
 # 🌳 Pocketree - Development Branch
 
-Welcome to **Pocketree**, a full-stack sustainability application designed to track and encourage eco-friendly habits.
-This repository operates as a **Monorepo**, containing the Backend API with Machine Learning components, packaged into an Android Mobile App.
+Welcome to **Pocketree**, a full-stack sustainability application for tracking and encouraging eco-friendly habits.
+This is a **Monorepository**, containing the Backend API with Machine Learning components, packaged into an Android Mobile App.
 
 ## 🏗️ Architecture & Tech Stack
 The system is composed of three primary services orchestrated via Docker.
