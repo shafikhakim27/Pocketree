@@ -1,5 +1,6 @@
 appId: com.pocketree.app
 name: Main Flow
+---
 - runFlow: flows/login.yaml
 - runFlow: flows/home.yaml
 - runFlow: flows/tasks.yaml

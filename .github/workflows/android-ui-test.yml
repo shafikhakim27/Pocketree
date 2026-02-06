@@ -60,9 +60,15 @@ jobs:
             mkdir -p maestro-report
             mkdir -p .maestro/recordings
             mkdir -p .maestro/screenshots
+
+            # Wait for emulator + stabilize adb
+            adb kill-server || true
+            adb start-server
+            adb wait-for-device
+            adb devices
             
             # 2. Install the APK
-            adb install app/build/outputs/apk/debug/app-debug.apk
+            adb install "$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
 
             # 3. Run Test (Generates JUnit XML)
             echo "Running Maestro Test..."
