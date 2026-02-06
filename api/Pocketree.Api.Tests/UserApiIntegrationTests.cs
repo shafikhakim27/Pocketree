@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
+using Pocketree.Api.Services;
 
 namespace Pocketree.Api.Tests.Integration;
 
@@ -70,7 +71,8 @@ public class UserApiIntegrationTests
         mockHasher.Setup(h => h.VerifyHashedPassword(It.IsAny<User>(), "hash", "Password123!"))
             .Returns(PasswordVerificationResult.Success);
 
-        var controller = new UserController(context, mockHasher.Object, CreateConfiguration());
+        var mockBlobService = new Mock<BlobService>();
+        var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
 
         var result = await controller.LoginApi(new UserLoginDto
         {
@@ -107,7 +109,8 @@ public class UserApiIntegrationTests
         var mockHasher = new Mock<IPasswordHasher<User>>();
         mockHasher.Setup(h => h.HashPassword(It.IsAny<User>(), It.IsAny<string>())).Returns("hash");
 
-        var controller = new UserController(context, mockHasher.Object, CreateConfiguration());
+        var mockBlobService = new Mock<BlobService>();
+        var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
 
         var result = await controller.RegisterApi(new UserRegistrationDto
         {

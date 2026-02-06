@@ -1,12 +1,13 @@
 ﻿using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Pocketree.Api.Models.DTOs;
 using Pocketree.Api.Models.ViewModels;
+using Pocketree.Api.Services;
 using System.Security.Claims;
 
 namespace Pocketree.Api.Tests.Controllers;
@@ -72,8 +73,9 @@ public class UserControllerTests
 
         var mockHasher = new Mock<IPasswordHasher<User>>();
         mockHasher.Setup(h => h.HashPassword(It.IsAny<User>(), It.IsAny<string>())).Returns("hash");
+        var mockBlobService = new Mock<BlobService>();
 
-        var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration());
+        var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
 
         var result = await controller.RegisterApi(new UserRegistrationDto
         {
@@ -137,7 +139,8 @@ public class UserControllerTests
         await context.SaveChangesAsync();
 
         var mockHasher = new Mock<IPasswordHasher<User>>();
-        var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration());
+        var mockBlobService = new Mock<BlobService>();
+        var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
         SetUser(controller, "testuser");
 
         var result = await controller.GetSkinsShopApi();
@@ -177,7 +180,8 @@ public class UserControllerTests
         await context.SaveChangesAsync();
 
         var mockHasher = new Mock<IPasswordHasher<User>>();
-        var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration());
+        var mockBlobService = new Mock<BlobService>();
+        var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
 
         var result = await controller.GetAllSkinsOfferedApi();
 

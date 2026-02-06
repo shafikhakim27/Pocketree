@@ -1,7 +1,6 @@
 ﻿using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using ADproject.Models.ViewModels;
-using Pocketree.Api.Models.ViewModels;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -13,7 +12,10 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.Net.Http.Headers;
 using Pocketree.Api.Models.DTOs;
 using Pocketree.Api.Models.Entities;
+using Pocketree.Api.Models.ViewModels;
+using Pocketree.Api.Services;
 using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Processing;
 using System.Buffers.Text;
 using System.IdentityModel.Tokens.Jwt;
@@ -33,13 +35,15 @@ namespace ADproject.Controllers
         // Define withering threshold (3 days)
         private int witheringThreshold = 3;
         private readonly string baseURL;
+        private readonly BlobService uploadService;
 
-        public UserController(MyDbContext db, IPasswordHasher<User> passwordHasher, IConfiguration configuration)
+        public UserController(MyDbContext db, IPasswordHasher<User> passwordHasher, IConfiguration configuration, BlobService uploadService)
         {
             this.db = db;
             this.passwordHasher = passwordHasher;
             this._configuration = configuration;
             baseURL = _configuration["BaseURL"] ?? "";
+            this.uploadService = uploadService;
         }
 
         /**********************
@@ -693,6 +697,37 @@ namespace ADproject.Controllers
             return View();
         }
 
+        public async Task<IActionResult> UploadProfilePicture(IFormFile profileFile)
+        {
+            var userId = HttpContext.Session.GetString("UserID");
+            if (profileFile == null || string.IsNullOrEmpty(userId)) return RedirectToAction("Profile");
+
+            string filename = $"{Guid.NewGuid()}.jpg";
+
+            // Resize and compress in memory
+            using var outStream = new MemoryStream();
+            using (var image = await Image.LoadAsync(profileFile.OpenReadStream()))
+            {
+                image.Mutate(x => x.Resize(new ResizeOptions { Size = new Size(400, 400), Mode = ResizeMode.Max }));
+                await image.SaveAsJpegAsync(outStream, new JpegEncoder { Quality = 75 });
+            }
+
+            // Upload to Cloud
+            outStream.Position = 0;
+            string cloudUrl = await uploadService.UploadFileAsync(filename, outStream);
+
+            // Save URL to Database
+            var user = await db.Users.FindAsync(int.Parse(userId));
+            if (user != null)
+            {
+                user.ProfileImageURL = cloudUrl;
+                await db.SaveChangesAsync();
+            }
+
+            return RedirectToAction("Profile");
+        }
+
+        /* Commented out now as it is no longer writing to the wwwroot folder
         [HttpPost("/User/UploadProfilePicture")]
         public async Task<IActionResult> UploadProfilePicture(IFormFile profileFile)
         {
@@ -733,6 +768,7 @@ namespace ADproject.Controllers
 
             return RedirectToAction("Profile");
         }
+        */
 
         [HttpGet("/User/Profile")]
         public async Task<IActionResult> Profile()
@@ -844,13 +880,20 @@ namespace ADproject.Controllers
 
             if (string.IsNullOrEmpty(userId)) return RedirectToAction("Login", "User");
 
-            // Get User Data
+            // Get User and Tree Data
             var user = await db.Users.FindAsync(int.Parse(userId));
+            var activeTree = user.Trees?.FirstOrDefault(t => !t.IsCompleted);
+
 
             if (user != null)
             {
-                user.LastLoginDate = DateTime.UtcNow; // Update latest LastLoginDate
+                
+                user.LastActivityDate = DateTime.UtcNow; // Update latest LastActivityDate
                 db.Users.Update(user);
+
+                activeTree.IsWithered = false;
+                db.Trees.Update(activeTree);
+
                 await db.SaveChangesAsync();
             }
 

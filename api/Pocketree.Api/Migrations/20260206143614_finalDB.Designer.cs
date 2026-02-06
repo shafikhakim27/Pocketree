@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Pocketree.Api.Migrations
 {
     [DbContext(typeof(MyDbContext))]
-    [Migration("20260205034938_updatedDB")]
-    partial class updatedDB
+    [Migration("20260206143614_finalDB")]
+    partial class finalDB
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -197,8 +197,8 @@ namespace Pocketree.Api.Migrations
 
                     b.Property<string>("Category")
                         .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("varchar(255)");
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)");
 
                     b.Property<int>("CoinReward")
                         .HasColumnType("int");
@@ -216,8 +216,17 @@ namespace Pocketree.Api.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("varchar(255)");
 
+                    b.Property<string>("NegativeKeyword")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)");
+
                     b.Property<bool>("RequiresEvidence")
                         .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasColumnType("longtext");
 
                     b.HasKey("TaskID");
 

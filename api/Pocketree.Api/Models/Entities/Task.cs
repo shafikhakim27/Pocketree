@@ -11,13 +11,19 @@ namespace ADproject.Models.Entities
         [Required]
         public string? Description { get; set; }
         [Required]
-        public string? Difficulty { get; set; }
-        public int CoinReward { get; set; }
-        public bool RequiresEvidence { get; set; } // For ML Verification
+        public string? Difficulty { get; set; } = "Easy";
+        [Required]
+        public int CoinReward { get; set; } = 10;
+        [Required]
+        public bool RequiresEvidence { get; set; } = false; // For ML Verification
         [Required, StringLength(255)]
-        public string? Keyword { get; set; } // For ML use
+        public string? Keyword { get; set; } = ""; // For ML use
+        [Required, StringLength(50)]
+        public string? Category { get; set; } = "General"; // For ML use
         [Required, StringLength(255)]
-        public string? Category { get; set; } // For ML use
+        public string? NegativeKeyword { get; set; } = ""; // For ML use
+        [Required]
+        public string? SourceType { get; set; } = "Normal"; // For ML use
 
         [NotMapped]
         public bool isCompleted { get; set; } // Not created in DB, field is just to match Android's side

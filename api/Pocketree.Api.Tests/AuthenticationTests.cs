@@ -1,10 +1,11 @@
-﻿using ADproject.Models.Entities;
+﻿using ADproject.Controllers;
 using ADproject.Models.DTOs;
-using ADproject.Controllers;
-using Microsoft.EntityFrameworkCore.Diagnostics;
-using Microsoft.AspNetCore.Mvc;
+using ADproject.Models.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
+using Pocketree.Api.Services;
 
 namespace Pocketree.Api.Tests;
 
@@ -49,7 +50,8 @@ public class AuthenticationTests
     {
         var mockHasher = hasher ?? Mock.Of<IPasswordHasher<User>>();
         var mockConfig = CreateMockConfiguration();
-        return new UserController(context, mockHasher, mockConfig);
+        var mockBlobService = new Mock<BlobService>();
+        return new UserController(context, mockHasher, mockConfig, mockBlobService.Object);
     }
 
     private IConfiguration CreateMockConfiguration()

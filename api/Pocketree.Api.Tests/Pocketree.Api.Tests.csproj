@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <!-- Test Infrastructure -->
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.27.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="coverlet.collector" Version="6.0.4">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -68,10 +69,7 @@
   </ItemGroup>
 
   <Target Name="CopyTesthostDeps" AfterTargets="Build">
-    <Copy
-      SourceFiles="..\Pocketree.Api\bin\$(Configuration)\net9.0\Pocketree.Api.deps.json"
-      DestinationFiles="$(OutputPath)testhost.deps.json"
-      Condition="Exists('..\Pocketree.Api\bin\$(Configuration)\net9.0\Pocketree.Api.deps.json')" />
+    <Copy SourceFiles="..\Pocketree.Api\bin\$(Configuration)\net9.0\Pocketree.Api.deps.json" DestinationFiles="$(OutputPath)testhost.deps.json" Condition="Exists('..\Pocketree.Api\bin\$(Configuration)\net9.0\Pocketree.Api.deps.json')" />
   </Target>
 
 </Project>
