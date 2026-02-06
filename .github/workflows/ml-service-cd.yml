@@ -67,7 +67,17 @@ jobs:
             --container-health-route /health \
             --format="value(name)")
           if [ -z "$MODEL_ID" ]; then
-            echo "Model upload did not return a model ID."
+            echo "Model upload did not return a model ID. Trying to resolve from list..."
+            MODEL_ID=$(gcloud ai models list \
+              --project "${{ env.GCP_PROJECT_ID }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --filter="displayName=${{ env.IMAGE_NAME }}" \
+              --sort-by="~createTime" \
+              --limit=1 \
+              --format="value(name)")
+          fi
+          if [ -z "$MODEL_ID" ]; then
+            echo "Model upload did not return a model ID and list lookup failed."
             exit 1
           fi
           echo "MODEL_ID=$MODEL_ID" >> $GITHUB_ENV
