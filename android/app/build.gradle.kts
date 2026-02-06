@@ -49,7 +49,7 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation("androidx.navigation:navigation-fragment-ktx:2.8.3")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.9.7")
     implementation("androidx.navigation:navigation-ui-ktx:2.8.5")
     implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
     testImplementation(libs.junit)
