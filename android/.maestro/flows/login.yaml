@@ -6,8 +6,8 @@
 # --- Login Screen ---
 - assertVisible: "Welcome! Please log in"
 - tapOn:
-    id: "emailInput"
-- inputText: "testuser@pocketree.com"
+    id: "usernameInput"
+- inputText: "ecotester"
 - tapOn:
     id: "passwordInput"
 - inputText: "password123"
