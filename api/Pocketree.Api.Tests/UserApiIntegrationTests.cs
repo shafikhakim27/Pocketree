@@ -1,6 +1,7 @@
 ﻿using ADproject.Controllers;
 using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -27,7 +28,8 @@ public class UserApiIntegrationTests
             ["Jwt:Key"] = "TestSecretKey123456789012345678901234567890",
             ["Jwt:Issuer"] = "TestIssuer",
             ["Jwt:Audience"] = "TestAudience",
-            ["StorageBaseURL"] = "https://cdn.test"
+            ["StorageBaseURL"] = "https://cdn.test",
+            ["BaseURL"] = "https://cdn.test/"
         };
 
         return new ConfigurationBuilder()
@@ -71,8 +73,13 @@ public class UserApiIntegrationTests
         mockHasher.Setup(h => h.VerifyHashedPassword(It.IsAny<User>(), "hash", "Password123!"))
             .Returns(PasswordVerificationResult.Success);
 
-        var mockBlobService = new Mock<BlobService>();
+        var mockBlobService = new Mock<IBlobService>();
         var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("localhost");
 
         var result = await controller.LoginApi(new UserLoginDto
         {
@@ -109,8 +116,13 @@ public class UserApiIntegrationTests
         var mockHasher = new Mock<IPasswordHasher<User>>();
         mockHasher.Setup(h => h.HashPassword(It.IsAny<User>(), It.IsAny<string>())).Returns("hash");
 
-        var mockBlobService = new Mock<BlobService>();
+        var mockBlobService = new Mock<IBlobService>();
         var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("localhost");
 
         var result = await controller.RegisterApi(new UserRegistrationDto
         {

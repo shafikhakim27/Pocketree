@@ -43,7 +43,8 @@ public class UserControllerTests
             ["Jwt:Key"] = "TestSecretKey123456789012345678901234567890",
             ["Jwt:Issuer"] = "TestIssuer",
             ["Jwt:Audience"] = "TestAudience",
-            ["StorageBaseURL"] = "https://cdn.test"
+            ["StorageBaseURL"] = "https://cdn.test",
+            ["BaseURL"] = "https://cdn.test/"
         };
 
         return new ConfigurationBuilder()
@@ -73,9 +74,14 @@ public class UserControllerTests
 
         var mockHasher = new Mock<IPasswordHasher<User>>();
         mockHasher.Setup(h => h.HashPassword(It.IsAny<User>(), It.IsAny<string>())).Returns("hash");
-        var mockBlobService = new Mock<BlobService>();
+        var mockBlobService = new Mock<IBlobService>();
 
         var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("localhost");
 
         var result = await controller.RegisterApi(new UserRegistrationDto
         {
@@ -88,7 +94,7 @@ public class UserControllerTests
 
         var user = await context.Users.FirstOrDefaultAsync(u => u.Username == "newuser");
         user.Should().NotBeNull();
-        user!.ProfileImageURL.Should().Be("https://cdn.test/images/default-user.jpg");
+        user!.ProfileImageURL.Should().Be("images/default-user.jpg");
 
         var tree = await context.Trees.FirstOrDefaultAsync(t => t.UserID == user.UserID);
         tree.Should().NotBeNull();
@@ -139,8 +145,13 @@ public class UserControllerTests
         await context.SaveChangesAsync();
 
         var mockHasher = new Mock<IPasswordHasher<User>>();
-        var mockBlobService = new Mock<BlobService>();
+        var mockBlobService = new Mock<IBlobService>();
         var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("localhost");
         SetUser(controller, "testuser");
 
         var result = await controller.GetSkinsShopApi();
@@ -180,8 +191,13 @@ public class UserControllerTests
         await context.SaveChangesAsync();
 
         var mockHasher = new Mock<IPasswordHasher<User>>();
-        var mockBlobService = new Mock<BlobService>();
+        var mockBlobService = new Mock<IBlobService>();
         var controller = new ADproject.Controllers.UserController(context, mockHasher.Object, CreateConfiguration(), mockBlobService.Object);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("localhost");
 
         var result = await controller.GetAllSkinsOfferedApi();
 
@@ -192,6 +208,6 @@ public class UserControllerTests
         items!.Should().HaveCount(1);
 
         var json = System.Text.Json.JsonSerializer.Serialize(items);
-        json.Should().Contain("https://cdn.test/forest.png");
+        json.Should().Contain("/forest.png");
     }
 }

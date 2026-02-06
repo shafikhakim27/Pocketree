@@ -35,9 +35,9 @@ namespace ADproject.Controllers
         // Define withering threshold (3 days)
         private int witheringThreshold = 3;
         private readonly string baseURL;
-        private readonly BlobService uploadService;
+        private readonly IBlobService uploadService;
 
-        public UserController(MyDbContext db, IPasswordHasher<User> passwordHasher, IConfiguration configuration, BlobService uploadService)
+        public UserController(MyDbContext db, IPasswordHasher<User> passwordHasher, IConfiguration configuration, IBlobService uploadService)
         {
             this.db = db;
             this.passwordHasher = passwordHasher;

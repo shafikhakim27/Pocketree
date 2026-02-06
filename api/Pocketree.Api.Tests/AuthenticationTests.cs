@@ -2,6 +2,7 @@
 using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
@@ -50,8 +51,14 @@ public class AuthenticationTests
     {
         var mockHasher = hasher ?? Mock.Of<IPasswordHasher<User>>();
         var mockConfig = CreateMockConfiguration();
-        var mockBlobService = new Mock<BlobService>();
-        return new UserController(context, mockHasher, mockConfig, mockBlobService.Object);
+        var mockBlobService = new Mock<IBlobService>();
+        var controller = new UserController(context, mockHasher, mockConfig, mockBlobService.Object);
+        controller.ControllerContext = new ControllerContext
+        {
+            HttpContext = new DefaultHttpContext()
+        };
+        controller.ControllerContext.HttpContext.Request.Host = new HostString("localhost");
+        return controller;
     }
 
     private IConfiguration CreateMockConfiguration()
@@ -60,7 +67,8 @@ public class AuthenticationTests
         {
             {"Jwt:Key", "ThisIsAVerySecureSecretKeyForJWTTokenGeneration123456789"},
             {"Jwt:Issuer", "PocketreeAPI"},
-            {"Jwt:Audience", "PocketreeApp"}
+            {"Jwt:Audience", "PocketreeApp"},
+            {"BaseURL", "https://cdn.test/"}
         };
 
         return new ConfigurationBuilder()

@@ -3,7 +3,7 @@ using Azure.Storage.Blobs.Models;
 
 namespace Pocketree.Api.Services
 {
-    public class BlobService
+    public class BlobService : IBlobService
     {
         private readonly string _connectionString;
         private readonly string _containerName = "profile-pictures";

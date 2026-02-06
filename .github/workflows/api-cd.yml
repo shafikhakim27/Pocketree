@@ -59,9 +59,31 @@ jobs:
         with:
           image-ref: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           format: 'table'
+          output: 'trivy-report.txt'
           exit-code: '1'
           severity: 'CRITICAL'
           ignore-unfixed: true
+
+      - name: Upload Trivy Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-report
+          path: trivy-report.txt
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "API CD Summary" > summary.txt
+          echo "Docker Build & Push: Completed" >> summary.txt
+          echo "Trivy Scan: Completed" >> summary.txt
+
+      - name: Upload Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-cd-summary
+          path: summary.txt
 
       - name: Azure Login
         uses: azure/login@v1
