@@ -56,6 +56,7 @@ jobs:
 
       - name: Upload model to Vertex AI
         run: |
+          set -euo pipefail
           MODEL_ID=$(gcloud ai models upload \
             --project "${{ env.GCP_PROJECT_ID }}" \
             --region "${{ env.GCP_REGION }}" \
@@ -65,10 +66,15 @@ jobs:
             --container-predict-route /predict \
             --container-health-route /health \
             --format="value(name)")
+          if [ -z "$MODEL_ID" ]; then
+            echo "Model upload did not return a model ID."
+            exit 1
+          fi
           echo "MODEL_ID=$MODEL_ID" >> $GITHUB_ENV
 
       - name: Create endpoint if missing
         run: |
+          set -euo pipefail
           ENDPOINT_ID=$(gcloud ai endpoints list \
             --project "${{ env.GCP_PROJECT_ID }}" \
             --region "${{ env.GCP_REGION }}" \
@@ -81,10 +87,16 @@ jobs:
               --display-name "${{ env.ENDPOINT_NAME }}" \
               --format="value(name)")
           fi
+          if [ -z "$ENDPOINT_ID" ]; then
+            echo "Endpoint create/list did not return an endpoint ID."
+            exit 1
+          fi
           echo "ENDPOINT_ID=$ENDPOINT_ID" >> $GITHUB_ENV
 
       - name: Deploy model to endpoint
         run: |
+          set -euo pipefail
+          echo "Deploying MODEL_ID=$MODEL_ID to ENDPOINT_ID=$ENDPOINT_ID"
           gcloud ai endpoints deploy-model "$ENDPOINT_ID" \
             --project "${{ env.GCP_PROJECT_ID }}" \
             --region "${{ env.GCP_REGION }}" \
