@@ -39,14 +39,14 @@ object RetrofitClient {
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
-    val pocketreeInstance: PocketreeApi by lazy {
-        Retrofit.Builder()
-            .baseUrl(MAIN_URL)
-            .client(NetworkClient.okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(PocketreeApi::class.java)
-    }
+//    val pocketreeInstance: PocketreeApi by lazy {
+//        Retrofit.Builder()
+//            .baseUrl(MAIN_URL)
+//            .client(NetworkClient.okHttpClient)
+//            .addConverterFactory(GsonConverterFactory.create())
+//            .build()
+//            .create(PocketreeApi::class.java)
+//    }
 
     val mlInstance: MlApiService by lazy {
         Retrofit.Builder()

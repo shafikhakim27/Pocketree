@@ -1,15 +1,9 @@
 package com.pocketree.app
 
 import android.content.Context
-import android.util.Log
-import android.view.View
-import android.widget.Toast
-import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.lifecycleScope
 import com.google.gson.reflect.TypeToken
-import kotlinx.coroutines.launch
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
@@ -57,8 +51,8 @@ class UserViewModel: ViewModel() {
     private val client = NetworkClient.okHttpClient
     private val gson = NetworkClient.gson
 
-    private val taskBaseUrl = "https://pocketree-api.azurewebsites.net/api/Task"
-    private val userBaseUrl = "https://pocketree-api.azurewebsites.net/api/User"
+    private val taskBaseUrl = ApiConfiguration.TASK_API_URL
+    private val userBaseUrl = ApiConfiguration.USER_API_URL
 
     // helper function - to update all LiveData at once
     private fun updateLiveData (user:User) {
@@ -129,8 +123,6 @@ class UserViewModel: ViewModel() {
                         if (user!= null) {
                             updateLiveData(user)
 
-                            // fetch tasks and badges after user profile is loaded
-             /////////// -> * fetchDailyTasks()
                             fetchLatestBadges()
                         } else {
                             errorMessage.postValue("Invalid user data")
@@ -169,32 +161,21 @@ class UserViewModel: ViewModel() {
     }
 
     fun fetchDailyTasks(){
-        Log.d("UserViewModel", "fetchDailyTasks() called")
-
         val request = Request.Builder()
             .url("${taskBaseUrl}/GetDailyTasksApi")
             .get()
             .build()
 
-        Log.d("UserViewModel", "Request URL: ${taskBaseUrl}/GetDailyTasksApi")
-
         client.newCall(request).enqueue(object : Callback {
             override fun onResponse(call: Call, response: Response) {
                 val responseBody = response.body?.string() ?: ""
-
-                Log.d("UserViewModel", "Response code: ${response.code}")
-                Log.d("UserViewModel", "Response successful: ${response.isSuccessful}")
-                Log.d("UserViewModel", "Response body length: ${responseBody.length}")
-                Log.d("UserViewModel", "Response body: $responseBody")
 
                 if (response.isSuccessful && responseBody.isNotEmpty()) {
                     try {
                         val taskListType = object : TypeToken<List<Task>>() {}.type
                         val fetchedTasks: List<Task> = gson.fromJson(responseBody, taskListType)
-                        Log.d("UserViewModel", "Tasks fetched: ${fetchedTasks.size}")
                         tasks.postValue(fetchedTasks)
                     } catch (e: Exception) {
-                        Log.e("UserViewModel", "Parsing error: ${e.message}", e)
                         errorMessage.postValue("Parsing error")
                         // keep existing value or set to empty if null
                         if (tasks.value == null) {
@@ -202,7 +183,6 @@ class UserViewModel: ViewModel() {
                         }
                     }
                 } else {
-                    Log.e("UserViewModel", "Failed to load tasks. Code: ${response.code}")
                     errorMessage.postValue("Failed to load tasks.")
                     // keep existing value or set to empty if null
                     if (tasks.value == null) {
@@ -212,7 +192,6 @@ class UserViewModel: ViewModel() {
             }
             override fun onFailure(call: Call, e: IOException) {
                 e.printStackTrace()
-                Log.e("UserViewModel", "Network error: ${e.message}", e)
                 errorMessage.postValue("Network error loading tasks")
                 // ensure tasks is never null
                 if (tasks.value == null) {
@@ -267,7 +246,7 @@ class UserViewModel: ViewModel() {
                                 current.copy(
                                     totalCoins = result.newCoins,
                                     currentLevelID = result.newLevel,
-                                    levelName = result.newLevelName ?: current.levelName,  // update level name
+                                    levelName = result.newLevelName, //?.takeIf { it.isNotEmpty() } ?: current.levelName, // update level name
                                     isWithered = result.isWithered,
                                     plantHealthPercent = result.plantHealthPercent
                                 )
@@ -332,28 +311,6 @@ class UserViewModel: ViewModel() {
                 errorMessage.postValue("Verification error: ${t.message}")
             }
         })
-
-//        viewLifecycleOwner.lifecycleScope.launch {
-//            try {
-//                val response = RetrofitClient.mlInstance.verifyImage(body, keywordBody)
-//
-//                if (response.isSuccessful && response.body()?.isVerified == true) {
-//                    // SUCCESS
-//                    sharedViewModel.submitTask(id, "Completed", imageBytes)
-//                    Toast.makeText(requireContext(), "Picture is verified!", Toast.LENGTH_SHORT).show()
-//                } else {
-//                    // FAILURE
-//                    Toast.makeText(requireContext(), "Please try again! $keyword could not be found.", Toast.LENGTH_LONG).show()
-//                }
-//            } catch (e: Exception) {
-//                Log.e("AI_ERROR", "Check your internet or Cold Start: ${e.message}")
-//                Toast.makeText(requireContext(), "Verification error. Please try again.", Toast.LENGTH_SHORT).show()
-//            } finally {
-//                binding.loadingOverlay.visibility = View.GONE
-//                binding.dailyStatusTv.visibility = View.GONE
-//                currentProcessingTaskId = null
-//            }
-//        }
     }
 
     fun fetchLatestBadges(shouldNotifyBadge:Boolean = false) {
@@ -482,8 +439,6 @@ class UserViewModel: ViewModel() {
         })
     }
 
-
-    // check back again
     fun redeemSkin(skinId:Int) {
         val body = skinId.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
@@ -514,7 +469,6 @@ class UserViewModel: ViewModel() {
         })
     }
 
-
     fun equipSkin(skinId: Int) {
         val body = skinId.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
 
@@ -538,7 +492,6 @@ class UserViewModel: ViewModel() {
             }
         })
     }
-
 
     fun fetchVouchers() {
         val request = Request.Builder()
@@ -564,7 +517,6 @@ class UserViewModel: ViewModel() {
             }
         })
     }
-
 
     fun redeemVoucher(voucherId: Int) {
         val body = voucherId.toString().toRequestBody("application/json; charset=utf-8".toMediaType())
@@ -683,5 +635,3 @@ class UserViewModel: ViewModel() {
         earnedBadges.postValue(emptyList())
     }
 }
-
-// to implement logic of viewing all badges with "See More" later on

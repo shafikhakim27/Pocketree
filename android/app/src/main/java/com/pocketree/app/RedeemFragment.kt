@@ -17,9 +17,6 @@ class RedeemFragment: Fragment() {
     private val binding get() = _binding!!
 
     private val sharedViewModel: UserViewModel by activityViewModels()
-    private val client = NetworkClient.okHttpClient
-    private val baseUrl = "https://pocketree-api.azurewebsites.net/api/Task"
-
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -29,13 +26,16 @@ class RedeemFragment: Fragment() {
         return binding.root
     }
 
-
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
         sharedViewModel.fetchSkins()
         sharedViewModel.fetchVouchers()
 
+        observeViewModel()
+    }
+
+    private fun observeViewModel(){
         sharedViewModel.skins.observe(viewLifecycleOwner) { skinList ->
             binding.recyclerViewSkin.adapter = RedeemAdapter(skinList) { item ->
                 if (item is Skin) {
@@ -69,7 +69,7 @@ class RedeemFragment: Fragment() {
                 .circleCrop() // to make image round
                 .placeholder(R.drawable.profile_pic)
                 .into(binding.profilePic)
-            }
+        }
 
         sharedViewModel.redeemSkinSuccessEvent.observe(viewLifecycleOwner) { message ->
             message?.let {
@@ -115,7 +115,6 @@ class RedeemFragment: Fragment() {
         binding.recyclerViewVoucher.layoutManager = GridLayoutManager(context, 3)
     }
 
-
     private fun showSkinConfirmDialog(skin: Skin) {
         // I search that, no dialog.dismiss() required for setPositiveButton and setNegativeButton without functions
         AlertDialog.Builder(requireContext())
@@ -128,7 +127,6 @@ class RedeemFragment: Fragment() {
             .create()
             .show()
     }
-
 
     private fun handleRedeemedSkinClick(skin: Skin) {
         // Requirement: All users below level 1 can only purchase, not equip.
@@ -145,11 +143,9 @@ class RedeemFragment: Fragment() {
         }
     }
 
-
     private fun equipSkin(skin: Skin) {
         sharedViewModel.equipSkin(skin.skinID)
     }
-
 
     private fun showVoucherConfirmDialog(voucher: Voucher) {
         AlertDialog.Builder(requireContext())
@@ -163,11 +159,9 @@ class RedeemFragment: Fragment() {
             .show()
     }
 
-
     private fun redeemVoucher(voucher: Voucher) {
         sharedViewModel.redeemVoucher(voucher.voucherID)
     }
-
 
     private fun processSkinRedemption(skin: Skin) {
         if (skin.isRedeemed) {
@@ -186,7 +180,6 @@ class RedeemFragment: Fragment() {
         }
     }
 
-
     private fun showSuccessDialog(message: String) {
         AlertDialog.Builder(requireContext())
             .setTitle("Redemption Successful!")
@@ -197,13 +190,8 @@ class RedeemFragment: Fragment() {
             .show()
     }
 
-
     override fun onDestroyView(){
         super.onDestroyView()
         _binding = null
     }
-
-
-    // pending equipping of skins
-    // pending vouchers
 }

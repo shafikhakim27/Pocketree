@@ -3,6 +3,7 @@ package com.pocketree.app
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
+import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.ItemBadgeBinding
 
 class BadgeAdapter (
@@ -19,17 +20,31 @@ class BadgeAdapter (
         val badge = badges[position]
         holder.binding.badgeName.text = badge.badgeName
 
-        val iconRes = when(badge.badgeName) {
-            "Sapling Badge" -> R.drawable.redeem_item_1 // example for now
-            "Oak Badge" -> R.drawable.redeem_item_1
+//        val iconRes = when(badge.badgeName) {
+//            "Tree Starter Badge" -> R.drawable.redeem_item_1 // example for now
+//            "Mighty Oak Badge" -> R.drawable.redeem_item_1
+//
+//            "Green Starter Badge" -> R.drawable.redeem_item_2
+//            "Green Champion Badge" -> R.drawable.redeem_item_2
+//            "Eco Warrior Badge" -> R.drawable.redeem_item_2
+//
+//            else -> R.drawable.redeem_item_3
+//        }
+//        holder.binding.badgeImage.setImageResource(iconRes)
 
-            "Easy Master Badge" -> R.drawable.redeem_item_2
-            "Normal Hero Badge" -> R.drawable.redeem_item_2
-            "Hard Legend Badge" -> R.drawable.redeem_item_2
+        // format name to match drawable naming convention
+        // eg "Mighty Oak" -> "mighty_oak_badge"
+        val imageName = badge.badgeName.lowercase().replace(" ", "_") + "_badge"
 
-            else -> R.drawable.redeem_item_3
-        }
-        holder.binding.badgeImage.setImageResource(iconRes)
+        // get resource ID dynamically from the name
+        val context = holder.binding.root.context
+        val resourceId = context.resources.getIdentifier(imageName, "drawable", context.packageName)
+
+        // use Glide to load the image
+        Glide.with(context)
+            .load(if (resourceId != 0) resourceId else R.drawable.redeem_item_3) // fallback if not found
+            .placeholder(R.drawable.redeem_item_3)
+            .into(holder.binding.badgeImage)
     }
 
     override fun getItemCount() = badges.size
