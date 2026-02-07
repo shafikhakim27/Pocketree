@@ -52,7 +52,7 @@ class HomeFragment: Fragment() {
 
             Glide.with(this@HomeFragment)
                 .load(state.levelImageUrl)
-                .placeholder(R.drawable.mighty_oak)
+                .placeholder(R.drawable.tree_seedling)
                 .into(binding.plant)
 
             Glide.with(requireContext())

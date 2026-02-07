@@ -1,4 +1,6 @@
-﻿# --- Navigate to Tasks ---
+﻿appId: com.pocketree.app
+---
+# --- Navigate to Tasks ---
 # Reference: @string/tab_tasks ("Tasks")
 - tapOn: "Tasks"
 - assertVisible:

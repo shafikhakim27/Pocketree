@@ -18,34 +18,31 @@ class BadgeAdapter (
 
     override fun onBindViewHolder(holder:BadgeViewHolder, position:Int) {
         val badge = badges[position]
-        holder.binding.badgeName.text = badge.badgeName
+        holder.binding.badgeName.text = badge.badgeName ?: "Badge"
 
-//        val iconRes = when(badge.badgeName) {
-//            "Tree Starter Badge" -> R.drawable.redeem_item_1 // example for now
-//            "Mighty Oak Badge" -> R.drawable.redeem_item_1
-//
-//            "Green Starter Badge" -> R.drawable.redeem_item_2
-//            "Green Champion Badge" -> R.drawable.redeem_item_2
-//            "Eco Warrior Badge" -> R.drawable.redeem_item_2
-//
-//            else -> R.drawable.redeem_item_3
-//        }
-//        holder.binding.badgeImage.setImageResource(iconRes)
-
-        // format name to match drawable naming convention
-        // eg "Mighty Oak" -> "mighty_oak_badge"
-        val imageName = badge.badgeName.lowercase().replace(" ", "_") + "_badge"
-
-        // get resource ID dynamically from the name
         val context = holder.binding.root.context
-        val resourceId = context.resources.getIdentifier(imageName, "drawable", context.packageName)
 
-        // use Glide to load the image
+        // format badge name eg "Mighty Oak" -> "mighty_oak_badge"
+        val safeName = badge.badgeName?.lowercase()?.replace(" ", "_") ?: ""
+        val imageName = if (safeName.isNotEmpty()) "${safeName}_badge" else ""
+
+        // generate resource ID dynamically from the name
+        val resourceId = if (imageName.isNotEmpty()) {
+            context.resources.getIdentifier(imageName, "drawable", context.packageName)
+        } else 0
+        // safety net if fetching from cloud doesn't work - will try to fetch image from drawable
+
+        val imageSource = when {
+            !badge.badgeImageUrl.isNullOrEmpty() -> badge.badgeImageUrl
+            resourceId != 0 -> resourceId
+            else -> R.drawable.redeem_item_1
+        }
+
         Glide.with(context)
-            .load(if (resourceId != 0) resourceId else R.drawable.redeem_item_3) // fallback if not found
-            .placeholder(R.drawable.redeem_item_3)
+            .load(imageSource)
+            .placeholder(R.drawable.redeem_item_1) // usage of drawable image as placeholder is okay
+            .error(R.drawable.redeem_item_1)
             .into(holder.binding.badgeImage)
     }
-
     override fun getItemCount() = badges.size
 }

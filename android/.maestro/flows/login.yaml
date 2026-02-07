@@ -1,4 +1,6 @@
-﻿- launchApp
+﻿appId: com.pocketree.app
+---
+- launchApp
 - clearState
 - waitForAnimationToEnd:
     timeout: 5000

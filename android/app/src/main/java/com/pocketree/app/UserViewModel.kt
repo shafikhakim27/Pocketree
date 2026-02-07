@@ -383,7 +383,7 @@ class UserViewModel: ViewModel() {
                         }
 
                         // Now post the complete event with level, badge, and voucher
-                        levelUpEvent.postValue(Triple(levelName, badgeName, voucherName))
+                        levelUpEvent.postValue(Triple(levelName, badgeName ?: "", voucherName))
                     } catch (e:Exception) {
                         // Still post event even if badge fetch fails
                         levelUpEvent.postValue(Triple(levelName, "", voucherName))
@@ -627,7 +627,7 @@ class UserViewModel: ViewModel() {
 
         // clear user cache
         val prefs = context.getSharedPreferences("AppPrefs", Context.MODE_PRIVATE)
-        prefs.edit().remove("LAST_USER_DATA").apply()
+        prefs.edit().clear().apply()
 
         // reset ViewModel state
         userState.postValue(UserState())

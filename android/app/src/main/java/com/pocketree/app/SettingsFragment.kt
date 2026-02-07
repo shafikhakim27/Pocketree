@@ -18,6 +18,7 @@ import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.pocketree.app.databinding.FragmentSettingsBinding
 
+// written by Haoting, edited by Shirley
 class SettingsFragment: Fragment() {
     private var _binding: FragmentSettingsBinding? = null
     private val binding get() = _binding!!
@@ -72,11 +73,11 @@ class SettingsFragment: Fragment() {
         // listen for logout success
         sharedViewModel.logoutSuccess.observe(viewLifecycleOwner) {success ->
             if (success) {
+                navigateToLogin()
                 Toast.makeText(requireContext(),
                     "You have logged out successfully!",
                     Toast.LENGTH_SHORT
                 ).show()
-                navigateToLogin()
             }
         }
 
@@ -109,10 +110,8 @@ class SettingsFragment: Fragment() {
 
             if (isChecked) {
                 playMusic()
-//                Toast.makeText(context, "Music On", Toast.LENGTH_SHORT).show()
             } else {
                 stopMusic()
-//                Toast.makeText(context, "Music Off", Toast.LENGTH_SHORT).show()
             }
         }
     }
