@@ -1,4 +1,6 @@
-﻿# --- Home Screen ---
+﻿appId: com.pocketree.app
+---
+# --- Home Screen ---
 # Reference: @string/tab_map ("Map") and @string/tab_tasks ("Tasks")
 - waitForAnimationToEnd:
     timeout: 10000

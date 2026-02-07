@@ -1,4 +1,6 @@
-﻿# --- Navigate to Settings ---
+﻿appId: com.pocketree.app
+---
+# --- Navigate to Settings ---
 # Reference: @string/notifications ("Notifications"), @string/account ("Account")
 # @string/logout_button ("Logout")
 - tapOn:
