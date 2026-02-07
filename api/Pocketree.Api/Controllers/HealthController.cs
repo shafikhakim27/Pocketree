@@ -149,7 +149,7 @@ namespace ADproject.Controllers
                     {
                         status = "Healthy",
                         responseTime = $"{stopwatch.ElapsedMilliseconds}ms",
-                        connectionString = MaskConnectionString(_configuration.GetConnectionString("DefaultConnection")),
+                        connectionString = "Configured",
                         userCount = userCount
                     };
                 }
@@ -190,15 +190,16 @@ namespace ADproject.Controllers
                     ?? _configuration["ML_SERVICE_URL"]
                     ?? "http://localhost:5000";
                 using var httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(timeout) };
-                
-                var response = await httpClient.GetAsync(mlServiceUrl, cts.Token);
+
+                var healthUrl = BuildHealthUrl(mlServiceUrl);
+                var response = await httpClient.GetAsync(healthUrl, cts.Token);
                 stopwatch.Stop();
 
                 return new
                 {
                     status = response.IsSuccessStatusCode ? "Healthy" : "Unhealthy",
                     responseTime = $"{stopwatch.ElapsedMilliseconds}ms",
-                    url = mlServiceUrl,
+                    url = healthUrl,
                     statusCode = (int)response.StatusCode
                 };
             }
@@ -268,6 +269,27 @@ namespace ADproject.Controllers
                 "password=****",
                 System.Text.RegularExpressions.RegexOptions.IgnoreCase
             );
+        }
+
+        private static string BuildHealthUrl(string baseUrl)
+        {
+            if (string.IsNullOrWhiteSpace(baseUrl))
+                return baseUrl;
+
+            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri))
+                return baseUrl;
+
+            if (uri.AbsolutePath.EndsWith("/health", StringComparison.OrdinalIgnoreCase))
+                return uri.ToString();
+
+            var builder = new UriBuilder(uri)
+            {
+                Path = "/health",
+                Query = string.Empty,
+                Fragment = string.Empty
+            };
+
+            return builder.Uri.ToString();
         }
     }
 }
