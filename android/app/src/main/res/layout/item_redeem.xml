@@ -38,13 +38,15 @@
             android:layout_height="wrap_content"
             android:text="@string/price_to_redeem"
             android:textColor="#4CAF50"
-            android:textSize="12sp"/>
+            android:textSize="12sp"
+            android:textStyle="bold"/>
 
         <TextView
             android:id="@+id/itemStatus"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/item_status"
+            android:gravity="center"
             android:textStyle="bold"
             android:textSize="12sp" />
 

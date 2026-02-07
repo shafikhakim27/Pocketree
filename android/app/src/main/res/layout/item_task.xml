@@ -21,7 +21,6 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/task_description"
-            android:textColor="#333333"
             android:textSize="16sp"
             android:textStyle="bold" />
 
@@ -30,7 +29,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/coin_reward"
-            android:textColor="#2E7D32" />
+            android:textColor="@color/green" />
     </LinearLayout>
 
     <Button
@@ -39,7 +38,7 @@
         android:layout_height="wrap_content"
         android:text="@string/pass_task"
         android:layout_marginRight="4dp"
-        app:backgroundTint="@color/passBtn"
+        app:backgroundTint="@color/orange"
         android:visibility="visible"/>
 
     <Button
@@ -47,7 +46,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/action"
-        app:backgroundTint="@color/actionBtn"
+        app:backgroundTint="@color/green"
         android:visibility="visible"/>
 
 </LinearLayout>
