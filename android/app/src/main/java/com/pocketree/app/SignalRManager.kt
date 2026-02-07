@@ -12,7 +12,7 @@ object SignalRManager {
     // Initialize the connection once with the JWT token
     fun init(token: String, viewModel: UserViewModel) {
         if (hubConnection == null) {
-            hubConnection = HubConnectionBuilder.create("http://10.0.2.2:5042/notificationHub")
+            hubConnection = HubConnectionBuilder.create("https://pocketree-api.azurewebsites.net/notificationHub")
                 .withAccessTokenProvider(Single.just(token))
                 .build()
 

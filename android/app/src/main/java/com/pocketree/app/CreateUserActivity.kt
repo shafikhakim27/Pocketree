@@ -21,7 +21,7 @@ import kotlin.jvm.java
 class CreateUserActivity: AppCompatActivity() {
     private val client= OkHttpClient()
     private lateinit var binding: ActivityCreateUserBinding
-    private val baseUrl = "http://10.0.2.2:5042/api/User"
+    private val baseUrl = "https://pocketree-api.azurewebsites.net/api/User"
 
     override fun onCreate(savedInstanceState: Bundle?){
         super.onCreate(savedInstanceState)

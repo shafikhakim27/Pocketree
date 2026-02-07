@@ -290,7 +290,7 @@ namespace ADproject.Controllers
                 LevelName = levelName ?? "Seedling",
                 LevelID = user.CurrentLevelID,
                 LevelImageURL = baseURL + finalImageUrl,
-                ProfileImageURL = baseURL + (user.ProfileImageURL?.Replace("~/","")?? "images/default-user.jpg"),
+                ProfileImageURL = user.ProfileImageURL ?? "images/default-user.jpg",
                 IsWithered = isWithered,
                 // LevelImageURL = baseURL + (user.CurrentLevel?.LevelImageURL ?? "~/images/levels/seedling.png"),
                 // ProfileImageURL = baseURL + (user.ProfileImageURL ?? "~/images/default-user.jpg"),
@@ -648,8 +648,8 @@ namespace ADproject.Controllers
                         TotalCoins = user.TotalCoins,
                         LevelName = user.CurrentLevel?.LevelName ?? "Seedling",
                         LevelID = user.CurrentLevelID,
-                        LevelImageURL = user.CurrentLevel?.LevelImageURL, //?? baseURL + "images/levels/seedling.png",
-                        ProfileImageURL = user.ProfileImageURL, //?? baseURL + "images/default-user.jpg",
+                        LevelImageURL = user.CurrentLevel?.LevelImageURL, 
+                        ProfileImageURL = user.ProfileImageURL, 
                         IsWithered = activeTree?.IsWithered ?? false
                     },
                     TaskHistory = history
@@ -727,7 +727,7 @@ namespace ADproject.Controllers
             return RedirectToAction("Profile");
         }
 
-        /* Commented out now as it is no longer writing to the wwwroot folder
+        /* Commented out now as it is no longer writing to the wwwroot folder during production mode 
         [HttpPost("/User/UploadProfilePicture")]
         public async Task<IActionResult> UploadProfilePicture(IFormFile profileFile)
         {

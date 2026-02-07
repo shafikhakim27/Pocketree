@@ -57,8 +57,8 @@ class UserViewModel: ViewModel() {
     private val client = NetworkClient.okHttpClient
     private val gson = NetworkClient.gson
 
-    private val taskBaseUrl = "http://10.0.2.2:5042/api/Task"
-    private val userBaseUrl = "http://10.0.2.2:5042/api/User"
+    private val taskBaseUrl = "https://pocketree-api.azurewebsites.net/api/Task"
+    private val userBaseUrl = "https://pocketree-api.azurewebsites.net/api/User"
 
     // helper function - to update all LiveData at once
     private fun updateLiveData (user:User) {

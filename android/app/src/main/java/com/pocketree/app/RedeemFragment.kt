@@ -18,7 +18,7 @@ class RedeemFragment: Fragment() {
 
     private val sharedViewModel: UserViewModel by activityViewModels()
     private val client = NetworkClient.okHttpClient
-    private val baseUrl = "http://10.0.2.2:5042/api/Task"
+    private val baseUrl = "https://pocketree-api.azurewebsites.net/api/Task"
 
 
     override fun onCreateView(

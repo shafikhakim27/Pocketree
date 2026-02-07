@@ -20,7 +20,7 @@ import kotlin.jvm.java
 class LoginActivity: AppCompatActivity() {
     private lateinit var binding: ActivityLoginBinding
     private val client = NetworkClient.okHttpClient
-    private val baseUrl = "http://10.0.2.2:5042/api/User"
+    private val baseUrl = "https://pocketree-api.azurewebsites.net/api/User"
     private val gson = NetworkClient.gson
 
     override fun onCreate(savedInstanceState: Bundle?) {
