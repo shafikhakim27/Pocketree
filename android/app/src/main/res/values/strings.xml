@@ -29,4 +29,23 @@
     <string name="background_sound">Background Sound</string>
     <string name="sound_effects">Sound Effects</string>
     <string name="logout_button">Logout</string>
+
+    <!-- Navigation Tab Labels -->
+    <string name="tab_map">Map</string>
+    <string name="tab_tasks">Tasks</string>
+
+    <!-- Task Completion -->
+    <string name="complete_task">Complete Task</string>
+    <string name="task_completed">Task Completed!</string>
+
+    <!-- Redemption -->
+    <string name="redeem">Redeem</string>
+    <string name="confirm_redemption">Confirm Redemption</string>
+    <string name="confirm">Confirm</string>
+    <string name="redemption_successful">Redemption Successful!</string>
+    <string name="ok">OK</string>
+
+    <!-- Settings -->
+    <string name="notifications">Notifications</string>
+    <string name="account">Account</string>
 </resources>

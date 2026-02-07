@@ -4,7 +4,8 @@
     timeout: 5000
 
 # --- Login Screen ---
-- assertVisible: "Welcome! Please log in"
+# Reference: @string/login_header - "Welcome!\nPlease log in"
+- assertVisible: "Welcome!"
 - tapOn:
     id: "emailInput"
 - inputText: "testuser@pocketree.com"
