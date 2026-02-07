@@ -13,7 +13,7 @@ jobs:
         uses: zaproxy/action-baseline@v0.10.0
         with:
           target: https://pocketree-api.azurewebsites.net
-          cmd_options: "-J zap_report.json -r zap_report.html"
+          cmd_options: "-J zap_report.json -r zap_report.html -T 1200 -z \"-config connection.timeoutInSecs=120 -config spider.maxDuration=5\""
           fail_action: false
 
       - name: Fail on High Confidence Alerts
