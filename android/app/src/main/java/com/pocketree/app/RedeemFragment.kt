@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.FragmentRedeemBinding
 
+// written by Chenyu, edited by Shirley
 class RedeemFragment: Fragment() {
     private var _binding: FragmentRedeemBinding? = null
     private val binding get() = _binding!!
@@ -39,10 +40,11 @@ class RedeemFragment: Fragment() {
         sharedViewModel.skins.observe(viewLifecycleOwner) { skinList ->
             binding.recyclerViewSkin.adapter = RedeemAdapter(skinList) { item ->
                 if (item is Skin) {
-                    if (!item.isRedeemed) {
+                    if (item.isRedeemed) {
+                        handleRedeemedSkinClick(item) // handle equip/level check here
+                    }
+                    else {
                         showSkinConfirmDialog(item)
-                    } else {
-                        handleRedeemedSkinClick(item)
                     }
                 }
             }
@@ -122,21 +124,25 @@ class RedeemFragment: Fragment() {
             .setMessage("Do you want to redeem ${skin.skinName} for ${skin.skinPrice} coins?")
             .setPositiveButton("Confirm") { _, _ ->
                 processSkinRedemption(skin)
-            }
-            .setNegativeButton("Cancel", null)
-            .create()
-            .show()
+            }.setNegativeButton("Cancel", null).create().show()
     }
 
     private fun handleRedeemedSkinClick(skin: Skin) {
+        if (skin.isEquipped) return // do nothing is already equipped
+
         // Requirement: All users below level 1 can only purchase, not equip.
         val currentLevel = sharedViewModel.userState.value?.currentLevelID ?: 0
         if (currentLevel >= 1) {
-            equipSkin(skin)
+            AlertDialog.Builder(requireContext())
+                .setTitle("Equip Skin")
+                .setMessage("Do you want to equip ${skin.skinName}?")
+                .setPositiveButton("Equip") {_,_ -> equipSkin(skin)}
+                .setNegativeButton("Cancel", null)
+                .show()
         } else {
             AlertDialog.Builder(requireContext())
-                .setTitle("Skin features are not yet unlocked")
-                .setMessage("Level 1 required")
+                .setTitle("Not yet unlocked")
+                .setMessage("You may only equip skin upon reaching the Sapling stage!\nContinue to grow your plant!")
                 .setPositiveButton("OK", null)
                 .create()
                 .show()
