@@ -1,5 +1,4 @@
 ﻿# --- Logout ---
-# Reference: @string/logout_button ("Logout"), @string/login_header ("Welcome!\nPlease log in")
 - tapOn: "Logout"
-- assertVisible: "Welcome!"
+- assertVisible: "Welcome!\nPlease log in"
 - takeScreenshot: .maestro/screenshots/Logout_Success

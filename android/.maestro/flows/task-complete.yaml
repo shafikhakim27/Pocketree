@@ -11,4 +11,5 @@
 - assertVisible: "Complete Task"
 - tapOn: "Complete Task"
 - assertVisible: "Task Completed!"
+- tapOn: "OK"
 - takeScreenshot: .maestro/screenshots/Task_Completion_Success
