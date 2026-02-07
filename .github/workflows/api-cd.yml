@@ -69,7 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trivy-report
-          path: trivy-report.txt
+          path: ${{ github.workspace }}/trivy-report.txt
 
       - name: Build Summary
         if: always()
@@ -83,7 +83,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: api-cd-summary
-          path: summary.txt
+          path: ${{ github.workspace }}/summary.txt
 
       - name: Azure Login
         uses: azure/login@v1

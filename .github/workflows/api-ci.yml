@@ -60,7 +60,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: gitleaks-report
-          path: gitleaks.sarif
+          path: ${{ github.workspace }}/gitleaks.sarif
 
   build:
     runs-on: ubuntu-latest
@@ -93,7 +93,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: test-artifacts
-          path: test-artifacts/
+          path: ${{ github.workspace }}/test-artifacts/
 
   unit-tests:
     runs-on: ubuntu-latest
@@ -113,7 +113,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: unit-test-results
-          path: '**/*.trx'
+          path: ${{ github.workspace }}/**/*.trx
 
       - name: Unit Test Summary
         if: always()
@@ -164,7 +164,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: integration-test-results
-          path: '**/*.trx'
+          path: ${{ github.workspace }}/**/*.trx
 
       - name: Integration Test Summary
         if: always()
@@ -182,16 +182,16 @@ jobs:
 
       - name: Build Summary
         run: |
-          echo "API CI Summary" > summary.txt
-          echo "Secrets Scan: Completed" >> summary.txt
-          echo "Unit Tests: Completed" >> summary.txt
-          echo "Integration Tests: Completed" >> summary.txt
-          echo "" >> summary.txt
-          echo "Artifacts:" >> summary.txt
-          ls -R ./artifacts >> summary.txt
+          echo "API CI Summary" > "$GITHUB_WORKSPACE/summary.txt"
+          echo "Secrets Scan: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
+          echo "Unit Tests: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
+          echo "Integration Tests: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
+          echo "" >> "$GITHUB_WORKSPACE/summary.txt"
+          echo "Artifacts:" >> "$GITHUB_WORKSPACE/summary.txt"
+          ls -R ./artifacts >> "$GITHUB_WORKSPACE/summary.txt"
 
       - name: Upload Summary
         uses: actions/upload-artifact@v4
         with:
           name: api-ci-summary
-          path: summary.txt
+          path: ${{ github.workspace }}/summary.txt

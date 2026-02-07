@@ -1,9 +1,12 @@
-name: API DAST
+name: ML Service DAST
 
 on:
   schedule:
-    - cron: "0 2 * * *"
+    - cron: "30 2 * * *"
   workflow_dispatch:
+
+env:
+  ML_SERVICE_URL: https://pocketree-ml-r7owjdp2qa-as.a.run.app
 
 jobs:
   zap-baseline:
@@ -12,7 +15,7 @@ jobs:
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.10.0
         with:
-          target: https://pocketree-api.azurewebsites.net
+          target: ${{ env.ML_SERVICE_URL }}
           cmd_options: "-J zap_report.json -r zap_report.html"
           fail_action: false
 
@@ -42,7 +45,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: zap-report
+          name: ml-zap-report
           path: |
             ${{ github.workspace }}/zap_report.json
             ${{ github.workspace }}/zap_report.html
@@ -50,12 +53,13 @@ jobs:
       - name: Build Summary
         if: always()
         run: |
-          echo "API DAST Summary" > summary.txt
+          echo "ML Service DAST Summary" > summary.txt
           echo "ZAP Baseline: Completed" >> summary.txt
+          echo "Target: ${{ env.ML_SERVICE_URL }}" >> summary.txt
 
       - name: Upload Summary
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: api-dast-summary
+          name: ml-dast-summary
           path: ${{ github.workspace }}/summary.txt
