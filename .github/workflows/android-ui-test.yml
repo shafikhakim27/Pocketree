@@ -54,12 +54,13 @@ jobs:
           arch: x86_64
           profile: Nexus 6
           script: |
+            cd "$GITHUB_WORKSPACE"
             # 1. Setup Directories
             echo "--- Debug: Raw flow.yaml inspection ---"
             cat -A $GITHUB_WORKSPACE/android/.maestro/flow.yaml
-            mkdir -p maestro-report
-            mkdir -p .maestro/recordings
-            mkdir -p .maestro/screenshots
+            mkdir -p "$GITHUB_WORKSPACE/maestro-report"
+            mkdir -p "$GITHUB_WORKSPACE/.maestro/recordings"
+            mkdir -p "$GITHUB_WORKSPACE/.maestro/screenshots"
 
             # Wait for emulator + stabilize adb
             adb kill-server || true
@@ -72,23 +73,23 @@ jobs:
 
             # 3. Run Test (Generates JUnit XML)
             echo "Running Maestro Test..."
-            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output maestro-report/report.xml || touch .maestro/test_failed
+            maestro test $GITHUB_WORKSPACE/android/.maestro/flow.yaml --format junit --output "$GITHUB_WORKSPACE/maestro-report/report.xml" || touch "$GITHUB_WORKSPACE/.maestro/test_failed"
 
             # 4. Run Record (LOCAL MODE) - Generates overlaid MP4 automatically
             echo "Recording Video..."
             maestro record --local $GITHUB_WORKSPACE/android/.maestro/flow.yaml
 
             # Move the generated MP4 to desired location
-            generated_mp4=$(find . -maxdepth 1 -name "*.mp4" -type f | head -n 1)
+            generated_mp4=$(find "$GITHUB_WORKSPACE" -maxdepth 1 -name "*.mp4" -type f | head -n 1)
             if [ -n "$generated_mp4" ]; then
-              mv "$generated_mp4" .maestro/recordings/flow.mp4
+              mv "$generated_mp4" "$GITHUB_WORKSPACE/.maestro/recordings/flow.mp4"
               echo "Video saved to .maestro/recordings/flow.mp4"
             else
               echo "Warning: No MP4 generated (flow might be too long or failed early)"
             fi
 
             # 5. Fail the job if the test failed
-            if [ -f .maestro/test_failed ]; then
+            if [ -f "$GITHUB_WORKSPACE/.maestro/test_failed" ]; then
               echo "Maestro tests failed!"
               exit 1
             fi
@@ -99,15 +100,16 @@ jobs:
         with:
           name: maestro-full-test-results
           path: |
-            maestro-report/
-            .maestro/recordings/
-            .maestro/screenshots/
+            ${{ github.workspace }}/maestro-report/
+            ${{ github.workspace }}/.maestro/recordings/
+            ${{ github.workspace }}/.maestro/screenshots/
+          include-hidden-files: true
 
       - name: Build Summary
         if: always()
         run: |
-          echo "Android UI Test Summary" > summary.txt
-          echo "Maestro UI Tests: Completed" >> summary.txt
+          echo "Android UI Test Summary" > "$GITHUB_WORKSPACE/summary.txt"
+          echo "Maestro UI Tests: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
 
       - name: Upload Summary
         if: always()

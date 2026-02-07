@@ -1,4 +1,4 @@
-name: Collect CI Artifacts
+name: Pipeline Artifacts
 
 on:
   workflow_dispatch:
@@ -17,11 +17,16 @@ jobs:
         api-ci.yml
         api-cd.yml
         api-dast.yml
+        ml-dast.yml
         ml-service-ci.yml
         ml-service-cd.yml
         android-ci.yml
         android-ui-test.yml
         android-release.yml
+        android-dast.yml
+        security-report.yml
+        code-quality.yml
+        contribution-report.yml
     steps:
       - name: Prepare workspace
         run: |
@@ -89,5 +94,5 @@ jobs:
       - name: Upload Collected Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ci-artifacts-collection
+          name: pipeline-artifacts-collection
           path: collected/
