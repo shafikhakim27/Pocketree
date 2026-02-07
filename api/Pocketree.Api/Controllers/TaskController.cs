@@ -42,7 +42,7 @@ namespace ADproject.Controllers
             await CleanupOldTasks(user);
 
             // Check if there are already existing tasks given
-            var today = DateTime.UtcNow.Date;
+            var today = DateTime.UtcNow.Date; // = 00:00:00 (today midnight)
             var currentDailyTasks = await db.UserTaskHistory
                 .Where(h => h.UserID == user.UserID && h.CompletionDate >= today)
                 .Include(h => h.Task)
@@ -51,7 +51,7 @@ namespace ADproject.Controllers
             if (currentDailyTasks.Any())
             {
                 // Return to Android the Task's status that matches the UserTaskHistory's status
-                var taskStatus = currentDailyTasks.Select(h =>
+                var taskStatus = currentDailyTasks.DistinctBy(h => h.TaskID).Select(h =>
                 {
                     var t = h.Task;
                     t.isCompleted = (h.Status == "Completed");
@@ -68,13 +68,19 @@ namespace ADproject.Controllers
             // Create a record in the UserTaskHistory table for the tasks given for the day 
             foreach(var t in dailyTasks)
             {
-                db.UserTaskHistory.Add(new UserTaskHistory
+                var alreadyAddedTasks = await db.UserTaskHistory.AnyAsync(h => h.UserID == user.UserID
+                    && h.CompletionDate >= today);
+
+                if (!alreadyAddedTasks)
                 {
-                    UserID = user.UserID,
-                    TaskID = t.TaskID,
-                    Status = "Assigned",
-                    CompletionDate = DateTime.UtcNow
-                });
+                    db.UserTaskHistory.Add(new UserTaskHistory
+                    {
+                        UserID = user.UserID,
+                        TaskID = t.TaskID,
+                        Status = "Assigned",
+                        CompletionDate = DateTime.UtcNow
+                    });
+                }
             }
 
             // Update the number of uncompleted tasks assigned
@@ -123,17 +129,17 @@ namespace ADproject.Controllers
             else
             {
                 var easyTask = await db.Tasks
-                .Where(t => t.Difficulty == "Easy")
+                .Where(t => t.Difficulty == "Easy" && t.SourceType == "Default")
                 .OrderBy(t => EF.Functions.Random())
                 .FirstOrDefaultAsync();
 
                 var normalTask = await db.Tasks
-                    .Where(t => t.Difficulty == "Normal")
+                    .Where(t => t.Difficulty == "Normal" && t.SourceType == "Default")
                     .OrderBy(t => EF.Functions.Random())
                     .FirstOrDefaultAsync();
 
                 var hardTask = await db.Tasks
-                    .Where(t => t.Difficulty == "Hard")
+                    .Where(t => t.Difficulty == "Hard" && t.SourceType == "Default")
                     .OrderBy(t => EF.Functions.Random())
                     .FirstOrDefaultAsync();
 
@@ -208,7 +214,7 @@ namespace ADproject.Controllers
                         var result = await UpdateLevelAndCoins(user, task);
                         levelUp = result.levelUp;
                         //new
-                        if(levelUp) newLevelName = result.levelName;
+                        if (levelUp) newLevelName = result.levelName;
                         await CheckAndAwardBadges(user);
                         await CheckAndAwardVouchers(user);
                     }

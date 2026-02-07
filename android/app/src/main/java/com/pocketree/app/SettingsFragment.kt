@@ -54,7 +54,7 @@ class SettingsFragment: Fragment() {
             Glide.with(requireContext())
                 .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                 .circleCrop() // to make image round
-                .placeholder(R.drawable.profile_pic)
+              //  .placeholder(R.drawable.profile_pic)
                 .into(binding.profilePic)
         }
 

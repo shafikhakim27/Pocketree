@@ -1,0 +1,974 @@
+[
+  {
+    "Description": "Equip your reusable beverage container before leaving base.",
+    "Difficulty": "Hard",
+    "CoinReward": 750,
+    "RequiresEvidence": true,
+    "Keyword": "@\"[\"\"reusable bottle on desk\"\",\"\"reusable cup\"\",\"\"stainless steel mug\"\",\"\"stainless steel bottle\"\",\"\"portable mug\"\",\"\"reusable water bottle\"\",\"\"metal bottle\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"paper cup\"\",\"\"disposable cup\"\",\"\"foam cup\"\",\"\"single use\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Summon a plant companion and tend to it.",
+    "Difficulty": "Hard",
+    "CoinReward": 750,
+    "RequiresEvidence": true,
+    "Keyword": "@\"[\"\"potted plant\"\",\"\"indoor plants\"\",\"\"office greenery\"\",\"\"plants in pots\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"plant pattern\"\"]\"",
+    "SourceType": "Default"
+  },
+
+  {
+    "Description": "Activate Daylight Protocol. Open the curtains and keep the lights sealed for a while.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"curtains open\"\",\"\"sunlight through window\"\",\"\"daylight in room\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"curtains closed\"\",\"\"night\"\",\"\"dark room\"\",\"\"no window\"\",\"\"lights on\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Receipt Vanish. Decline the printed scroll and keep it digital.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"e-receipt\"\",\"\"no receipt\"\",\"\"receipt option\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"paper receipt\"\",\"\"printed receipt\"\",\"\"cashier receipt\"\" ,\"\"receipt in hand\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Freeze the Tap Spell while brushing teeth. Water flows only when needed.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"tap off\"\",\"\"brushing teeth\"\",\"\"bathroom sink\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"tap running\"\",\"\"water flowing\"\",\"\"shower\"\",\"\"kitchen sink\"\",\"\"washing dishes\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Silence the Glow. Switch off one unused light source in your base.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"light switch\"\",\"\"lights off\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"lights on\"\",\"\"bright room\"\",\"\"lamp on\"\",\"\"lit room\"\",\"\"ceiling lights on\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Bluetooth Cloak. Turn off Bluetooth when you are not using it.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"bluetooth off\"\",\"\"phone settings\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"bluetooth on\"\",\"\"connected devices\"\",\"\"pairing\"\",\"\"airdrop\"\",\"\"wifi settings\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Straw Rejection. Take your drink with no straw.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"drink without straw\"\",\"\"cup no straw\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"straw\"\",\"\"plastic straw\"\",\"\"paper straw\"\",\"\"straw in cup\"\",\"\"straw wrapper\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Unplug a tiny energy vampire. Remove one idle charger from the wall.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"unplugged charger\"\",\"\"charger unplugged\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"charger plugged in\"\",\"\"power adapter plugged\"\",\"\"charging phone\"\",\"\"socket with plug\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Screen Nap. Set auto lock to 750 seconds and let your screen rest quickly.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"auto lock 750 seconds\"\",\"\"screen timeout\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"never\"\",\"\"5 minutes\"\",\"\"250 minutes\"\",\"\"screen always on\"\",\"\"display settings open\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Brightness Nerf. Lower your screen brightness for the day.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"brightness slider\"\",\"\"low brightness\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"high brightness\"\",\"\"max brightness\"\",\"\"bright screen\"\",\"\"auto brightness off\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Pocket of Preparedness. Carry a reusable bag today.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"reusable shopping bag\"\",\"\"tote bag\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"plastic bag\"\",\"\"disposable bag\"\",\"\"paper bag\"\",\"\"carrier bag\"\",\"\"bag drawer\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Cutlery of Legends. Use your own cutlery instead of disposables.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"metal cutlery\"\",\"\"reusable cutlery\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"plastic cutlery\"\",\"\"disposable cutlery\"\",\"\"wooden fork\"\",\"\"takeaway cutlery\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Container Ready. Pack food in your own container today.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"food container\"\",\"\"tupperware\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"disposable container\"\",\"\"takeaway box\"\",\"\"styrofoam box\"\",\"\"paper box\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Handkerchief Mode. Use a cloth handkerchief instead of tissues.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"cloth handkerchief\"\",\"\"fabric handkerchief\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"tissue paper\"\",\"\"paper tissue\"\",\"\"wet wipes\"\",\"\"napkin\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Refill Ritual. Refill one bottle instead of buying a new one.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"refill bottle\"\",\"\"refill station\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"buying drink\"\",\"\"new bottle\"\",\"\"sealed bottle\"\",\"\"mini mart\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Second Life Jar. Reuse a glass jar or container for storage.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"glass jar\"\",\"\"storage container\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"trash bin\"\",\"\"throwing away\"\",\"\"broken glass\"\",\"\"single use\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Rinse and Release. Rinse one recyclable before sending it to the portal.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"rinsing container\"\",\"\"clean container\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"dirty container\"\",\"\"food residue\"\",\"\"greasy container\"\",\"\"trash bag\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Cardboard Fold. Flatten a box before recycling it.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"cardboard box\"\",\"\"flatten box\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"styrofoam\"\",\"\"plastic bag\"\",\"\"unopened box\"\",\"\"box storage\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Plant Feast. Choose a vegetarian meal for one quest.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"vegetarian meal\"\",\"\"plant based dish\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"chicken\"\",\"\"fish\"\",\"\"pork\"\",\"\"beef\"\",\"\"seafood\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Water Over Soda. Choose water instead of a bottled sweet drink.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"glass of water\"\",\"\"water bottle\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"soda\"\",\"\"soft drink\"\",\"\"bubble tea\"\",\"\"sweet drink\"\",\"\"juice bottle\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Snack Swap. Pick fruit instead of packaged snacks once today.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"fruit\"\",\"\"fruit bowl\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"chips\"\",\"\"cookies\"\",\"\"packaged snack\"\",\"\"candy\"\",\"\"chocolate bar\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Clean Plate Oath. Finish your meal with no leftovers on the plate.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"empty plate\"\",\"\"clean bowl\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"leftovers\"\",\"\"half eaten\"\",\"\"food waste\"\",\"\"scraps\"\",\"\"takeaway box\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Simple Breakfast Craft. Prepare breakfast without takeaway packaging.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"breakfast plate\"\",\"\"home breakfast\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"takeaway bag\"\",\"\"delivery\"\",\"\"paper wrapper\"\",\"\"plastic wrapper\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Mindful Bite. Eat slowly for one meal and keep distractions away.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"meal\"\",\"\"dining table\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"phone in hand\"\",\"\"watching tv\"\",\"\"laptop on table\"\",\"\"gaming\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Guardian Sweep. Pick up one piece of litter in the wild.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"litter\"\",\"\"trash on ground\"\",\"\"picking up litter\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"clean floor\"\",\"\"no litter\"\",\"\"trash bin\"\",\"\"recycling bin\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Green Detour. Spend five minutes near trees or plants.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"park\"\",\"\"trees\"\",\"\"greenery\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"indoor room\"\",\"\"shopping mall\"\",\"\"carpark\"\",\"\"office desk\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Sky Check. Look up and notice the sky for a quiet minute.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"sky\"\",\"\"clouds\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"ceiling\"\",\"\"indoor lights\"\",\"\"roof\"\",\"\"wall\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Plant Companion Care. Water a plant today.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"watering plant\"\",\"\"potted plant\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"artificial plant\"\",\"\"plastic plant\"\",\"\"dry soil\"\",\"\"plant wallpaper\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Nature Sound Pause. Listen to nature sounds for a short moment.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"nature sounds\"\",\"\"birds\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"traffic noise\"\",\"\"construction\"\",\"\"tv sound\"\",\"\"music\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Step Quest. Walk 2,000 steps today.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"step counter\"\",\"\"steps\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"0 steps\"\",\"\"sitting\"\",\"\"sleep\"\",\"\"no movement\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Micro Stretch. Stretch for five minutes to undo the desk curse.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"stretching\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"sleeping\"\",\"\"lying down\"\",\"\"sitting still\"\",\"\"watching tv\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Walk Loop. Take a short walk around your block or corridor.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"walking\"\",\"\"hallway\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"running\"\",\"\"cycling\"\",\"\"sitting\"\",\"\"driving\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Posture Reset. Stand up and move once every hour for three hours.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"standing\"\",\"\"movement\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"sitting\"\",\"\"lying down\"\",\"\"sleep\"\",\"\"no movement\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Mini Mobility. Do a quick warm up with shoulders and ankles.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"warm up\"\",\"\"mobility\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"cool down\"\",\"\"sleeping\"\",\"\"resting\"\",\"\"sitting\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Fresh Air Loop. Step outside briefly and return refreshed.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"outdoors\"\",\"\"walking outdoors\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"indoor room\"\",\"\"office desk\"\",\"\"bedroom\"\",\"\"living room\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Quiet Commute Choice. Walk one extra stop before boarding.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"walking outdoors\"\",\"\"sidewalk\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"car interior\"\",\"\"taxi\"\",\"\"grab ride\"\",\"\"sitting\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Bottle Refill Run. Refill your bottle once instead of buying a drink.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"refill bottle\"\",\"\"water dispenser\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"buying drink\"\",\"\"sealed bottle\"\",\"\"vending machine\"\",\"\"cashier\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Paper Saver. Use both sides of a paper sheet once today.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"paper notes\"\",\"\"used paper\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"blank paper\"\",\"\"new paper\"\",\"\"shredded paper\"\",\"\"trash bin\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Cable Tidy Spell. Gather loose cables to prevent accidental waste and damage.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"cables\"\",\"\"charger cable\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"no cables\"\",\"\"wireless charger\"\",\"\"bluetooth\"\",\"\"power bank only\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Packaging Patience. Keep a sturdy box for future storage or moving.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"box storage\"\",\"\"cardboard box\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"throwing away\"\",\"\"trash bag\"\",\"\"torn box\"\",\"\"wet box\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Green dabao please. Do you have your own food container?",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"small container\"\",\"\"snack box\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"plastic bag\"\",\"\"takeaway box\"\",\"\"disposable container\"\",\"\"paper box\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Power Strip Sentinel. Use a power strip and switch it off when done.",
+    "Difficulty": "Easy",
+    "CoinReward": 250,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"power strip\"\",\"\"extension cord with switches\"\",\"\"surge protector\"\",\"\"multi socket extension\"\",\"\"power strip switch\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"wall socket\"\",\"\"no switch\"\",\"\"power bank\"\",\"\"usb charger\"\"]\"",
+    "SourceType": "Default"
+  },
+
+  {
+    "Description": "Eco Chill Upgrade. Use a fan instead of air con for one hour.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"electric fan\"\",\"\"standing fan\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"air conditioner\"\",\"\"aircon remote\"\",\"\"aircon vent\"\",\"\"split unit\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Air Dry Buff. Skip the dryer and let clothes dry naturally.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"clothes hanger\"\",\"\"laundry drying\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"dryer\"\",\"\"tumble dryer\"\",\"\"laundry machine\"\",\"\"laundromat dryer\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "No Bag Day. Carry your items without taking a plastic bag.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"reusable bag\"\",\"\"carrying groceries\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"plastic bag\"\",\"\"carrier bag\"\",\"\"bag dispenser\"\",\"\"bagging area\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Shower Sprint. Finish your shower in under five minutes.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"shower\"\",\"\"timer\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"bath tub\"\",\"\"long shower\"\",\"\"spa\"\",\"\"hot tub\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Delivery Defense. Request no disposable cutlery with delivery orders today.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"no cutlery\"\",\"\"delivery order\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"add cutlery\"\",\"\"disposable cutlery\"\",\"\"fork spoon\"\",\"\"chopsticks\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Dark Mode Stealth. Switch your devices to dark mode for the day.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"dark mode\"\",\"\"dark theme\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"light mode\"\",\"\"bright theme\"\",\"\"white background\"\",\"\"dark mode off\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Energy Saver Switch. Enable battery saver mode on your phone for a few hours.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"battery saver\"\",\"\"low power mode\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"battery saver off\"\",\"\"normal mode\"\",\"\"charging\"\",\"\"power intensive\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Two Hour Unplug. Unplug one non essential appliance for two hours.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"unplugged appliance\"\",\"\"plug removed\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"plugged in\"\",\"\"power on\"\",\"\"charging\"\",\"\"socket with plug\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "No Tray Mastery. Order food and skip using a tray when possible.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"food table\"\",\"\"no tray\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"tray\"\",\"\"food tray\"\",\"\"cafeteria tray\"\",\"\"tray return\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Streak of Restraint. Go the day without buying non essentials.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"wallet\"\",\"\"money\"\"]\"",
+    "Category": "reduce",
+    "NegativeKeyword": "@\"[\"\"shopping bag\"\",\"\"checkout\"\",\"\"receipt\"\",\"\"online cart\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Repair Quest. Patch, tape, stitch, or fix one item in your inventory.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"repair tools\"\",\"\"tape repair\"\",\"\"glue\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"throw away\"\",\"\"trash bin\"\",\"\"broken beyond repair\"\",\"\"buy new\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Recharge Rune. Use rechargeable batteries for a device that needs them.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"rechargeable batteries\"\",\"\"battery charger\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"disposable batteries\"\",\"\"alkaline battery\"\",\"\"battery disposal\"\",\"\"new pack\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Borrow Before Buy. Borrow one item instead of purchasing it.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"borrow item\"\",\"\"lend\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"buy now\"\",\"\"checkout\"\",\"\"receipt\"\",\"\"shopping\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Refill Run. Choose a refill pack or refill station for one household item.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"refill pack\"\",\"\"refill bottle\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"new bottle\"\",\"\"sealed bottle\"\",\"\"single use\"\",\"\"disposable\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Second Hand Scout. Choose a second hand option for one item you need.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"second hand\"\",\"\"thrift\"\",\"\"preloved\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"brand new\"\",\"\"new with tags\"\",\"\"factory sealed\"\",\"\"retail store\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Gift the Old Gear. Pass an item to someone who can use it.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"donation\"\",\"\"donation bag\"\",\"\"old clothes\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"trash bin\"\",\"\"throw away\"\",\"\"discard\"\",\"\"rubbish bag\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Container Champion. Bring your own container for takeaway once today.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"food container\"\",\"\"tupperware\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"disposable container\"\",\"\"plastic bag\"\",\"\"takeaway box\"\",\"\"styrofoam\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Cloth Over Paper. Use a reusable cloth for cleaning instead of paper towels.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"cleaning cloth\"\",\"\"rag\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"paper towel\"\",\"\"tissue\"\",\"\"wet wipes\"\",\"\"disposable wipes\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Refashion Patrol. Wear something you already own in a new combination.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"clothes\"\",\"\"outfit\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"shopping\"\",\"\"new clothes\"\",\"\"checkout\"\",\"\"tag attached\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Notebook Revival. Reuse a partially used notebook for new notes.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"notebook\"\",\"\"notes\"\"]\"",
+    "Category": "reuse",
+    "NegativeKeyword": "@\"[\"\"new notebook\"\",\"\"blank notebook\"\",\"\"unused pages only\"\",\"\"stationery shop\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Portal Sorting. Separate recyclables properly at home or work today.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"sorting recyclables\"\",\"\"recycling bin\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"general waste\"\",\"\"trash bin\"\",\"\"food waste\"\",\"\"rubbish chute\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Compost Alchemy. Transmute food scraps into compost or store them for composting.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"food scraps\"\",\"\"compost bin\"\",\"\"kitchen scraps\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"throwing away\"\",\"\"trash bag\"\",\"\"sink disposal\"\",\"\"general waste\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "E Commerce Cleanup. Flatten and recycle delivery boxes properly.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"delivery box\"\",\"\"cardboard recycling\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"box storage\"\",\"\"unopened box\"\",\"\"plastic mailer\"\",\"\"styrofoam\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Glass Guardian. Set aside glass containers for correct recycling.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"glass bottle\"\",\"\"glass jar\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"broken glass\"\",\"\"ceramic\"\",\"\"plastic bottle\"\",\"\"metal can\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Clean Recycle Ritual. Rinse and dry multiple recyclables before disposal.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"rinsing containers\"\",\"\"clean containers\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"dirty containers\"\",\"\"food residue\"\",\"\"grease\"\",\"\"trash bag\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Paper Horde Purge. Gather paper waste and recycle it in one go.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"paper stack\"\",\"\"recycling bin\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"tissue paper\"\",\"\"food stained paper\"\",\"\"wet paper\"\",\"\"general waste\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Metal Cache. Collect cans and recycle them together.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"cans\"\",\"\"recycling bin\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"glass bottle\"\",\"\"plastic bottle\"\",\"\"food waste\"\",\"\"general waste\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Plastic Patrol. Sort plastic packaging and recycle what is accepted.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"plastic packaging\"\",\"\"recycling bin\"\"]\"",
+    "Category": "recycle",
+    "NegativeKeyword": "@\"[\"\"styrofoam\"\",\"\"food waste\"\",\"\"dirty plastic\"\",\"\"general waste\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Plant Feast. Eat a full vegetarian meal today.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"vegetarian meal\"\",\"\"plant based dish\"\",\"\"vegetable plate\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"chicken\"\",\"\"fish\"\",\"\"pork\"\",\"\"beef\"\",\"\"seafood\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Clean Plate Oath. Finish your entire meal to prevent waste.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"empty plate\"\",\"\"clean bowl\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"leftovers\"\",\"\"half eaten\"\",\"\"food scraps\"\",\"\"takeaway box\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Leftover Remix. Turn leftovers into a new meal.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"leftover food\"\",\"\"meal prep\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"throwing away\"\",\"\"trash bin\"\",\"\"food waste\"\",\"\"dirty plate\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Lunchbox Quest. Bring a packed meal from home.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"packed lunch\"\",\"\"lunchbox\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"takeaway bag\"\",\"\"delivery\"\",\"\"receipt\"\",\"\"disposable container\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Local Harvest Choice. Buy or choose locally grown vegetables when possible.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"local vegetables\"\",\"\"hydroponics\"\",\"\"SG Fresh Produce\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"imported\"\",\"\"frozen vegetables\"\",\"\"canned vegetables\"\",\"\"meat\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Zero Waste Prep. Plan meals so you use what you already have.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"meal plan\"\",\"\"ingredients\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"food delivery\"\",\"\"impulse buy\"\",\"\"takeaway\"\",\"\"over ordering\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Home Brew Ritual. Make your drink at home instead of buying one.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"coffee\"\",\"\"tea\"\",\"\"mug\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"takeaway cup\"\",\"\"cafe\"\",\"\"receipt\"\",\"\"vending machine\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Veggie Side Quest. Add an extra serving of vegetables to one meal.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"vegetables\"\",\"\"salad\"\",\"\"vegetable dish\"\"]\"",
+    "Category": "food",
+    "NegativeKeyword": "@\"[\"\"fries\"\",\"\"meat only\"\",\"\"no vegetables\"\",\"\"dessert\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Guardian Patrol. Pick up litter in a public area for five minutes.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"picking up litter\"\",\"\"trash bag\"\",\"\"litter\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"clean floor\"\",\"\"no litter\"\",\"\"trash bin\"\",\"\"recycling bin\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Green Trail. Take a walk through a park or tree lined route.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"park\"\",\"\"trees\"\",\"\"walking outdoors\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"indoor mall\"\",\"\"office corridor\"\",\"\"carpark\"\",\"\"bedroom\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Plant Guardian Duty. Care for a plant and tidy the area around it.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"potted plant\"\",\"\"watering plant\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"artificial plant\"\",\"\"plastic plant\"\",\"\"plant wallpaper\"\",\"\"plant on screen\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Nature Reset. Spend ten minutes outdoors without distractions.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"outdoors\"\",\"\"park\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"indoor room\"\",\"\"laptop\"\",\"\"phone in hand\"\",\"\"meeting room\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Clean Corner Quest. Tidy a small outdoor spot near your home or workplace.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"outdoor area\"\",\"\"litter\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"indoor cleaning\"\",\"\"bathroom\"\",\"\"kitchen sink\"\",\"\"office desk\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Leaf and Light. Open windows briefly to refresh the air if possible.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"open window\"\",\"\"fresh air\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"window closed\"\",\"\"aircon on\"\",\"\"no window\"\",\"\"sealed room\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Skywatch Break. Catch sunset or sunrise for a short moment.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"sunset\"\",\"\"sunrise\"\",\"\"sky\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"night\"\",\"\"indoor ceiling\"\",\"\"no sky\"\",\"\"rainy indoor\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Green Mindfulness. Sit near greenery and notice five small details.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"trees\"\",\"\"plants\"\"]\"",
+    "Category": "nature",
+    "NegativeKeyword": "@\"[\"\"concrete\"\",\"\"indoor room\"\",\"\"office desk\"\",\"\"shopping mall\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Step Quest. Walk 5,000 steps today.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"step counter\"\",\"\"fitness tracker\"\",\"\"5000 steps\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"0 steps\"\",\"\"sitting\"\",\"\"sleep\"\",\"\"no movement\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Commute Adventure. Walk, cycle, or take public transport for one trip.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"walking outdoors\"\",\"\"bicycle\"\",\"\"bus interior\"\",\"\"train interior\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"car interior\"\",\"\"taxi\"\",\"\"grab ride\"\",\"\"sitting\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Stairs over Lift. Use stairs for at least two floors today.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"stairs\"\",\"\"stairwell\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"lift\"\",\"\"elevator\"\",\"\"escalator\"\",\"\"ramp\"\",\"\"corridor\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Movement Break Chain. Do three short movement breaks across the day.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"stretching\"\",\"\"movement\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"sitting\"\",\"\"sleep\"\",\"\"no movement\"\",\"\"lying down\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Outdoor Walk Quest. Walk ten minutes outdoors at any pace.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"walking outdoors\"\",\"\"sidewalk\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"car interior\"\",\"\"taxi\"\",\"\"grab ride\"\",\"\"sitting\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Mobility Routine. Do a short full body stretch session.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"stretching\"\",\"\"yoga\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"sleeping\"\",\"\"sitting\"\",\"\"lying down\"\",\"\"resting\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Active Errand. Walk to run one errand instead of taking transport.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"walking\"\",\"\"shopping\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"car\"\",\"\"taxi\"\",\"\"bus ride\"\",\"\"train ride\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Posture and Core. Do a short core activation routine for five minutes.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"exercise\"\",\"\"core\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"sitting\"\",\"\"sleeping\"\",\"\"lying down\"\",\"\"no movement\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Lunch Walk. Take a brisk walk after one meal.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"walking outdoors\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"sitting\"\",\"\"sleep\"\",\"\"car interior\"\",\"\"indoor room\"\"]\"",
+    "SourceType": "Default"
+  },
+  {
+    "Description": "Stair Loop. Climb stairs for three minutes at a steady pace.",
+    "Difficulty": "Normal",
+    "CoinReward": 500,
+    "RequiresEvidence": false,
+    "Keyword": "@\"[\"\"stairs\"\",\"\"staircase\"\"]\"",
+    "Category": "exercise",
+    "NegativeKeyword": "@\"[\"\"lift\"\",\"\"elevator\"\",\"\"escalator\"\",\"\"ramp\"\",\"\"corridor\"\"]\"",
+    "SourceType": "Default"
+  }
+]

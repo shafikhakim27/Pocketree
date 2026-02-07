@@ -378,7 +378,7 @@ namespace ADproject.Controllers
                 .Select(ub => new
                 {
                     BadgeName = ub.Badge.BadgeName,
-                    BadgeImageURL = ub.Badge.BadgeImageURL ?? baseURL + "default-badge.png",
+                    BadgeImageURL = baseURL + (ub.Badge.BadgeImageURL ?? "default-badge.png"),
                     DateEarned = ub.DateEarned
                 })
                 .ToListAsync();
@@ -426,7 +426,7 @@ namespace ADproject.Controllers
                     SkinID = skin.SkinID,
                     SkinName = skin.SkinName,
                     SkinPrice = skin.SkinPrice,
-                    ImageURL = skin.ImageURL ?? baseURL + "default_skin.png",
+                    ImageURL = baseURL + (skin.ImageURL ?? "default_skin.png"),
                     IsRedeemed = (ownedRecord != null),
                     IsEquipped = (ownedRecord != null && ownedRecord.IsEquipped)
                 };

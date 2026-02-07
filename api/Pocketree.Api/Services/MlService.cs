@@ -127,10 +127,10 @@ namespace ADproject.Services
 
                 var existingDescriptions = tasksToReturn.Select(t => t.Description).ToList();
                 
-                // Get random Normal tasks from the repository to fill up the remaining shortage
+                // Get random Default tasks from the repository to fill up the remaining shortage
                 var fallbackTasks = await db.Tasks
-                                        .Where(t => t.SourceType == "Normal" && !existingDescriptions.Contains(t.Description))
-                                        .OrderBy(r => Guid.NewGuid())
+                                        .Where(t => t.SourceType == "Default" && !existingDescriptions.Contains(t.Description))
+                                        .OrderBy(t => EF.Functions.Random())
                                         .Take(required)
                                         .ToListAsync();
                 tasksToReturn.AddRange(fallbackTasks);
