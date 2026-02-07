@@ -32,17 +32,33 @@ namespace ADproject.Services
         // ML call - To classify and verify the image submitted for task that requires evidence
         public async Task<bool> ClassifyImageAsync(Stream imageStream, string keyword)
         {
-            using var content = new MultipartFormDataContent();
+            var targetUrl = BuildMlEndpoint(_pythonApiUrl, "/predict");
+            HttpResponseMessage response;
 
-            // Add the image file
-            var streamContent = new StreamContent(imageStream);
-            content.Add(streamContent, "file", "upload.jpg");
+            if (IsExplicitPath(_pythonApiUrl, "/classify"))
+            {
+                using var content = new MultipartFormDataContent();
 
-            // Add the keyword for MobileNet comparison
-            content.Add(new StringContent(keyword), "keyword");
+                // Add the image file
+                var streamContent = new StreamContent(imageStream);
+                content.Add(streamContent, "file", "upload.jpg");
 
-            // Post to the Python Flask API
-            var response = await _httpClient1.PostAsync(_pythonApiUrl, content);
+                // Add the keyword for CLIP comparison
+                content.Add(new StringContent(keyword), "keyword");
+
+                response = await _httpClient1.PostAsync(_pythonApiUrl, content);
+            }
+            else
+            {
+                using var ms = new MemoryStream();
+                await imageStream.CopyToAsync(ms);
+                var payload = new
+                {
+                    keyword,
+                    image_base64 = Convert.ToBase64String(ms.ToArray())
+                };
+                response = await _httpClient1.PostAsJsonAsync(targetUrl, payload);
+            }
 
             if (response.IsSuccessStatusCode)
             {
@@ -167,6 +183,35 @@ namespace ADproject.Services
         public class MlResult
         {
             public bool Verified { get; set; }
+        }
+
+        private static bool IsExplicitPath(string? url, string path)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+                return false;
+
+            return url.TrimEnd('/').EndsWith(path, StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string BuildMlEndpoint(string? baseUrl, string path)
+        {
+            if (string.IsNullOrWhiteSpace(baseUrl))
+                return baseUrl ?? string.Empty;
+
+            if (IsExplicitPath(baseUrl, "/classify") || IsExplicitPath(baseUrl, "/predict"))
+                return baseUrl;
+
+            if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri))
+                return baseUrl;
+
+            var builder = new UriBuilder(uri)
+            {
+                Path = path,
+                Query = string.Empty,
+                Fragment = string.Empty
+            };
+
+            return builder.Uri.ToString();
         }
     }
 }

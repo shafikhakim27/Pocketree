@@ -60,9 +60,15 @@ jobs:
             mkdir -p maestro-report
             mkdir -p .maestro/recordings
             mkdir -p .maestro/screenshots
+
+            # Wait for emulator + stabilize adb
+            adb kill-server || true
+            adb start-server
+            adb wait-for-device
+            adb devices
             
             # 2. Install the APK
-            adb install app/build/outputs/apk/debug/app-debug.apk
+            adb install "$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
 
             # 3. Run Test (Generates JUnit XML)
             echo "Running Maestro Test..."
@@ -96,3 +102,16 @@ jobs:
             maestro-report/
             .maestro/recordings/
             .maestro/screenshots/
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "Android UI Test Summary" > summary.txt
+          echo "Maestro UI Tests: Completed" >> summary.txt
+
+      - name: Upload Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-ui-test-summary
+          path: summary.txt

@@ -1,4 +1,5 @@
 ﻿# --- Complete a Task ---
+# Reference: @string/tab_tasks ("Tasks"), @string/complete_task ("Complete Task"), @string/task_completed ("Task Completed!")
 - tapOn: "Tasks"
 - assertVisible:
     id: "taskList"

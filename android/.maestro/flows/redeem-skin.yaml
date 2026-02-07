@@ -1,4 +1,7 @@
 ﻿# --- Redeem Skin ---
+# Reference: @string/redeem ("Redeem"), @string/redeem_header ("Redeem Items")
+# @string/confirm_redemption ("Confirm Redemption"), @string/confirm ("Confirm")
+# @string/redemption_successful ("Redemption Successful!"), @string/ok ("OK")
 - tapOn: "Redeem"
 - assertVisible: "Redeem Items"
 - assertVisible:

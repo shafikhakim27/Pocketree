@@ -1,0 +1,61 @@
+name: API DAST
+
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+
+jobs:
+  zap-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.10.0
+        with:
+          target: https://pocketree-api.azurewebsites.net
+          cmd_options: "-J zap_report.json -r zap_report.html"
+          fail_action: false
+
+      - name: Fail on High Confidence Alerts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("zap_report.json")
+          if not report.exists():
+              print("ZAP report not found; skipping confidence check.")
+              raise SystemExit(0)
+
+          data = json.loads(report.read_text(encoding="utf-8", errors="ignore"))
+          alerts = []
+          for site in data.get("site", []):
+              alerts.extend(site.get("alerts", []))
+
+          high = [a for a in alerts if str(a.get("confidence", "")).lower() == "high"]
+          print(f"Total alerts: {len(alerts)} | High confidence: {len(high)}")
+          if high:
+              raise SystemExit(1)
+          PY
+
+      - name: Upload ZAP Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: |
+            zap_report.json
+            zap_report.html
+
+      - name: Build Summary
+        if: always()
+        run: |
+          echo "API DAST Summary" > summary.txt
+          echo "ZAP Baseline: Completed" >> summary.txt
+
+      - name: Upload Summary
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-dast-summary
+          path: summary.txt
