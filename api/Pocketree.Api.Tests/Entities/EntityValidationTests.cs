@@ -125,7 +125,7 @@ public class EntityValidationTests
         };
 
         // Act & Assert
-        skin.SkinPrice.Should().BeGreaterOrEqualTo(0);
+        skin.SkinPrice.Should().BeGreaterThanOrEqualTo(0);
     }
 
     [Fact]

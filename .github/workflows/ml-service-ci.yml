@@ -51,15 +51,15 @@ jobs:
         with:
           name: ml-snyk-report
           path: |
-            ml-service-snyk.json
-            ml-service-snyk.sarif
+            ${{ github.workspace }}/ml-service-snyk.json
+            ${{ github.workspace }}/ml-service-snyk.sarif
 
       - name: Upload Bandit Report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ml-bandit-report
-          path: bandit-report.json
+          path: ${{ github.workspace }}/bandit-report.json
 
       - name: Security Summary
         if: always()
@@ -69,13 +69,13 @@ jobs:
       - name: Build Summary
         if: always()
         run: |
-          echo "ML Service CI Summary" > summary.txt
-          echo "Snyk: Completed" >> summary.txt
-          echo "Bandit: Completed" >> summary.txt
+          echo "ML Service CI Summary" > "$GITHUB_WORKSPACE/summary.txt"
+          echo "Snyk: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
+          echo "Bandit: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
 
       - name: Upload Summary
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ml-service-ci-summary
-          path: summary.txt
+          path: ${{ github.workspace }}/summary.txt

@@ -56,9 +56,9 @@ public class MissionServiceTests
         var maxY = MissionService.locSlots.Max(loc => loc.Y);
 
         // Assert - Coverage of map bounds
-        minX.Should().BeLessOrEqualTo(20, "should reach the left edge");
-        maxX.Should().BeGreaterOrEqualTo(80, "should reach the right edge");
-        minY.Should().BeLessOrEqualTo(20, "should reach the top edge");
-        maxY.Should().BeGreaterOrEqualTo(80, "should reach the bottom edge");
+        minX.Should().BeLessThanOrEqualTo(20, "should reach the left edge");
+        maxX.Should().BeGreaterThanOrEqualTo(80, "should reach the right edge");
+        minY.Should().BeLessThanOrEqualTo(20, "should reach the top edge");
+        maxY.Should().BeGreaterThanOrEqualTo(80, "should reach the bottom edge");
     }
 }

@@ -1,5 +1,4 @@
-# 🌳 Pocketree - Development Branch
-
+﻿# 🌳 Pocketree - Development Branch
 Welcome to **Pocketree**, a full-stack sustainability application designed to track and encourage eco-friendly habits.
 This repository operates as a **Monorepo**, containing the Backend API with Machine Learning components, packaged into an Android Mobile App.
 
@@ -11,16 +10,6 @@ The system is composed of three primary services orchestrated via Docker.
 * **🗄️ Database:** MySQL 8.0
 * **🐳 Infrastructure:** Docker Compose
 * **🤖 CI/CD:** GitHub Actions with automated testing and deployment
-
----
-
-## 💻 Prerequisites
-
-1. Git & Docker Desktop (Essential)
-
-2. .NET 9.0 SDK & Visual Studio 2022
-
-3. Android Studio (Ladybug or newer)
 
 ---
 

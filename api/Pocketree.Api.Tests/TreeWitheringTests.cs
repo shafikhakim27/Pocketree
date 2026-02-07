@@ -99,7 +99,7 @@ public class TreeWitheringTests
         var daysSinceActivity = (DateTime.UtcNow - user.LastActivityDate!.Value).Days;
         
         // Assert
-        daysSinceActivity.Should().BeGreaterOrEqualTo(3);
+        daysSinceActivity.Should().BeGreaterThanOrEqualTo(3);
         tree.IsWithered.Should().BeFalse(); // Before withering check
         
         // Simulate withering logic

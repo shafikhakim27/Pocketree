@@ -1,0 +1,174 @@
+name: Security Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * *"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build-report:
+    runs-on: ubuntu-latest
+    env:
+      WORKFLOWS: |
+        api-dast.yml
+        ml-dast.yml
+        android-dast.yml
+    steps:
+      - name: Prepare workspace
+        run: |
+          mkdir -p report/current
+          mkdir -p report/previous
+
+      - name: Download latest two successful runs per workflow
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r wf; do
+            [ -z "$wf" ] && continue
+            echo "Fetching latest two success runs for $wf"
+            run_ids=$(gh api repos/${{ github.repository }}/actions/workflows/$wf/runs --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | head -n 2 || true)
+            latest_id=$(echo "$run_ids" | sed -n '1p' || true)
+            prev_id=$(echo "$run_ids" | sed -n '2p' || true)
+
+            if [ -n "${latest_id:-}" ]; then
+              echo "Downloading latest artifacts for $wf ($latest_id)"
+              mkdir -p "report/current/$wf"
+              gh run download "$latest_id" -D "report/current/$wf" || echo "No artifacts for $wf (latest)"
+            else
+              echo "No successful runs found for $wf"
+            fi
+
+            if [ -n "${prev_id:-}" ]; then
+              echo "Downloading previous artifacts for $wf ($prev_id)"
+              mkdir -p "report/previous/$wf"
+              gh run download "$prev_id" -D "report/previous/$wf" || echo "No artifacts for $wf (previous)"
+            else
+              echo "No previous successful run for $wf"
+            fi
+          done <<< "$WORKFLOWS"
+
+      - name: Build Security Report
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          from pathlib import Path
+          from datetime import datetime
+
+          root = Path("report")
+          current = root / "current"
+          previous = root / "previous"
+
+          def find_files(base, patterns):
+            files = []
+            for pat in patterns:
+              files.extend(base.rglob(pat))
+            return files
+
+          def parse_zap(path: Path):
+            try:
+              data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+            except Exception:
+              return {"total": 0, "high": 0}
+            alerts = []
+            for site in data.get("site", []):
+              alerts.extend(site.get("alerts", []))
+            high = [a for a in alerts if str(a.get("confidence", "")).lower() == "high"]
+            return {"total": len(alerts), "high": len(high)}
+
+          def parse_mobsfscan(path: Path):
+            text = path.read_text(encoding="utf-8", errors="ignore")
+            counts = {}
+            for match in re.finditer(r"Severity:\s*([A-Za-z]+)", text):
+              sev = match.group(1).upper()
+              counts[sev] = counts.get(sev, 0) + 1
+            total = sum(counts.values())
+            return {"total": total, "by_severity": counts}
+
+          def get_latest(base, patterns):
+            files = find_files(base, patterns)
+            if not files:
+              return None
+            return max(files, key=lambda p: p.stat().st_mtime)
+
+          def summarize(workflow):
+            cur_base = current / workflow
+            prev_base = previous / workflow
+
+            if "android" in workflow:
+              cur_file = get_latest(cur_base, ["mobsfscan.txt"])
+              prev_file = get_latest(prev_base, ["mobsfscan.txt"])
+              cur = parse_mobsfscan(cur_file) if cur_file else None
+              prev = parse_mobsfscan(prev_file) if prev_file else None
+              return {"type": "mobsfscan", "current": cur, "previous": prev}
+            else:
+              cur_file = get_latest(cur_base, ["zap_report.json"])
+              prev_file = get_latest(prev_base, ["zap_report.json"])
+              cur = parse_zap(cur_file) if cur_file else None
+              prev = parse_zap(prev_file) if prev_file else None
+              return {"type": "zap", "current": cur, "previous": prev}
+
+          workflows = ["api-dast.yml", "ml-dast.yml", "android-dast.yml"]
+          results = {wf: summarize(wf) for wf in workflows}
+
+          def delta(cur, prev):
+            if not cur or not prev:
+              return "n/a"
+            if cur["total"] > prev["total"]:
+              return f"+{cur['total'] - prev['total']}"
+            if cur["total"] < prev["total"]:
+              return f"-{prev['total'] - cur['total']}"
+            return "0"
+
+          md = []
+          md.append("# Security Testing Report")
+          md.append("")
+          md.append(f"Generated: {datetime.utcnow().isoformat()}Z")
+          md.append("")
+          for wf in workflows:
+            res = results[wf]
+            md.append(f"## {wf}")
+            cur = res["current"]
+            prev = res["previous"]
+            if not cur:
+              md.append("- Current: no data")
+              md.append("")
+              continue
+            if res["type"] == "zap":
+              md.append(f"- Current alerts: {cur['total']} (high confidence: {cur['high']})")
+              if prev:
+                md.append(f"- Previous alerts: {prev['total']} (high confidence: {prev['high']})")
+                md.append(f"- Delta: {delta(cur, prev)}")
+              else:
+                md.append("- Previous alerts: n/a")
+            else:
+              md.append(f"- Current findings: {cur['total']}")
+              if cur.get("by_severity"):
+                md.append(f"- Current by severity: {cur['by_severity']}")
+              if prev:
+                md.append(f"- Previous findings: {prev['total']}")
+                if prev.get("by_severity"):
+                  md.append(f"- Previous by severity: {prev['by_severity']}")
+                md.append(f"- Delta: {delta(cur, prev)}")
+              else:
+                md.append("- Previous findings: n/a")
+            md.append("")
+          md.append("## Notes")
+          md.append("- Detailed scan artifacts are available in the workflow run artifacts.")
+
+          report_dir = root / "out"
+          report_dir.mkdir(parents=True, exist_ok=True)
+          (report_dir / "security-report.md").write_text("\n".join(md), encoding="utf-8")
+          (report_dir / "security-report.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+          PY
+
+      - name: Upload Security Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-report
+          path: ${{ github.workspace }}/report/out/
