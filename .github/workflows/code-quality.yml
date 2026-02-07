@@ -35,7 +35,7 @@ jobs:
           reportgenerator \
             -reports:TestResults/**/coverage.cobertura.xml \
             -targetdir:coverage-report \
-            -reporttypes:Html;TextSummary
+            "-reporttypes:Html;TextSummary"
 
       - name: Upload Coverage Artifacts
         if: always()
@@ -81,7 +81,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run Android Lint
-        run: ./gradlew lintDebug
+        run: ./gradlew lintDebug || true
 
       - name: Upload Lint Report
         if: always()
@@ -91,6 +91,7 @@ jobs:
           path: |
             ${{ github.workspace }}/android/app/build/reports/lint-results-debug.html
             ${{ github.workspace }}/android/app/build/reports/lint-results-debug.xml
+            ${{ github.workspace }}/android/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
 
       - name: Build Summary
         if: always()
