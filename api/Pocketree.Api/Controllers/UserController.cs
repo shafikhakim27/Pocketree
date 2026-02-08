@@ -397,7 +397,7 @@ namespace ADproject.Controllers
                     {
                         SkinName = s.SkinName,
                         SkinPrice = s.SkinPrice,
-                        ImageURL = s.ImageURL ?? baseURL + "default_skin.png"
+                        ImageURL = baseURL + (s.ImageURL ?? "default_skin.png")
                     })
                     .ToListAsync());
         }

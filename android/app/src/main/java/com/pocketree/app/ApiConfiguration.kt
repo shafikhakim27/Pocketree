@@ -9,7 +9,7 @@ package com.pocketree.app
  */
 object ApiConfiguration {
     // Toggle between local and production mode
-    private const val LOCAL_MODE = false
+    private const val LOCAL_MODE = true
 
     // Local development URLs (Android Emulator)
     private const val LOCAL_BASE_URL = "http://10.0.2.2:5042"
