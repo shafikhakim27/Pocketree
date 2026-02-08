@@ -271,7 +271,6 @@ async System.Threading.Tasks.Task initDB(IServiceProvider services)
             if (tasks != null)
             {
                 ctx.Tasks.AddRange(tasks);
-                await ctx.SaveChangesAsync();
             }
         }
 
