@@ -6,12 +6,15 @@
     timeout: 5000
 
 # --- Login Screen ---
-- assertVisible: "Welcome!\nPlease log in"
+- assertVisible:
+    id: "username"
+- assertVisible:
+    id: "password"
 - tapOn:
-    id: "usernameInput"
+    id: "username"
 - inputText: "ecotester"
 - tapOn:
-    id: "passwordInput"
+    id: "password"
 - inputText: "password123"
 - tapOn:
     id: "loginButton"

@@ -4,8 +4,16 @@
 # Reference: @string/tab_map ("Map") and @string/tab_tasks ("Tasks")
 - waitForAnimationToEnd:
     timeout: 10000
-- assertVisible: "Home"
-- assertVisible: "Tasks"
-- assertVisible: "Redeem"
-- assertVisible: "Settings"
+- assertVisible:
+    id: "bottom_nav"
+- assertVisible:
+    id: "accountInfo"
+- assertVisible:
+    id: "coinDisplay"
+- assertVisible:
+    id: "healthBar"
+- assertVisible:
+    id: "plant"
+- assertVisible:
+    id: "levelDisplay"
 - takeScreenshot: .maestro/screenshots/Login_Success_And_Home_Screen
