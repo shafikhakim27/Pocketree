@@ -37,8 +37,9 @@ class HomeFragment: Fragment() {
         binding.recyclerViewBadges.layoutManager = LinearLayoutManager(requireContext(),
             LinearLayoutManager.HORIZONTAL, false)
 
-        sharedViewModel.fetchLatestBadges() // fetch data
         observeViewModel()
+
+        sharedViewModel.fetchLatestBadges() // fetch data
         sharedViewModel.fetchUserProfile()
     }
 
@@ -52,13 +53,14 @@ class HomeFragment: Fragment() {
 
             Glide.with(this@HomeFragment)
                 .load(state.levelImageUrl)
-                .placeholder(R.drawable.tree_seedling)
+                //.placeholder(R.drawable.tree_seedling)
+                .error(R.drawable.tree_seedling)
                 .into(binding.plant)
 
             Glide.with(requireContext())
                 .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                 .circleCrop() // to make image round
-                .placeholder(R.drawable.profile_pic)
+                .error(R.drawable.profile_pic)
                 .into(binding.profilePic)
 
             // to create "health bar" for plant (based on number of inactive days)

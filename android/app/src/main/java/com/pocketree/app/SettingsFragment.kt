@@ -38,10 +38,14 @@ class SettingsFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefs = requireActivity().getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+
+        // set up observers first
+        observeViewModel()
+
+        // set up UI features
         backgroundMusic()
         soundEffects()
         changePassword()
-        observeViewModel()
         logOut()
     }
 
@@ -72,7 +76,6 @@ class SettingsFragment: Fragment() {
         // listen for logout success
         sharedViewModel.logoutSuccess.observe(viewLifecycleOwner) {success ->
             if (success) {
-                navigateToLogin()
                 Toast.makeText(requireContext(),
                     "You have logged out successfully!",
                     Toast.LENGTH_SHORT
@@ -88,6 +91,7 @@ class SettingsFragment: Fragment() {
                     "Password updated successfully!",
                     Toast.LENGTH_SHORT
                 ).show()
+                sharedViewModel.passwordUpdateSuccess.value = null
             }
         }
     }
@@ -154,9 +158,9 @@ class SettingsFragment: Fragment() {
 
     private fun logOut() {
         binding.btnLogout.setOnClickListener {
-            SignalRManager.stopConnection()
             stopMusic()
-            // clear data in ViewModel
+            SignalRManager.stopConnection()
+            navigateToLogin() // navigate to login immediately
             sharedViewModel.logout()
         }
     }
