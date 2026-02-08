@@ -801,19 +801,6 @@ namespace ADproject.Controllers
             return View(userSettings);
         }
 
-        [HttpPost("/User/UpdateSettings")]
-        public async Task<IActionResult> UpdateSettings([FromForm] UserSettings settings)
-        {
-            if (ModelState.IsValid)
-            {
-                db.UserSettings.Update(settings);
-                await db.SaveChangesAsync();
-                TempData["Success"] = "Settings updated successfully!";
-                return RedirectToAction("Status", "User");
-            }
-            return View("Settings", settings);
-        }
-
         // Help users who forgotten their passwords to reset them
         [HttpPost("/User/PasswordReset")]
         public async Task<IActionResult> PasswordReset([FromForm] string username)

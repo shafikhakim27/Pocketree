@@ -30,6 +30,7 @@ namespace ADproject.Services
             _httpClient2 = httpClientFactory.CreateClient("ML_Consultant");
         }
 
+        /*
         // ML call - To classify and verify the image submitted for task that requires evidence
         public async Task<bool> ClassifyImageAsync(Stream imageStream, string keyword)
         {
@@ -70,6 +71,7 @@ namespace ADproject.Services
 
             return false;
         }
+        */
 
         // ML call - To get 3 recommended tasks based on past user's preferred task difficulty and category, total coins earned and recent top 10 tasks completed 
         public async Task<List<Task>> GetRecommendedTasks(int userId)
@@ -112,6 +114,18 @@ namespace ADproject.Services
                             Category = dto.Category ?? "General",
                             SourceType = "ML",
                         }).ToList();
+
+                        // Persist only unique ML-generated tasks to the database for monitoring purpose
+                        if (tasksToReturn != null && tasksToReturn.Any())
+                        {
+                            foreach (var mlTask in tasksToReturn)
+                            {
+                                bool taskExist = await db.Tasks.AnyAsync(t => t.Description == mlTask.Description);
+                                if (!taskExist) db.Tasks.Add(mlTask);
+                            }
+
+                            await db.SaveChangesAsync();
+                        }
                     }
                 }
             }

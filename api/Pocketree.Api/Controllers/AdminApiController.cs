@@ -21,7 +21,7 @@ namespace Pocketree.Api.Controllers
         private readonly IConfiguration _configuration;
 
         public AdminApiController(MyDbContext db, IHubContext<NotificationHub> hub, IPasswordHasher<User> passwordHasher, IConfiguration configuration)
-        {    
+        {
             this.db = db;
             this.passwordHasher = passwordHasher;
             this.hub = hub;
@@ -34,7 +34,7 @@ namespace Pocketree.Api.Controllers
         {
             var allUsers = await db.Users
                 .Where(u => u.UserRole == "Player")
-                .Select(u => new { u.UserID, u.Username, u.Email })
+                .Select(u => new { u.UserID, u.Username, u.Email, u.TotalCoins })
                 .ToListAsync();
             return Ok(allUsers);
         }
@@ -57,8 +57,9 @@ namespace Pocketree.Api.Controllers
             var pendingQueries = await db.UserQueries
                 .AsNoTracking()
                 .Include(q => q.User)
-                .Where(q => q.IsResolved == false) 
-                .Select(q => new {
+                .Where(q => q.IsResolved == false)
+                .Select(q => new
+                {
                     q.QueryID,
                     Username = q.User != null ? q.User.Username : "Unknown",
                     QueryContent = q.Query,
@@ -124,7 +125,7 @@ namespace Pocketree.Api.Controllers
             await db.SaveChangesAsync();
 
             await hub.Clients.User(userId.ToString()).SendAsync("ReceiveMessage", message);
-            
+
             return Ok();
         }
 
@@ -144,6 +145,30 @@ namespace Pocketree.Api.Controllers
 
             var mailMessage = new System.Net.Mail.MailMessage(senderEmail, userEmail, subject, body);
             await client.SendMailAsync(mailMessage);
+        }
+
+        [HttpGet("FetchMLTasks")]
+        public async Task<IActionResult> FetchMLTasks()
+        {
+            var mlTasks = await db.Tasks
+                .AsNoTracking()
+                .Where(t => t.SourceType == "ML")
+                .ToListAsync();
+
+            return Ok(mlTasks);
+        }
+
+        [HttpDelete("DeleteMLTask/{id}")]
+        public async Task<IActionResult> DeleteMLTask(int id)
+        {
+            var mlTask = await db.Tasks.FindAsync(id);
+
+            if (mlTask == null) return NotFound(new { message = "ML task not found" });
+
+            db.Tasks.Remove(mlTask);
+            await db.SaveChangesAsync();
+
+            return Ok(new { message = "Task deleted successfully" });
         }
     }
 }

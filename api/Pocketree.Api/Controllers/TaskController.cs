@@ -161,7 +161,7 @@ namespace ADproject.Controllers
             // Get the task details 
             var task = await db.Tasks.FindAsync(taskId);
             if (user == null || task == null) return BadRequest("Invalid User or Task.");
-
+/*
             // Perform verification check only for "Hard" tasks
             if (task.Difficulty == "Hard" && status =="Completed")
             {
@@ -173,6 +173,14 @@ namespace ADproject.Controllers
                     await db.SaveChangesAsync();
                     return Ok(new { success = false, message = "Image verification failed" });
                 }
+            }
+*/
+
+            if (status == "Failed")
+            {
+                user.FailedVerificationCount += 1;
+                await db.SaveChangesAsync();
+                return Ok(new { success = false, message = "Recorded failed verification count." });
             }
 
             var result = await ProcessTaskCompletion(user, task, status); // Process task completion regardless of difficulty level

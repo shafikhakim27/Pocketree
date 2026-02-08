@@ -1,6 +1,6 @@
 ﻿@model ADproject.Models.ViewModels.StatusPageViewModel
 
-<nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom shadow-sm mb-4">
+<nav class="navbar navbar-expand-lg bg-body-tertiary border-bottom shadow-sm mb-4">
     <div class="container">
         <a class="navbar-brand fw-bold text-success" href="@Url.Action("Status", "User")">
             <i class="bi bi-tree-fill"></i> Pocketree
@@ -137,14 +137,14 @@
     </div>
 
     <p class="small text-center">@Model.UserProfile.TotalCoins / @nextGoal Coins</p>
-    <p class="small text-muted text-uppercase fw-bold">Current Stage: @Model.UserProfile.LevelName</p>
+    <p class="small text-body-secondary text-uppercase fw-bold">Current Stage: @Model.UserProfile.LevelName</p>
 
     <!-- Display avatar and username -->
     <div class="d-flex align-items-center justify-content-center my-5">
         <img src="~/images/avatar/avatar.png" class="rounded-circle shadow-sm me-3" width="60" />
         <div class="text-start">
             <h5 class="fw-bold mb-0">@Model.UserProfile.Username</h5>
-            <span class="text-muted small">LEVEL @Model.UserProfile.LevelID - GREEN GUARDIAN</span>
+            <span class="text-body-secondary small">LEVEL @Model.UserProfile.LevelID - GREEN GUARDIAN</span>
         </div>
     </div>
 
@@ -168,7 +168,7 @@
                         }
                         else
                         {
-                            <li class="text-muted small">No activities recorded yet. Start your first quest!</li>
+                            <li class="text-body-secondary small">No activities recorded yet. Start your first quest!</li>
                         }
                     </ul>
                 </div>
@@ -180,7 +180,7 @@
                 <div class="d-flex align-items-center justify-content-center">
                     <img src="~/images/skins/leaf-icon.png" height="50" class="me-3" />
                     <div class="text-start">
-                        <p class="mb-0 small text-muted fw-bold">TOTAL SCORE: @Model.UserProfile.TotalCoins COINS</p>
+                        <p class="mb-0 small text-body-secondary fw-bold">TOTAL SCORE: @Model.UserProfile.TotalCoins COINS</p>
                     </div>
                 </div>
             </div>

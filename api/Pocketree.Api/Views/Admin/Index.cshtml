@@ -57,6 +57,11 @@
                 <i class="bi bi-megaphone"></i> Broadcast
             </button>
         </li>
+        <li class="nav-item">
+            <button class="nav-link fw-bold text-success" data-bs-toggle="tab" data-bs-target="#ml-tasks" type="button">
+                <i class="bi bi-robot"></i> ML Generated Tasks <span class="badge bg-success ms-1" id="mlTaskCount">0</span>
+            </button>
+        </li>
     </ul>
 
     <div class="tab-content border border-top-0 p-4 bg-white shadow-sm rounded-bottom mb-5">
@@ -76,8 +81,9 @@
                     <thead class="sticky-top bg-white">
                         <tr>
                             <th style="width: 30%;">Username</th>
-                            <th style="width: 45%;">Email/Role</th>
-                            <th style="width: 25%;" class="text-end">Action</th>
+                            <th style="width: 30%;">Email/Role</th>
+                            <th style="width: 20%;">Total Coins Earned</th>
+                            <th style="width: 20%;" class="text-end">Action</th>
                         </tr>
                     </thead>
                     <tbody></tbody>
@@ -147,6 +153,29 @@
                 </form>
             </div>
         </div>
+
+        <!-- ML-generated tasks tab -->
+        <div class="tab-pane fade" id="ml-tasks">
+            <div class="mb-3">
+                <input type="text" class="form-control form-control-lg border-success"
+                       placeholder="Filter ML tasks..."
+                       onkeyup="filterTable(this, 'mlTasksTable')">
+            </div>
+
+            <div class="table-responsive" style="max-height: 450px; overflow-y: auto;">
+                <table class="table align-middle table-hover" id="mlTasksTable">
+                    <thead class="sticky-top bg-white">
+                        <tr>
+                            <th style="width: 50%;">Description</th>
+                            <th style="width: 25%;">Category/Difficulty</th>
+                            <th style="width: 25%;" class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
     </div>
 </div>
 
@@ -200,6 +229,7 @@
                 <tr>
                     <td>${u.username}</td>
                     <td class="text-muted">${u.email || 'N/A'}</td>
+                    <td class="text-muted">${u.totalCoins || '0'}</td>
                     <td class="text-end">
                         <button class="badge bg-light text-danger border-0" onclick="manualReset(${u.userID})">Reset Password</button>
                     </td>
@@ -241,6 +271,25 @@
                         </td>
                     </tr>
                 `).join('');
+
+            // Get the data to display all ML-generated tasks
+            const mlRes = await fetch('/api/AdminApi/FetchMLTasks');
+            const mlTasks = await mlRes.json();
+            document.getElementById('mlTaskCount').innerText = mlTasks.length;
+
+            const mlBody = document.querySelector('#mlTasksTable tbody');
+            mlBody.innerHTML = mlTasks.map(t => `
+                <tr>
+                    <td>${t.description}</td>
+                    <td class="text-muted">${t.category} / ${t.difficulty}</td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteTask(${t.taskID})">
+                            <i class="bi bi-trash"></i> Delete
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+
         } catch (e) { console.error("Load failed", e); }
     }
 
@@ -312,6 +361,19 @@
             const text = row.textContent.toLowerCase();
             row.style.display = text.includes(filter) ? "" : "none";
         });
+    }
+
+    // For deleting selected ML-generated task 
+    async function deleteTask(taskId) {
+        if (confirm("Are you sure you want to delete this ML-generated task?")) {
+            const res = await fetch(`/api/AdminApi/DeleteMLTask/${taskId}`, { method: 'DELETE' });
+            if (res.ok) {
+                alert("Task deleted!");
+                loadData(); // Refresh the list
+            } else {
+                alert("Failed to delete task.");
+            }
+        }
     }
 
     document.addEventListener("DOMContentLoaded", () => {

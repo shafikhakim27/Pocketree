@@ -101,6 +101,11 @@ input:-webkit-autofill:focus {
     z-index: 10;
 }
 
+.landing-container {
+    min-height: 100vh; /* Use min-height, not height */
+    padding: 20px 0; /* Adds a small buffer for very small windows */
+}
+
 /* Pop-in animation */
 @keyframes grow {
     from {

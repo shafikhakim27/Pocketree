@@ -301,6 +301,7 @@ class UserViewModel: ViewModel() {
                     isAiVerifying.postValue(false)
                     statusMessage.postValue(null)
                     errorMessage.postValue("$keyword could not be found.\nPlease try again!")
+                    submitTask(id, "Failed", imageBytes)
                 }
             }
 
