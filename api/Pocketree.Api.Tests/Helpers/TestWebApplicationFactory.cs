@@ -9,6 +9,7 @@ using ADproject.Models.Entities;
 using Testcontainers.MySql;
 using Xunit;
 using Task = System.Threading.Tasks.Task;
+using Microsoft.Extensions.Configuration;
 
 namespace Pocketree.Api.Tests.Helpers;
 
@@ -56,6 +57,21 @@ public class TestWebApplicationFactory : WebApplicationFactory<global::Program>,
     {
         // Set environment to Testing to skip production DB initialization
         builder.UseEnvironment("Testing");
+
+        builder.ConfigureAppConfiguration((context, config) =>
+        {
+            var values = new Dictionary<string, string?>
+            {
+                ["Jwt:Key"] = "test_key_please_change_1234567890",
+                ["Jwt:Issuer"] = "Pocketree.Test",
+                ["Jwt:Audience"] = "Pocketree.Test",
+                ["MlService:Url"] = "https://ml.test",
+                ["BaseURL"] = "http://localhost",
+                ["BlobStorage:ConnectionString"] = "UseDevelopmentStorage=true"
+            };
+
+            config.AddInMemoryCollection(values);
+        });
 
         builder.ConfigureServices(services =>
         {
