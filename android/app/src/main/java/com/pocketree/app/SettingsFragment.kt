@@ -38,6 +38,11 @@ class SettingsFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         prefs = requireActivity().getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
+
+        // set up observers first
+        observeViewModel()
+
+        // set up UI features
         backgroundMusic()
         soundEffects()
         changePassword()
@@ -95,11 +100,13 @@ class SettingsFragment: Fragment() {
                     "Password updated successfully!",
                     Toast.LENGTH_SHORT
                 ).show()
+                sharedViewModel.passwordUpdateSuccess.value = null
             }
         }
     }
 
     private fun backgroundMusic() {
+        // Load saved state (Default is true（on）)
         val isMusicOn = prefs.getBoolean("KEY_MUSIC_ON", true)
         binding.btnBackgroundSound.isChecked = isMusicOn
 
@@ -113,6 +120,7 @@ class SettingsFragment: Fragment() {
     }
 
     private fun soundEffects() {
+        // Load saved state for SFX
         val isSfxOn = prefs.getBoolean("KEY_SFX_ON", true)
         binding.btnSoundEffects.isChecked = isSfxOn
 
@@ -163,6 +171,8 @@ class SettingsFragment: Fragment() {
             SignalRManager.stopConnection()
             (activity as? MainActivity)?.stopMusic()
             // clear data in ViewModel
+            SignalRManager.stopConnection()
+            navigateToLogin() // navigate to login immediately
             sharedViewModel.logout()
         }
     }

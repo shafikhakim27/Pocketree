@@ -51,7 +51,7 @@ class RedeemAdapter(
 
                 Glide.with(context)
                     .load(imageSource)
-                    .placeholder(R.drawable.redeem_item_1)
+                    //.placeholder(R.drawable.redeem_item_1)
                     .error(R.drawable.redeem_item_1)
                     .into(holder.binding.itemImage)
 

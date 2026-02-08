@@ -30,8 +30,14 @@ class RedeemFragment: Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         setupRecyclerView()
-        sharedViewModel.fetchSkins()
-        sharedViewModel.fetchVouchers()
+
+        // only fetch if data is not already loaded
+        if (sharedViewModel.skins.value.isNullOrEmpty()) {
+            sharedViewModel.fetchSkins()
+        }
+        if (sharedViewModel.vouchers.value.isNullOrEmpty()) {
+            sharedViewModel.fetchVouchers()
+        }
 
         observeViewModel()
     }
@@ -69,7 +75,8 @@ class RedeemFragment: Fragment() {
             Glide.with(requireContext())
                 .load(state.profileImageUrl.ifEmpty{null}) // converts "" to null
                 .circleCrop() // to make image round
-                .placeholder(R.drawable.profile_pic)
+                //.placeholder(R.drawable.profile_pic)
+                .error(R.drawable.profile_pic)
                 .into(binding.profilePic)
         }
 

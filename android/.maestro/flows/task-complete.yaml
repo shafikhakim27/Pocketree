@@ -1,4 +1,4 @@
-﻿appId: com.pocketree.app
+appId: com.pocketree.app
 ---
 # --- Complete a Task ---
 # Reference: @string/tab_tasks ("Tasks"), @string/complete_task ("Complete Task"), @string/task_completed ("Task Completed!")
@@ -11,4 +11,4 @@
     index: 0
 - waitForAnimationToEnd:
     timeout: 5000
-- takeScreenshot: .maestro/screenshots/Task_Completion_Success
+- takeScreenshot: android/.maestro/screenshots/Task_Completion_Success
