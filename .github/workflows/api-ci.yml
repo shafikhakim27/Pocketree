@@ -35,33 +35,26 @@ jobs:
           docker run --rm -v "$PWD":/repo trufflesecurity/trufflehog:latest \
             filesystem /repo \
             --only-verified \
-            --format sarif \
-            --output /repo/trufflehog.sarif
+            --json > trufflehog.json
 
-      - name: Upload TruffleHog SARIF
+      - name: Upload TruffleHog JSON
         if: always()
         run: |
-          if [ ! -f trufflehog.sarif ]; then
-            echo "No trufflehog.sarif found. Skipping SARIF upload."
+          if [ ! -f trufflehog.json ]; then
+            echo "No trufflehog.json found. Skipping upload."
             exit 0
           fi
-          if [ ! -s trufflehog.sarif ]; then
-            echo "trufflehog.sarif is empty. Skipping SARIF upload."
+          if [ ! -s trufflehog.json ]; then
+            echo "trufflehog.json is empty. Skipping upload."
             exit 0
           fi
-
-      - name: Publish TruffleHog SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: trufflehog.sarif
 
       - name: Upload TruffleHog Report
         if: always()
         uses: actions/upload-artifact@v6
         with:
           name: trufflehog-report
-          path: ${{ github.workspace }}/trufflehog.sarif
+          path: ${{ github.workspace }}/trufflehog.json
 
   build:
     runs-on: ubuntu-latest
