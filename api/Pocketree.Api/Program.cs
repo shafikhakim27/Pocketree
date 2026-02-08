@@ -81,10 +81,15 @@ builder.Services.AddControllersWithViews();
 // 1. RETRIEVE the connection string from appsettings or Docker env vars
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 // Add database context dependency
+// Avoid ServerVersion.AutoDetect during tests because it connects to the DB immediately.
+var serverVersion = builder.Environment.IsEnvironment("Testing")
+    ? ServerVersion.Parse("8.0.21")
+    : ServerVersion.AutoDetect(connectionString);
+
 builder.Services.AddDbContext<MyDbContext>(options =>
     options.UseMySql(
         connectionString,
-        ServerVersion.AutoDetect(connectionString),
+        serverVersion,
         // THIS BLOCK PREVENTS THE CRASH:
         mySqlOptions => mySqlOptions.EnableRetryOnFailure(
             maxRetryCount: 10,
