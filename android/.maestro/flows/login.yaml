@@ -1,11 +1,12 @@
-﻿appId: com.pocketree.app
+appId: com.pocketree.app
 ---
-- launchApp
-- clearState
+- launchApp:
+    clearState: true
 - waitForAnimationToEnd:
-    timeout: 5000
+    timeout: 15000
 
 # --- Login Screen ---
+- assertVisible: "Welcome!\\s*Please log in"
 - assertVisible:
     id: "username"
 - assertVisible:
@@ -16,5 +17,6 @@
 - tapOn:
     id: "password"
 - inputText: "password123"
+- pressKey: Back
 - tapOn:
     id: "loginButton"

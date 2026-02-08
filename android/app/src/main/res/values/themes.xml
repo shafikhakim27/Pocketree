@@ -8,6 +8,9 @@
         <item name="colorPrimaryContainer">#C8E6C9</item>
         <item name="colorOnPrimaryContainer">#1B5E20</item>
 
+        <item name="colorSecondaryContainer">@color/grey</item>
+<!--        <item name="onSecondaryContainer">@color/white</item>-->
+
         <!-- Background colors -->
         <item name="android:windowBackground">@android:color/white</item>
         <item name="colorSurface">#FFFFFF</item>
@@ -20,6 +23,9 @@
         <!-- Custom BottomNavigationView style with larger icons -->
         <item name="bottomNavigationStyle">@style/Widget.App.BottomNavigationView</item>
     </style>
+
+    <style name="CircleImageStyle">
+        <item name="cornerSize">50%</item> </style>
 
     <style name="Theme.Pocketree" parent="Base.Theme.Pocketree" />
 

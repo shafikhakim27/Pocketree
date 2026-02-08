@@ -1,45 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:layout_marginTop="20dp">
+    android:orientation="vertical">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp">
+        android:layout_height="wrap_content">
 
         <ImageView
-            android:id="@+id/profilePic"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginEnd="12dp"
-            android:scaleType="fitCenter" />
+            android:layout_width="match_parent"
+            android:layout_height="130dp"
+            android:alpha="0.35"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop"
+            android:src="@drawable/background_image" />
 
-        <TextView
-            android:id="@+id/accountInfo"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_marginTop="20dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/account_info"
-            android:textSize="24sp"/>
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:background="@android:color/transparent">
 
-        <TextView
-            android:id="@+id/coinDisplay"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/number_of_coins"/>
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/profilePic"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginEnd="10dp"
+                android:padding="2dp"
+                android:scaleType="centerCrop"
+                android:background="@drawable/circle_white_border"
+                app:shapeAppearanceOverlay="@style/CircleImageStyle" />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/accountInfo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/account_info"
+                android:textSize="24sp"/>
+
+            <TextView
+                android:id="@+id/coinDisplay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/number_of_coins"
+                android:textColor="@color/dark_green"
+                android:textSize="16sp"/>
+
+        </LinearLayout>
+    </FrameLayout>
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/settings_header"
         android:textSize="25sp"
+        android:fontFamily="serif"
         android:textStyle="bold"
         android:padding="16dp"/>
 
@@ -47,23 +68,25 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
-        android:padding="16dp">
+        android:padding="16dp"
+        android:gravity="center_vertical">
 
         <TextView
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="3"
-            android:text="@string/background_sound"
-            android:textSize="20sp"/>
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="3"
+        android:text="@string/background_sound"
+        android:textSize="20sp"/>
 
-        <ToggleButton
+        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/btnBackgroundSound"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"/>
+            app:trackTint="@color/switch_track_selector"
+            app:thumbTint="@color/white"
+            android:checked="true" />
 
     </LinearLayout>
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -77,11 +100,13 @@
             android:text="@string/sound_effects"
             android:textSize="20sp"/>
 
-        <ToggleButton
+        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/btnSoundEffects"
-            android:layout_width="0dp"
+            android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_weight="1"/>
+            app:trackTint="@color/switch_track_selector"
+            app:thumbTint="@color/white"
+            android:checked="false" />
 
     </LinearLayout>
 
@@ -91,6 +116,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Change Password"
+        android:backgroundTint="@color/button_color_selector2"
         android:layout_marginHorizontal="16dp"
         android:layout_marginTop="16dp"/>
 
@@ -100,6 +126,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="@string/logout_button"
+        android:backgroundTint="@color/button_color_selector2"
         android:layout_margin="16dp"/>
 
 </LinearLayout>

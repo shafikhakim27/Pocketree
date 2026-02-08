@@ -1,45 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:layout_marginTop="20dp">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical">
 
-    <LinearLayout
+    <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="16dp">
+        android:layout_height="wrap_content">
 
         <ImageView
-            android:id="@+id/profilePic"
-            android:layout_width="64dp"
-            android:layout_height="64dp"
-            android:layout_marginEnd="12dp"
-            android:scaleType="fitCenter" />
+            android:layout_width="match_parent"
+            android:layout_height="130dp"
+            android:alpha="0.35"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop"
+            android:src="@drawable/background_image" />
 
-        <TextView
-            android:id="@+id/accountInfo"
-            android:layout_width="0dp"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:text="@string/account_info"
-            android:textSize="24sp"/>
+            android:layout_marginTop="20dp"
+            android:background="@android:color/transparent"
+            android:orientation="horizontal"
+            android:padding="16dp">
 
-        <TextView
-            android:id="@+id/coinDisplay"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/number_of_coins"
-            android:textSize="16sp"/>
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/profilePic"
+                android:layout_width="64dp"
+                android:layout_height="64dp"
+                android:layout_marginEnd="10dp"
+                android:padding="2dp"
+                android:scaleType="centerCrop"
+                android:background="@drawable/circle_white_border"
+                app:shapeAppearanceOverlay="@style/CircleImageStyle" />
 
-    </LinearLayout>
+            <TextView
+                android:id="@+id/accountInfo"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/account_info"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/coinDisplay"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/number_of_coins"
+                android:textColor="@color/dark_green"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+    </FrameLayout>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
+        android:layout_marginTop="20dp"
         android:paddingStart="16dp"
         android:paddingEnd="16dp"
         android:paddingBottom="8dp">
@@ -59,7 +78,7 @@
             android:layout_height="20dp"
             android:max="100"
             android:progress="100"
-            android:progressDrawable="@drawable/custom_progress_bar"/>
+            android:progressDrawable="@drawable/custom_progress_bar" />
     </LinearLayout>
 
     <TextView
@@ -75,8 +94,8 @@
 
     <ImageView
         android:id="@+id/plant"
-        android:layout_width="300dp"
-        android:layout_height="300dp"
+        android:layout_width="280dp"
+        android:layout_height="350dp"
         android:layout_gravity="center"
         android:src="@android:drawable/ic_menu_report_image"/>
 
@@ -95,7 +114,7 @@
         android:layout_marginTop="10dp"
         android:padding="16dp"
         android:orientation="vertical"
-        android:visibility="gone">
+        >
 
         <TextView
             android:layout_width="wrap_content"

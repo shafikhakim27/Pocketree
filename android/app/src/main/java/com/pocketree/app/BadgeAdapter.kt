@@ -40,7 +40,7 @@ class BadgeAdapter (
 
         Glide.with(context)
             .load(imageSource)
-            .placeholder(R.drawable.redeem_item_1) // usage of drawable image as placeholder is okay
+            // .placeholder(R.drawable.redeem_item_1) // usage of drawable image as placeholder is okay
             .error(R.drawable.redeem_item_1)
             .into(holder.binding.badgeImage)
     }

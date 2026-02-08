@@ -22,9 +22,9 @@ namespace ADproject.Services
         public MlService(HttpClient httpClient, IConfiguration configuration, MyDbContext db, IHttpClientFactory httpClientFactory)
         {
             _httpClient1 = httpClient;
-            // URL set in appsettings.json -> where is this?
-            // _pythonApiUrl = configuration["MlService:Url"];
-            _pythonApiUrl = "https://pocketree-ml-r7owjdp2qa-as.a.run.app/classify";
+            // URL set in appsettings.json
+            _pythonApiUrl = configuration["MlService:Url"]
+                ?? "https://pocketree-ml-r7owjdp2qa-as.a.run.app/classify";
             this.db = db;
             // Named client registered in Program.cs
             _httpClient2 = httpClientFactory.CreateClient("ML_Consultant");

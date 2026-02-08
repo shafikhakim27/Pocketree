@@ -1,4 +1,4 @@
-﻿appId: com.pocketree.app
+appId: com.pocketree.app
 ---
 # --- Navigate to Settings ---
 # Reference: @string/notifications ("Notifications"), @string/account ("Account")
@@ -12,4 +12,4 @@
     id: "btnChangePassword"
 - assertVisible:
     id: "btnLogout"
-- takeScreenshot: .maestro/screenshots/Settings_Screen
+- takeScreenshot: android/.maestro/screenshots/Settings_Screen

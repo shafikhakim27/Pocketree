@@ -74,9 +74,11 @@ public class MlServiceTests
         using var context = new MyDbContext(options);
         await context.Database.EnsureCreatedAsync();
 
-        var service = new MlService(httpClient, CreateConfiguration("https://ml.test"), context, factory.Object);
+        var config = CreateConfiguration("https://ml.test");
+        var service = new MlService(httpClient, config, context, factory.Object);
 
         using var ms = new MemoryStream(CreateFakeImageBytes());
+        config["MlService:Url"].Should().Be("https://ml.test");
         var result = await service.ClassifyImageAsync(ms, "tree");
 
         result.Should().BeTrue();
@@ -106,9 +108,11 @@ public class MlServiceTests
         using var context = new MyDbContext(options);
         await context.Database.EnsureCreatedAsync();
 
-        var service = new MlService(httpClient, CreateConfiguration("https://ml.test/classify"), context, factory.Object);
+        var config = CreateConfiguration("https://ml.test/classify");
+        var service = new MlService(httpClient, config, context, factory.Object);
 
         using var ms = new MemoryStream(CreateFakeImageBytes());
+        config["MlService:Url"].Should().Be("https://ml.test/classify");
         var result = await service.ClassifyImageAsync(ms, "recycle");
 
         result.Should().BeFalse();

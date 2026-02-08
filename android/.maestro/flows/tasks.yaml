@@ -1,8 +1,8 @@
-﻿appId: com.pocketree.app
+appId: com.pocketree.app
 ---
 # --- Navigate to Tasks ---
 # Reference: @string/tab_tasks ("Tasks")
 - tapOn: "Tasks"
 - assertVisible:
     id: "recyclerViewTasks"
-- takeScreenshot: .maestro/screenshots/Tasks_Screen
+- takeScreenshot: android/.maestro/screenshots/Tasks_Screen

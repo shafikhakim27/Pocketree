@@ -500,3 +500,6 @@ build/
 # Ignore configuration files
 appsettings.json
 appsettings.*.json
+
+# Maestro local outputs (root)
+/.maestro/
