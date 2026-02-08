@@ -83,7 +83,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 // Add database context dependency
 // Avoid ServerVersion.AutoDetect during tests because it connects to the DB immediately.
 var serverVersion = builder.Environment.IsEnvironment("Testing")
-    ? ServerVersion.Parse("8.0.21")
+    ? ServerVersion.Parse("8.0.21") // Use a fixed version for tests
     : ServerVersion.AutoDetect(connectionString);
 
 builder.Services.AddDbContext<MyDbContext>(options =>

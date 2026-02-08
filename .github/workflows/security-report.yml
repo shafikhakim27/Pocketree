@@ -168,7 +168,7 @@ jobs:
           PY
 
       - name: Upload Security Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: security-report
           path: ${{ github.workspace }}/report/out/

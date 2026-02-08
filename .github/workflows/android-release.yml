@@ -33,7 +33,7 @@ jobs:
         run: ./gradlew bundleRelease
 
       - name: Upload App Bundle Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pocketree-release.aab
           path: ${{ github.workspace }}/android/app/build/outputs/bundle/release/app-release.aab

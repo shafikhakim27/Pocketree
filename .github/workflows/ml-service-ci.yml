@@ -12,6 +12,9 @@ permissions:
   contents: read
   security-events: write
 
+env:
+  SKIP_SNYK_SARIF: "false"
+
 jobs:
   tests:
     runs-on: ubuntu-latest
@@ -35,7 +38,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ml-service-test-results
           path: ${{ github.workspace }}/ml-service-test-results.xml
@@ -79,7 +82,7 @@ jobs:
 
       - name: Upload Snyk Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ml-snyk-report
           path: |
@@ -88,7 +91,7 @@ jobs:
 
       - name: Upload Bandit Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ml-bandit-report
           path: ${{ github.workspace }}/bandit-report.json
@@ -107,7 +110,7 @@ jobs:
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ml-service-ci-summary
           path: ${{ github.workspace }}/summary.txt
