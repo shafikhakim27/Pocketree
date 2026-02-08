@@ -4,7 +4,11 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.content.SharedPreferences
+import android.media.MediaPlayer
 import android.os.Bundle
+import android.view.View
+import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
@@ -18,6 +22,8 @@ import com.pocketree.app.databinding.ActivityMainBinding
 class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: UserViewModel
     private lateinit var binding: ActivityMainBinding
+    private var mediaPlayer: MediaPlayer? = null
+    private lateinit var prefs: SharedPreferences
 
     private val logoutReceiver = object: BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -36,6 +42,7 @@ class MainActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
 
         super.onCreate(savedInstanceState)
+        prefs = getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         enableEdgeToEdge()
@@ -55,10 +62,45 @@ class MainActivity : AppCompatActivity() {
             SignalRManager.init(token, viewModel)
         }
 
+        if (prefs.getBoolean("KEY_MUSIC_ON", true)) {
+            playMusic()
+        }
+
         initUser()
         setupNavigation()
         observeViewModel()
     }
+
+    // Helper function to play background music
+    fun playMusic() {
+        if (mediaPlayer == null) {
+            mediaPlayer = MediaPlayer.create(this, R.raw.bgm)
+            mediaPlayer?.isLooping = true   // Loop the music
+        }
+        if (mediaPlayer?.isPlaying == false) {
+            mediaPlayer?.start()
+            viewModel.isMusicPlaying.postValue(true)    // Update LiveData to inform all the observers
+        }
+    }
+
+    // Helper function to stop background music
+    fun stopMusic() {
+        mediaPlayer?.pause()
+        viewModel.isMusicPlaying.postValue(false)   // Update LiveData to inform all the observers
+    }
+
+
+//    private fun playSfx(resId: Int) {
+//        try {
+//            val fxPlayer = MediaPlayer.create(this, resId)
+//            fxPlayer.setOnCompletionListener { mp ->
+//                mp.release()
+//            }
+//            fxPlayer.start()
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//        }
+//    }
 
     private fun initUser(){
         val token = NetworkClient.loadToken(this)
@@ -102,6 +144,11 @@ class MainActivity : AppCompatActivity() {
 
         binding.bottomNav.setupWithNavController(navController)
         // links the bottom navigation clicks to the fragment swaps
+
+        navController.addOnDestinationChangedListener { _, _, _ ->
+            val isSfxOn = prefs.getBoolean("KEY_SFX_ON", true)
+            setSoundEffectsRecursive(binding.root, isSfxOn)
+        }
     }
 
     fun observeViewModel() {
@@ -112,6 +159,43 @@ class MainActivity : AppCompatActivity() {
                 viewModel.adminMessage.value = null
             }
         }
+//        viewModel.playSoundEffectEvent.observe(this) { shouldPlay ->
+//            if (shouldPlay == true) {
+//                // check whether user has turned sound effects on
+//                val isSfxOn = prefs.getBoolean("KEY_SFX_ON", true)
+//                if (isSfxOn) {
+//                    playSfx(R.raw.click_sound) // helper function to play sound effects
+//                }
+//                viewModel.playSoundEffectEvent.value = false
+//            }
+//        }
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            val isSfxOn = prefs.getBoolean("KEY_SFX_ON", true)
+            // check whether user has turned sound effects on
+            binding.root.isSoundEffectsEnabled = isSfxOn
+        }
+    }
+
+    private fun setSoundEffectsRecursive(view: View, enabled: Boolean) {
+        view.isSoundEffectsEnabled = enabled
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                setSoundEffectsRecursive(view.getChildAt(i), enabled)
+            }
+        }
+    }
+
+    private fun showAdminDialog(activityContext: Context, message: String) {
+        androidx.appcompat.app.AlertDialog.Builder(activityContext)
+            .setTitle("Admin Message")
+            .setMessage(message)
+            .setPositiveButton("OK") {dialog, _ -> dialog.dismiss()}
+            .setCancelable(false)
+            .show()
     }
 
     override fun onStart() {
@@ -125,14 +209,26 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         unregisterReceiver(logoutReceiver)
+        // When the app enters the background, pause the music if it is currently playing.
+        if (mediaPlayer?.isPlaying == true) {
+            mediaPlayer?.pause()    // temporary pause
+        }
     }
 
-    private fun showAdminDialog(activityContext: Context, message: String) {
-        androidx.appcompat.app.AlertDialog.Builder(activityContext)
-            .setTitle("Admin Message")
-            .setMessage(message)
-            .setPositiveButton("OK") {dialog, _ -> dialog.dismiss()}
-            .setCancelable(false)
-            .show()
+    override fun onRestart() {
+        super.onRestart()
+        // When user returns to the app from the background.
+        // Check user's preferences: if it was originally ON, resume playback.
+        val isMusicOn = prefs.getBoolean("KEY_MUSIC_ON", true)
+        if (isMusicOn && mediaPlayer?.isPlaying == false) {
+            mediaPlayer?.start()
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer?.stop()
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
 }

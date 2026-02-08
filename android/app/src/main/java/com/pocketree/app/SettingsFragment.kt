@@ -59,6 +59,13 @@ class SettingsFragment: Fragment() {
                 .into(binding.profilePic)
         }
 
+        // listen for background music state
+        sharedViewModel.isMusicPlaying.observe(viewLifecycleOwner) { isPlaying ->
+            if (binding.btnBackgroundSound.isChecked != isPlaying) {
+                binding.btnBackgroundSound.isChecked = isPlaying
+            }
+        }
+
         // listen for any error messages and show a Toast
         sharedViewModel.errorMessage.observe(viewLifecycleOwner) { msg ->
             msg?.let{
@@ -93,69 +100,68 @@ class SettingsFragment: Fragment() {
     }
 
     private fun backgroundMusic() {
-        // Load saved state (Default is true（on）)
         val isMusicOn = prefs.getBoolean("KEY_MUSIC_ON", true)
         binding.btnBackgroundSound.isChecked = isMusicOn
 
-        // Initialize MediaPlayer if music is on
-        if (isMusicOn) {
-            playMusic()
-        }
-
-        // Listener for toggle changes
         binding.btnBackgroundSound.setOnCheckedChangeListener { _, isChecked ->
-            // Save the new state
             prefs.edit().putBoolean("KEY_MUSIC_ON", isChecked).apply()
 
-            if (isChecked) {
-                playMusic()
-            } else {
-                stopMusic()
-            }
+            // fetch mainActivity and use its methods to control music
+            val mainActivity = activity as? MainActivity
+            if (isChecked) mainActivity?.playMusic() else mainActivity?.stopMusic()
         }
-    }
-    // Helper function to play background music
-    private fun playMusic() {
-        if (mediaPlayer == null) {
-            mediaPlayer = MediaPlayer.create(context, R.raw.bgm)
-            mediaPlayer?.isLooping = true // Loop the music / 循环播放
-        }
-        mediaPlayer?.start()
-    }
-
-    // Helper function to stop background music
-    private fun stopMusic() {
-        mediaPlayer?.pause()
     }
 
     private fun soundEffects() {
-        // Load saved state for SFX
         val isSfxOn = prefs.getBoolean("KEY_SFX_ON", true)
         binding.btnSoundEffects.isChecked = isSfxOn
 
         binding.btnSoundEffects.setOnCheckedChangeListener { _, isChecked ->
-            // Save state
+            // store status in SharedPreferences
             prefs.edit().putBoolean("KEY_SFX_ON", isChecked).apply()
+            applySoundSettingToAllViews(binding.root, isChecked)
 
-            // Play a test sound if turned on (User Feedback)
+            // update MediaPlayer status
+            view?.isSoundEffectsEnabled = isChecked
+
+            // show Toast to inform user Sound Effects status
             if (isChecked) {
-                playSoundEffect()
+                Toast.makeText(requireContext(), "Sound Effects Enabled", Toast.LENGTH_SHORT).show()
+            }
+            else {
+                Toast.makeText(requireContext(), "Sound Effects Disabled", Toast.LENGTH_SHORT).show()
             }
         }
     }
 
-    // Helper function to play a sound effect
-    private fun playSoundEffect() {
-        // Create a temporary MediaPlayer for the click sound
-        val sfxPlayer = MediaPlayer.create(context, R.raw.click_sound)
-        sfxPlayer.setOnCompletionListener { mp -> mp.release() } // Release memory after playing
-        sfxPlayer.start()
+    private fun applySoundSettingToAllViews(view: View, enabled: Boolean) {
+        view.isSoundEffectsEnabled = enabled
+        if (view is ViewGroup) {
+            for (i in 0 until view.childCount) {
+                applySoundSettingToAllViews(view.getChildAt(i), enabled)
+            }
+        }
     }
+
+//    private fun soundEffects() {
+//        // Load saved state for SFX
+//        val isSfxOn = prefs.getBoolean("KEY_SFX_ON", true)
+//        binding.btnSoundEffects.isChecked = isSfxOn
+//
+//        binding.btnSoundEffects.setOnCheckedChangeListener { _, isChecked ->
+//            // Save state
+//            prefs.edit().putBoolean("KEY_SFX_ON", isChecked).apply()
+//            // Play a test sound if turned on (User Feedback)
+//            if (isChecked) {
+//                sharedViewModel.triggerSoundEffect()
+//            }
+//        }
+//    }
 
     private fun logOut() {
         binding.btnLogout.setOnClickListener {
             SignalRManager.stopConnection()
-            stopMusic()
+            (activity as? MainActivity)?.stopMusic()
             // clear data in ViewModel
             sharedViewModel.logout()
         }

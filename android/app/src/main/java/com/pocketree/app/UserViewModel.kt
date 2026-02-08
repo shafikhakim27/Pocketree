@@ -28,6 +28,8 @@ data class UserState(
 class UserViewModel: ViewModel() {
 
     val userState = MutableLiveData<UserState>()
+    val isMusicPlaying = MutableLiveData<Boolean>()
+//    val playSoundEffectEvent = MutableLiveData<Boolean>()
     val skins = MutableLiveData<List<Skin>>()  // by Chenyu
     val vouchers = MutableLiveData<List<Voucher>>()  // by Chenyu
 
@@ -104,6 +106,11 @@ class UserViewModel: ViewModel() {
             fetchLatestBadges()
         }
     }
+//
+//    // for sound effects
+//    fun triggerSoundEffect() {
+//        playSoundEffectEvent.value = true
+//    }
 
     // needed for updating whole UI (when task is completed, item redeemed etc)
     fun fetchUserProfile() {

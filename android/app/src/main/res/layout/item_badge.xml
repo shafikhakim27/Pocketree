@@ -9,8 +9,8 @@
 
     <ImageView
         android:id="@+id/badgeImage"
-        android:layout_width="64dp"
-        android:layout_height="64dp"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
         android:src="@android:drawable/ic_menu_report_image"/>
 
     <TextView
@@ -20,7 +20,7 @@
         android:layout_marginTop="4dp"
         android:text="@string/badgeName"
         android:textAlignment="center"
-        android:textSize="12sp"
-        android:textStyle="bold"/>
+        android:textSize="14sp"
+        android:textStyle="bold" />
 
 </LinearLayout>
