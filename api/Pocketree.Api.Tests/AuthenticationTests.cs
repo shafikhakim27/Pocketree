@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Pocketree.Api.Services;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace Pocketree.Api.Tests;
 
@@ -201,6 +204,21 @@ public class AuthenticationTests
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
         Assert.NotNull(okResult.Value);
+
+        var payloadJson = JsonSerializer.Serialize(okResult.Value);
+        using var doc = JsonDocument.Parse(payloadJson);
+        var token = doc.RootElement.GetProperty("Token").GetString();
+        token.Should().NotBeNullOrEmpty();
+
+        var userJson = doc.RootElement.GetProperty("User");
+        userJson.GetProperty("Username").GetString().Should().Be("testuser");
+        userJson.GetProperty("TotalCoins").GetInt32().Should().Be(100);
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+        jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.Name && c.Value == "testuser");
+        jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.NameIdentifier && c.Value == "1");
+        jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.Role && c.Value == "Player");
     }
 
     [Fact]
@@ -255,6 +273,8 @@ public class AuthenticationTests
         
         // Assert
         Assert.IsType<UnauthorizedObjectResult>(result);
+        var updatedUser = await context.Users.FindAsync(1);
+        updatedUser!.IsOnline.Should().BeFalse();
     }
 
     [Fact]
@@ -284,14 +304,16 @@ public class AuthenticationTests
             ConfirmNewPassword = "NewPassword123"
         };
         
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(
+            new ClaimsIdentity(new[] { new Claim(ClaimTypes.Name, "testuser") }, "TestAuth"));
+
         // Act
-        // Note: This test will fail if ChangePasswordApi doesn't exist yet
-        // var result = await controller.ChangePasswordApi(dto);
+        var result = await controller.ChangePasswordApi(dto);
         
         // Assert
-        // Assert.IsType<OkObjectResult>(result);
-        // var updatedUser = await context.Users.FindAsync(1);
-        // Assert.Equal("new_hashed_password", updatedUser.PasswordHash);
+        Assert.IsType<OkObjectResult>(result);
+        var updatedUser = await context.Users.FindAsync(1);
+        updatedUser!.PasswordHash.Should().Be("new_hashed_password");
     }
 
     [Fact]
@@ -320,13 +342,17 @@ public class AuthenticationTests
         
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result);
+        var payloadJson = JsonSerializer.Serialize(okResult.Value);
+        using var doc = JsonDocument.Parse(payloadJson);
+        doc.RootElement.GetProperty("Success").GetBoolean().Should().BeTrue();
         var createdUser = await context.Users
             .Include(u => u.Trees)
             .FirstOrDefaultAsync(u => u.Username == "treeuser");
         
         // User should have an initial tree created
-        Assert.NotNull(createdUser);
-        // Tree creation might be done after registration
+        createdUser.Should().NotBeNull();
+        createdUser!.Trees.Should().NotBeNull();
+        createdUser.Trees!.Count.Should().BeGreaterThan(0);
     }
 
     [Fact]
