@@ -1,6 +1,5 @@
 ﻿appId: com.pocketree.app
 ---
-
 - launchApp:
     appId: "com.pocketree.app"
     clearState: true
@@ -8,7 +7,9 @@
 - waitForAnimationToEnd:
     timeout: 5000
 
-- runScript: sleep 5
+- runScript:
+    script: |
+      sleep 10
 
 - assertVisible:
     id: "username"
