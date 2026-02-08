@@ -1,5 +1,7 @@
-﻿appId: com.pocketree.app
+appId: com.pocketree.app
 ---
+# Ensure we are logged in before validating the home screen
+- runFlow: login.yaml
 # --- Home Screen ---
 # Reference: @string/tab_map ("Map") and @string/tab_tasks ("Tasks")
 - waitForAnimationToEnd:
@@ -16,4 +18,4 @@
     id: "plant"
 - assertVisible:
     id: "levelDisplay"
-- takeScreenshot: .maestro/screenshots/Login_Success_And_Home_Screen
+- takeScreenshot: android/.maestro/screenshots/Login_Success_And_Home_Screen

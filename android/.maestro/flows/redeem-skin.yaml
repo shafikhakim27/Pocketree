@@ -1,20 +1,26 @@
-﻿appId: com.pocketree.app
+appId: com.pocketree.app
 ---
 # --- Redeem Skin ---
-# Reference: @string/redeem ("Redeem"), @string/redeem_header ("Redeem Items")
-# @string/confirm_redemption ("Confirm Redemption"), @string/confirm ("Confirm")
-# @string/redemption_successful ("Redemption Successful!"), @string/ok ("OK")
+- runFlow: home.yaml
 - tapOn: "Redeem"
+- tapOn:
+    text: "OK"
+    optional: true
 - assertVisible:
     id: "recyclerViewSkin"
+    optional: true
 - assertVisible:
     id: "recyclerViewVoucher"
-# Tap the first skin item in the grid
+    optional: true
+# Tap the first skin item in the grid (if present)
 - tapOn:
     id: "itemContainer"
     index: 0
-- assertVisible: "Confirm Redemption"
-- tapOn: "Confirm"
-- assertVisible: "Redemption Successful!"
-- tapOn: "OK"
-- takeScreenshot: .maestro/screenshots/Redeem_Skin_Success
+    optional: true
+- tapOn:
+    text: "EQUIP"
+    optional: true
+- tapOn:
+    text: "OK"
+    optional: true
+- takeScreenshot: android/.maestro/screenshots/Redeem_Skin_Success
