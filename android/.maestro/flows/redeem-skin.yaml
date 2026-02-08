@@ -5,9 +5,10 @@
 # @string/confirm_redemption ("Confirm Redemption"), @string/confirm ("Confirm")
 # @string/redemption_successful ("Redemption Successful!"), @string/ok ("OK")
 - tapOn: "Redeem"
-- assertVisible: "Redeem Items"
 - assertVisible:
     id: "recyclerViewSkin"
+- assertVisible:
+    id: "recyclerViewVoucher"
 # Tap the first skin item in the grid
 - tapOn:
     id: "itemContainer"

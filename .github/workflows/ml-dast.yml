@@ -43,7 +43,7 @@ jobs:
 
       - name: Upload ZAP Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ml-zap-report
           path: |
@@ -59,7 +59,7 @@ jobs:
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: ml-dast-summary
           path: ${{ github.workspace }}/summary.txt

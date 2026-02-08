@@ -4,5 +4,5 @@
 # Reference: @string/tab_tasks ("Tasks")
 - tapOn: "Tasks"
 - assertVisible:
-    id: "taskList"
+    id: "recyclerViewTasks"
 - takeScreenshot: .maestro/screenshots/Tasks_Screen

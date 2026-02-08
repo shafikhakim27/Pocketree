@@ -30,37 +30,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Gitleaks Scan
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          report-format: sarif
-          report-path: gitleaks.sarif
-          args: --config .gitleaks.toml
+      - name: TruffleHog Secrets Scan (docker)
+        run: |
+          docker run --rm -v "$PWD":/repo trufflesecurity/trufflehog:latest \
+            filesystem /repo \
+            --only-verified \
+            --json > trufflehog.json
 
-      - name: Upload Gitleaks SARIF
+      - name: Upload TruffleHog JSON
         if: always()
         run: |
-          if [ ! -f gitleaks.sarif ]; then
-            echo "No gitleaks.sarif found. Skipping SARIF upload."
+          if [ ! -f trufflehog.json ]; then
+            echo "No trufflehog.json found. Skipping upload."
             exit 0
           fi
-          if [ ! -s gitleaks.sarif ]; then
-            echo "gitleaks.sarif is empty. Skipping SARIF upload."
+          if [ ! -s trufflehog.json ]; then
+            echo "trufflehog.json is empty. Skipping upload."
             exit 0
           fi
 
-      - name: Publish Gitleaks SARIF
+      - name: Upload TruffleHog Report
         if: always()
-        uses: github/codeql-action/upload-sarif@v3
+        uses: actions/upload-artifact@v6
         with:
-          sarif_file: gitleaks.sarif
-
-      - name: Upload Gitleaks Report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: gitleaks-report
-          path: ${{ github.workspace }}/gitleaks.sarif
+          name: trufflehog-report
+          path: ${{ github.workspace }}/trufflehog.json
 
   build:
     runs-on: ubuntu-latest
@@ -90,7 +84,7 @@ jobs:
         run: dotnet publish api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj --configuration Release --output ./test-artifacts
       
       - name: Upload Test Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: test-artifacts
           path: ${{ github.workspace }}/test-artifacts/
@@ -100,7 +94,7 @@ jobs:
     needs: build
     steps:
       - name: Download Test Artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: test-artifacts
           path: ./test-artifacts
@@ -110,7 +104,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: unit-test-results
           path: ${{ github.workspace }}/**/*.trx
@@ -144,7 +138,7 @@ jobs:
           exit 1
 
       - name: Download Test Artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           name: test-artifacts
           path: ./test-artifacts
@@ -161,7 +155,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: integration-test-results
           path: ${{ github.workspace }}/**/*.trx
@@ -176,7 +170,7 @@ jobs:
     needs: [secrets-scan, unit-tests, integration-tests]
     steps:
       - name: Download Artifacts
-        uses: actions/download-artifact@v7
+        uses: actions/download-artifact@v4
         with:
           path: ./artifacts
 
@@ -191,7 +185,7 @@ jobs:
           ls -R ./artifacts >> "$GITHUB_WORKSPACE/summary.txt"
 
       - name: Upload Summary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: api-ci-summary
           path: ${{ github.workspace }}/summary.txt

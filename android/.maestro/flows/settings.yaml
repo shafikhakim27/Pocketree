@@ -3,11 +3,13 @@
 # --- Navigate to Settings ---
 # Reference: @string/notifications ("Notifications"), @string/account ("Account")
 # @string/logout_button ("Logout")
-- tapOn:
-    id: "settingsButton"
+- tapOn: "Settings"
 - assertVisible:
-    id: "settingsView"
-- assertVisible: "Notifications"
-- assertVisible: "Account"
-- assertVisible: "Logout"
+    id: "btnBackgroundSound"
+- assertVisible:
+    id: "btnSoundEffects"
+- assertVisible:
+    id: "btnChangePassword"
+- assertVisible:
+    id: "btnLogout"
 - takeScreenshot: .maestro/screenshots/Settings_Screen

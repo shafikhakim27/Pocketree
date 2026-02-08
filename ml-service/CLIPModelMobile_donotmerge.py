@@ -40,7 +40,7 @@ def _classify_image(img: Image.Image, keyword: str):
 
     verified = bool(probs.argmax() == 0 and probs[0] >= 0.55 and raw_sim > 0.15)
     print(f"Done in {time.time()-start:.2f}s")
-    return {"verified": verified, "score": float(probs[0]), "raw_sim": raw_sim}
+    return {"verified": verified}
 
 @app.get("/health")
 def health():

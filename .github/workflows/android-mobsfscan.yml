@@ -1,4 +1,4 @@
-name: Android DAST (MobSF Scan)
+name: Android SAST (MobSF Scan)
 
 on:
   schedule:
@@ -40,7 +40,7 @@ jobs:
 
       - name: Upload MobSF Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: android-mobsf-report
           path: ${{ github.workspace }}/mobsf/
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: android-dast-summary
           path: ${{ github.workspace }}/summary.txt

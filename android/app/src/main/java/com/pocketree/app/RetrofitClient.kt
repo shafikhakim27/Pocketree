@@ -8,10 +8,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
 // ff
-// RetrofitClient is the "builder of API services"
 object RetrofitClient {
-    private const val MAIN_URL = "http://10.113.238.196:5042/"
-    private const val AI_URL = "https://clip-verifier-476909679179.us-central1.run.app/"
+    // private const val AI_URL = "https://clip-verifier-476909679179.us-central1.run.app/"
+    private const val AI_URL = "https://pocketree-ml-r7owjdp2qa-as.a.run.app/"
 
     // 1. Define the interceptor once
     private val ngrokInterceptor = Interceptor { chain ->
@@ -38,15 +37,6 @@ object RetrofitClient {
         .readTimeout(60, TimeUnit.SECONDS)
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
-
-//    val pocketreeInstance: PocketreeApi by lazy {
-//        Retrofit.Builder()
-//            .baseUrl(MAIN_URL)
-//            .client(NetworkClient.okHttpClient)
-//            .addConverterFactory(GsonConverterFactory.create())
-//            .build()
-//            .create(PocketreeApi::class.java)
-//    }
 
     val mlInstance: MlApiService by lazy {
         Retrofit.Builder()

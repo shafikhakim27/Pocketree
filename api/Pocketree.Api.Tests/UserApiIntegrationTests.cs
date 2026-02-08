@@ -7,6 +7,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Pocketree.Api.Services;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text.Json;
 
 namespace Pocketree.Api.Tests.Integration;
 
@@ -87,7 +90,16 @@ public class UserApiIntegrationTests
             Password = "Password123!"
         });
 
-        result.Should().BeOfType<OkObjectResult>();
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var payloadJson = JsonSerializer.Serialize(ok.Value);
+        using var doc = JsonDocument.Parse(payloadJson);
+        var token = doc.RootElement.GetProperty("Token").GetString();
+        token.Should().NotBeNullOrEmpty();
+        doc.RootElement.GetProperty("User").GetProperty("Username").GetString().Should().Be("testuser");
+
+        var handler = new JwtSecurityTokenHandler();
+        var jwt = handler.ReadJwtToken(token);
+        jwt.Claims.Should().Contain(c => c.Type == ClaimTypes.Name && c.Value == "testuser");
 
         var updated = await context.Users.FindAsync(1);
         updated!.IsOnline.Should().BeTrue();
@@ -131,7 +143,10 @@ public class UserApiIntegrationTests
             Password = "SecurePass123!"
         });
 
-        result.Should().BeOfType<OkObjectResult>();
+        var ok = result.Should().BeOfType<OkObjectResult>().Subject;
+        var payloadJson = JsonSerializer.Serialize(ok.Value);
+        using var doc = JsonDocument.Parse(payloadJson);
+        doc.RootElement.GetProperty("Success").GetBoolean().Should().BeTrue();
 
         var created = await context.Users.FirstOrDefaultAsync(u => u.Username == "newuser");
         created.Should().NotBeNull();

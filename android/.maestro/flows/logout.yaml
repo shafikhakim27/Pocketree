@@ -1,6 +1,8 @@
 ﻿appId: com.pocketree.app
 ---
 # --- Logout ---
-- tapOn: "Logout"
-- assertVisible: "Welcome!\nPlease log in"
+- tapOn:
+    id: "btnLogout"
+- assertVisible: "Welcome!"
+- assertVisible: "Please log in"
 - takeScreenshot: .maestro/screenshots/Logout_Success

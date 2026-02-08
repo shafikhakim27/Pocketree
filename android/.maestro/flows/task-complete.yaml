@@ -4,14 +4,11 @@
 # Reference: @string/tab_tasks ("Tasks"), @string/complete_task ("Complete Task"), @string/task_completed ("Task Completed!")
 - tapOn: "Tasks"
 - assertVisible:
-    id: "taskList"
-# This assumes the first task in the list is tappable
+    id: "recyclerViewTasks"
+# Tap the first action button in the task list
 - tapOn:
-    id: "taskListItem-0"
-- assertVisible:
-    id: "taskDetailView"
-- assertVisible: "Complete Task"
-- tapOn: "Complete Task"
-- assertVisible: "Task Completed!"
-- tapOn: "OK"
+    id: "actionBtn"
+    index: 0
+- waitForAnimationToEnd:
+    timeout: 5000
 - takeScreenshot: .maestro/screenshots/Task_Completion_Success

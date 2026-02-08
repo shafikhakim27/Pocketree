@@ -91,8 +91,25 @@ jobs:
           echo "" >> collected/INDEX.txt
           find collected -type f | sort >> collected/INDEX.txt
 
+      - name: Zip Collected Artifacts Per Workflow
+        run: |
+          set -euo pipefail
+          mkdir -p collected/zips
+          for status in success failure cancelled skipped; do
+            if [ -d "collected/$status" ]; then
+              for wf in collected/$status/*; do
+                [ -d "$wf" ] || continue
+                wf_name=$(basename "$wf")
+                zip_path="collected/zips/${wf_name}-${status}.zip"
+                (cd "collected/$status" && zip -r "../zips/${wf_name}-${status}.zip" "$wf_name") >/dev/null
+                echo "Created $zip_path"
+              done
+            fi
+          done
+          (cd collected && zip -r "pipeline-artifacts-collection.zip" .) >/dev/null
+
       - name: Upload Collected Artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: pipeline-artifacts-collection
           path: collected/

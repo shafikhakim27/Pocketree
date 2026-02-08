@@ -27,11 +27,11 @@ jobs:
           echo "Commits by Author:" >> report/contribution-report.txt
           git shortlog -sne >> report/contribution-report.txt
           echo "" >> report/contribution-report.txt
-          echo "Recent Activity (last 30 commits):" >> report/contribution-report.txt
-          git log -n 30 --pretty=format:"%h %ad %an %s" --date=short >> report/contribution-report.txt
+          echo "Recent Activity (last 300 commits):" >> report/contribution-report.txt
+          git log -n 300 --pretty=format:"%h %ad %an %s" --date=short >> report/contribution-report.txt
 
       - name: Upload Contribution Report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: contribution-report
           path: ${{ github.workspace }}/report/

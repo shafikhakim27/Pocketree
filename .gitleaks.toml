@@ -1,6 +1,0 @@
-[allowlist]
-  paths = [
-    '''\.vs/.*''',
-    '''api/\.vs/.*''',
-    '''.*/copilot-chat/.*'''
-  ]

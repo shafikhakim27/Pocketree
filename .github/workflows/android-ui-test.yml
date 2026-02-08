@@ -96,7 +96,7 @@ jobs:
 
       - name: Upload Maestro Reports & Media
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: maestro-full-test-results
           path: |
@@ -113,7 +113,7 @@ jobs:
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: android-ui-test-summary
           path: summary.txt
