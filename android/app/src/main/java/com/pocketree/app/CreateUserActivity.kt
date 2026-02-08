@@ -15,13 +15,11 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.IOException
-import androidx.core.widget.doAfterTextChanged
 import kotlin.jvm.java
 
 class CreateUserActivity: AppCompatActivity() {
     private val client= OkHttpClient()
     private lateinit var binding: ActivityCreateUserBinding
-    // private val baseUrl = "https://pocketree-api.azurewebsites.net/api/User"
     private val baseUrl = ApiConfiguration.USER_API_URL
 
     override fun onCreate(savedInstanceState: Bundle?){
