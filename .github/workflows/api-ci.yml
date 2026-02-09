@@ -22,41 +22,6 @@ env:
   AZURE_WEBAPP_NAME: pocketree-api
 
 jobs:
-  secrets-scan:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v6.0.2
-        with:
-          fetch-depth: 0
-
-      - name: TruffleHog Secrets Scan (docker)
-        run: |
-          docker run --rm -v "$PWD":/repo trufflesecurity/trufflehog:latest \
-            filesystem /repo \
-            --only-verified \
-            --json > trufflehog.json
-
-      - name: Upload TruffleHog JSON
-        if: always()
-        run: |
-          if [ ! -f trufflehog.json ]; then
-            echo "No trufflehog.json found. Skipping upload."
-            exit 0
-          fi
-          if [ ! -s trufflehog.json ]; then
-            echo "trufflehog.json is empty. Skipping upload."
-            exit 0
-          fi
-
-      - name: Upload TruffleHog Report
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
-        with:
-          if-no-files-found: warn
-          name: trufflehog-report
-          path: ${{ github.workspace }}/trufflehog.json
-
   build:
     runs-on: ubuntu-latest
     steps:
@@ -70,6 +35,20 @@ jobs:
 
       - name: Restore Dependencies
         run: dotnet restore api/api.sln
+
+      - name: Lint (dotnet format)
+        run: |
+          dotnet tool install --global dotnet-format
+          echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
+          dotnet format api/api.sln --verify-no-changes --report format-report.json --report-format json
+
+      - name: Upload Lint Report
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: api-dotnet-format-report
+          path: ${{ github.workspace }}/format-report.json
 
       - name: Snyk Security Scan
         uses: snyk/actions/dotnet@master
@@ -102,7 +81,7 @@ jobs:
           path: ./test-artifacts
 
       - name: Run Unit Tests
-        run: dotnet test ./test-artifacts/Pocketree.Api.Tests.dll --logger "trx;logfilename=unit_test_results.trx" --filter "FullyQualifiedName!~Pocketree.Api.Tests.Integration"
+        run: dotnet test ./test-artifacts/Pocketree.Api.Tests.dll --logger "trx;logfilename=unit_test_results.trx" --collect:"XPlat Code Coverage" --filter "FullyQualifiedName!~Pocketree.Api.Tests.Integration"
 
       - name: Upload Test Results
         if: always()
@@ -111,6 +90,14 @@ jobs:
           if-no-files-found: warn
           name: unit-test-results
           path: ${{ github.workspace }}/**/*.trx
+
+      - name: Upload Unit Test Coverage
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: unit-test-coverage
+          path: ${{ github.workspace }}/**/coverage.cobertura.xml
 
       - name: Unit Test Summary
         if: always()
@@ -150,7 +137,7 @@ jobs:
         env:
           ConnectionStrings__DefaultConnection: Server=localhost;Port=3306;Database=pocketree;User=root;Password=password
           USE_IN_MEMORY_DATABASE: false
-        run: dotnet test ./test-artifacts/Pocketree.Api.Tests.dll --logger "trx;logfilename=integration_test_results.trx" --filter "FullyQualifiedName~Pocketree.Api.Tests.Integration"
+        run: dotnet test ./test-artifacts/Pocketree.Api.Tests.dll --logger "trx;logfilename=integration_test_results.trx" --collect:"XPlat Code Coverage" --filter "FullyQualifiedName~Pocketree.Api.Tests.Integration"
 
       - name: Stop services
         if: always()
@@ -164,6 +151,14 @@ jobs:
           name: integration-test-results
           path: ${{ github.workspace }}/**/*.trx
 
+      - name: Upload Integration Test Coverage
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: integration-test-coverage
+          path: ${{ github.workspace }}/**/coverage.cobertura.xml
+
       - name: Integration Test Summary
         if: always()
         run: |
@@ -171,7 +166,7 @@ jobs:
 
   summary:
     runs-on: ubuntu-latest
-    needs: [secrets-scan, unit-tests, integration-tests]
+    needs: [unit-tests, integration-tests]
     steps:
       - name: Download Artifacts
         uses: actions/download-artifact@v7.0.0

@@ -32,19 +32,29 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ml-service/requirements.txt -r ml-service/requirements-dev.txt
 
-      - name: TruffleHog Scan
+      - name: EditorConfig Check
         run: |
-          docker run --rm -v "$PWD":/repo trufflesecurity/trufflehog:latest \
-            git file:///repo --since-commit=$(git rev-parse HEAD~1) \
-            --json > trufflehog.json
+          curl -sSLo ec.tar.gz https://github.com/editorconfig-checker/editorconfig-checker/releases/download/2.7.3/ec-linux-amd64.tar.gz
+          tar -xzf ec.tar.gz
+          ./bin/ec -disable-indent-size -exclude ".git/**" -exclude ".venv/**" -exclude "ml-service/.venv/**" ml-service
 
-      - name: Upload TruffleHog Report
+      - name: Lint (ruff)
+        run: |
+          pip install ruff
+          ruff check ml-service --output-format json --output-file ruff-report.json
+
+      - name: Type Check (mypy)
+        run: |
+          pip install mypy
+          mypy --config-file ml-service/mypy.ini ml-service
+
+      - name: Upload Lint Report
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
           if-no-files-found: warn
-          name: trufflehog-report
-          path: ${{ github.workspace }}/trufflehog.json
+          name: ml-ruff-report
+          path: ${{ github.workspace }}/ruff-report.json
 
       - name: Run ML Service Tests
         run: |

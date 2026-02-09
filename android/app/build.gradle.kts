@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.spotless)
 
     id("androidx.navigation.safeargs.kotlin")
 }
@@ -68,4 +70,26 @@ dependencies {
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    testImplementation("org.mockito:mockito-core:5.12.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+
+    androidTestImplementation("org.mockito:mockito-android:5.12.0")
+    androidTestImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+}
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+        ktlint("1.2.1")
+    }
+    kotlinGradle {
+        target("**/*.kts")
+        ktlint("1.2.1")
+    }
 }

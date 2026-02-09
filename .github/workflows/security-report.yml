@@ -21,6 +21,20 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
 
+      - name: TruffleHog Scan (repo)
+        run: |
+          docker run --rm -v "$PWD":/repo trufflesecurity/trufflehog:latest \
+            git file:///repo --since-commit=$(git rev-parse HEAD~1) \
+            --json > trufflehog.json
+
+      - name: Upload TruffleHog Report
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: trufflehog-report
+          path: ${{ github.workspace }}/trufflehog.json
+
       - name: Prepare workspace
         run: |
           mkdir -p report/current
