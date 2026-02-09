@@ -59,6 +59,7 @@
         android:layout_height="wrap_content"
         android:text="@string/redeem_header"
         android:textSize="25sp"
+        android:fontFamily="serif"
         android:textStyle="bold"
         android:padding="16dp" />
 

@@ -71,26 +71,35 @@
             android:paddingBottom="4dp"
             android:textStyle="bold"/>
 
-        <ProgressBar
-            android:id="@+id/healthBar"
-            style="?android:attr/progressBarStyleHorizontal"
+        <FrameLayout
             android:layout_width="match_parent"
-            android:layout_height="20dp"
-            android:max="100"
-            android:progress="100"
-            android:progressDrawable="@drawable/custom_progress_bar" />
-    </LinearLayout>
+            android:layout_height="wrap_content">
 
-    <TextView
-        android:id="@+id/status_warning"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="@string/warning_message"
-        android:textColor="#F86262"
-        android:gravity="center"
-        android:visibility="gone"
-        android:textSize="18sp"
-        android:padding="4dp"/>
+            <ProgressBar
+                android:id="@+id/healthBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:max="100"
+                android:progress="100"
+                android:progressDrawable="@drawable/custom_progress_bar" />
+
+            <TextView
+                android:id="@+id/status_warning"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:text="@string/warning_message"
+                android:textColor="@color/red"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                android:shadowColor="@color/black"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="1"
+                android:visibility="gone"/>
+        </FrameLayout>
+    </LinearLayout>
 
     <ImageView
         android:id="@+id/plant"
@@ -113,14 +122,14 @@
         android:layout_height="wrap_content"
         android:layout_marginTop="10dp"
         android:padding="16dp"
-        android:orientation="vertical"
-        >
+        android:orientation="vertical">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/badges"
             android:textSize="20dp"
+            android:fontFamily="serif"
             android:textStyle="bold" />
 
         <androidx.recyclerview.widget.RecyclerView
