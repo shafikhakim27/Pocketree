@@ -147,9 +147,13 @@ jobs:
           report_obj = {
             "generated": datetime.utcnow().isoformat() + "Z",
             "workflows": results,
+            "identified_issues": [],
+            "fixes_applied": [],
+            "rescanning_results": [],
             "notes": [
               "Detailed scan artifacts are available in the workflow run artifacts.",
-              "Android DAST workflow was renamed to MobSF SAST (android-mobsfscan.yml)."
+              "Android DAST workflow was renamed to MobSF SAST (android-mobsfscan.yml).",
+              "Populate identified_issues, fixes_applied, and rescanning_results as part of the remediation workflow."
             ]
           }
           (report_dir / "security-report.json").write_text(json.dumps(report_obj, indent=2), encoding="utf-8")
@@ -190,6 +194,27 @@ jobs:
           lines.append("Notes:")
           for note in report_obj["notes"]:
             lines.append(f"- {note}")
+          lines.append("")
+          lines.append("Identified Issues:")
+          if report_obj["identified_issues"]:
+            for item in report_obj["identified_issues"]:
+              lines.append(f"- {item}")
+          else:
+            lines.append("- (none)")
+          lines.append("")
+          lines.append("Fixes Applied:")
+          if report_obj["fixes_applied"]:
+            for item in report_obj["fixes_applied"]:
+              lines.append(f"- {item}")
+          else:
+            lines.append("- (none)")
+          lines.append("")
+          lines.append("Re-scanning Results:")
+          if report_obj["rescanning_results"]:
+            for item in report_obj["rescanning_results"]:
+              lines.append(f"- {item}")
+          else:
+            lines.append("- (none)")
           (report_dir / "security-report.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
