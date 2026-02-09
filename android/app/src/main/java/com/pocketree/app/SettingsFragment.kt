@@ -83,7 +83,7 @@ class SettingsFragment: Fragment() {
 
         // listen for logout success
         sharedViewModel.logoutSuccess.observe(viewLifecycleOwner) {success ->
-            if (success) {
+            if (success == true) {
                 navigateToLogin()
                 Toast.makeText(requireContext(),
                     "You have logged out successfully!",
@@ -131,14 +131,6 @@ class SettingsFragment: Fragment() {
 
             // update MediaPlayer status
             view?.isSoundEffectsEnabled = isChecked
-
-            // show Toast to inform user Sound Effects status
-            if (isChecked) {
-                Toast.makeText(requireContext(), "Sound Effects Enabled", Toast.LENGTH_SHORT).show()
-            }
-            else {
-                Toast.makeText(requireContext(), "Sound Effects Disabled", Toast.LENGTH_SHORT).show()
-            }
         }
     }
 
@@ -170,9 +162,6 @@ class SettingsFragment: Fragment() {
         binding.btnLogout.setOnClickListener {
             SignalRManager.stopConnection()
             (activity as? MainActivity)?.stopMusic()
-            // clear data in ViewModel
-            SignalRManager.stopConnection()
-            navigateToLogin() // navigate to login immediately
             sharedViewModel.logout()
         }
     }

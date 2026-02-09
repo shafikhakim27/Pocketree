@@ -12,9 +12,14 @@ import com.pocketree.app.databinding.ItemRedeemBinding
 // written by Chenyu, edited by Shirley
 // Change <Skin> to <Any> for both skins and vouchers
 class RedeemAdapter(
-    private val items: List<Any>,
+    private var items: List<Any>,
     private val onItemClick: (Any) -> Unit
 ) : RecyclerView.Adapter<RedeemAdapter.RedeemViewHolder>() {
+
+    fun updateData(newList:List<Any>) {
+        this.items = newList
+        notifyDataSetChanged()
+    }
 
     class RedeemViewHolder(val binding: ItemRedeemBinding) : RecyclerView.ViewHolder(binding.root)
 
