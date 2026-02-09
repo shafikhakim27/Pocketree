@@ -61,6 +61,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: android-mobsf-report
           path: |
             ${{ github.workspace }}/mobsf/mobsfscan.json
@@ -69,14 +70,14 @@ jobs:
       - name: Build Summary
         if: always()
         run: |
-          cat > summary.json <<'JSON'
+          cat > "$GITHUB_WORKSPACE/summary.json" <<'JSON'
           {
             "summary": "Android MobSF Scan",
             "apk_build": "Completed",
             "mobsf_scan": "Completed"
           }
           JSON
-          cat > summary.txt <<'TXT'
+          cat > "$GITHUB_WORKSPACE/summary.txt" <<'TXT'
           Android MobSF Scan
           APK Build: Completed
           MobSF Scan: Completed
@@ -86,6 +87,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: android-mobsfscan-summary
           path: |
             ${{ github.workspace }}/summary.json

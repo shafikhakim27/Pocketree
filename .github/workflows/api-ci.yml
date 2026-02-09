@@ -53,6 +53,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: trufflehog-report
           path: ${{ github.workspace }}/trufflehog.json
 
@@ -86,6 +87,7 @@ jobs:
       - name: Upload Test Artifacts
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: test-artifacts
           path: ${{ github.workspace }}/test-artifacts/
 
@@ -106,6 +108,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: unit-test-results
           path: ${{ github.workspace }}/**/*.trx
 
@@ -157,6 +160,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: integration-test-results
           path: ${{ github.workspace }}/**/*.trx
 
@@ -209,6 +213,7 @@ jobs:
       - name: Upload Summary
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: api-ci-summary
           path: |
             ${{ github.workspace }}/summary.json

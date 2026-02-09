@@ -67,6 +67,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: zap-report
           path: |
             ${{ github.workspace }}/zap_report.json
@@ -90,6 +91,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: api-dast-summary
           path: |
             ${{ github.workspace }}/summary.json

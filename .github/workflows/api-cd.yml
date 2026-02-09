@@ -90,6 +90,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: trivy-report
           path: |
             ${{ github.workspace }}/trivy-report.json
@@ -115,6 +116,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: api-cd-summary
           path: |
             ${{ github.workspace }}/summary.json

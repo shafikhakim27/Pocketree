@@ -18,6 +18,9 @@ jobs:
         ml-dast.yml
         android-mobsfscan.yml
     steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
       - name: Prepare workspace
         run: |
           mkdir -p report/current
@@ -26,6 +29,7 @@ jobs:
       - name: Download latest two successful runs per workflow
         env:
           GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
           while IFS= read -r wf; do
@@ -192,6 +196,7 @@ jobs:
       - name: Upload Security Report
         uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: security-report
           path: |
             ${{ github.workspace }}/report/out/security-report.json
