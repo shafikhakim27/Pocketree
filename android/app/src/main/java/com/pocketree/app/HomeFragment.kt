@@ -43,6 +43,15 @@ class HomeFragment: Fragment() {
 
         sharedViewModel.fetchLatestBadges() // fetch data
         sharedViewModel.fetchUserProfile()
+//
+//        // Mock data for testing withered stage
+//        view.postDelayed({
+//            sharedViewModel.mockWitheredState() // trigger withering
+//        }, 3000)
+//
+//        view.postDelayed({
+//            sharedViewModel.mockReviveState() // trigger revive
+//        }, 6000)
     }
 
     fun observeViewModel() {

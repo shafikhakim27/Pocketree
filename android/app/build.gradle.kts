@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.detekt)
+    alias(libs.plugins.spotless)
 
     id("androidx.navigation.safeargs.kotlin")
 }
@@ -55,7 +57,6 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("com.google.code.gson:gson:2.10.1")
 
     implementation("com.microsoft.signalr:signalr:7.0.0")
@@ -66,6 +67,31 @@ dependencies {
     annotationProcessor("com.github.bumptech.glide:compiler:4.16.0")
     implementation("com.squareup.retrofit2:retrofit:2.11.0")
     implementation("com.squareup.retrofit2:converter-gson:2.11.0")
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
-    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    implementation("com.squareup.okhttp3:okhttp:5.3.2")
+    implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
+
+    testImplementation("org.mockito:mockito-core:5.12.0")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+    testImplementation("org.robolectric:robolectric:4.12.2")
+    testImplementation("androidx.arch.core:core-testing:2.2.0")
+    testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
+
+    androidTestImplementation("org.mockito:mockito-android:5.12.0")
+    androidTestImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
+}
+
+detekt {
+    buildUponDefaultConfig = true
+    allRules = false
+}
+
+spotless {
+    kotlin {
+        target("**/*.kt")
+        ktlint("1.2.1")
+    }
+    kotlinGradle {
+        target("**/*.kts")
+        ktlint("1.2.1")
+    }
 }

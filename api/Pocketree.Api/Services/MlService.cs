@@ -1,4 +1,4 @@
-﻿using ADproject.Models.DTOs;
+using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using ADproject.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -30,7 +30,7 @@ namespace ADproject.Services
             _httpClient2 = httpClientFactory.CreateClient("ML_Consultant");
         }
 
-        
+        /*
         // ML call - To classify and verify the image submitted for task that requires evidence
         public async Task<bool> ClassifyImageAsync(Stream imageStream, string keyword)
         {
@@ -71,7 +71,7 @@ namespace ADproject.Services
 
             return false;
         }
-        
+        */
 
         // ML call - To get 3 recommended tasks based on past user's preferred task difficulty and category, total coins earned and recent top 10 tasks completed 
         public async Task<List<Task>> GetRecommendedTasks(int userId)

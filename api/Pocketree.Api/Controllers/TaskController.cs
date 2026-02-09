@@ -1,4 +1,4 @@
-﻿using ADproject.Models.DTOs;
+using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using ADproject.Models.ViewModels;
 using ADproject.Services;
@@ -175,7 +175,6 @@ namespace ADproject.Controllers
                 }
             }
 */
-
             if (status == "Failed")
             {
                 user.FailedVerificationCount += 1;

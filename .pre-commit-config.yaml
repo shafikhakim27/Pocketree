@@ -7,8 +7,11 @@ repos:
       - id: trailing-whitespace
       - id: check-yaml
       - id: check-json
-  - repo: https://github.com/gitleaks/gitleaks
-    rev: v8.23.1
+  - repo: local
     hooks:
-      - id: gitleaks
-        args: ["--config", ".gitleaks.toml"]
+      - id: trufflehog
+        name: TruffleHog
+        description: Detect secrets in your data.
+        entry: bash -c 'set -e; for f in "$@"; do docker run --rm -v "$(pwd):/workdir" -i trufflesecurity/trufflehog:latest filesystem "/workdir/$f" --results=verified,unknown --fail; done' --
+        language: system
+        stages: ["commit", "push"]

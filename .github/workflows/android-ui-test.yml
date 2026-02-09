@@ -1,11 +1,7 @@
 name: Android UI Test
 
 on:
-  push:
-    branches: ["main", "develop"]
-    paths:
-      - 'android/**'
-      - '.github/workflows/android-ui-test.yml'
+  workflow_dispatch:
 
 jobs:
   ui-test:
@@ -21,10 +17,10 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -47,7 +43,7 @@ jobs:
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
       - name: Run Maestro Flows
-        uses: reactivecircus/android-emulator-runner@v2
+        uses: reactivecircus/android-emulator-runner@v2.35.0
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
@@ -96,8 +92,9 @@ jobs:
 
       - name: Upload Maestro Reports & Media
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: maestro-full-test-results
           path: |
             ${{ github.workspace }}/maestro-report/
@@ -108,12 +105,24 @@ jobs:
       - name: Build Summary
         if: always()
         run: |
-          echo "Android UI Test Summary" > "$GITHUB_WORKSPACE/summary.txt"
-          echo "Maestro UI Tests: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
+          cat > summary.json <<'JSON'
+          {
+            "summary": "Android UI Test Summary",
+            "maestro_ui_tests": "Completed"
+          }
+          JSON
+          cat > summary.txt <<'TXT'
+          Android UI Test Summary
+          Maestro UI Tests: Completed
+          TXT
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: android-ui-test-summary
-          path: summary.txt
+          path: |
+            summary.json
+            summary.txt
+

@@ -23,7 +23,7 @@ jobs:
         android-ci.yml
         android-ui-test.yml
         android-release.yml
-        android-dast.yml
+        android-mobsfscan.yml
         security-report.yml
         code-quality.yml
         contribution-report.yml
@@ -85,11 +85,28 @@ jobs:
 
       - name: Build Index
         run: |
-          echo "Collected CI Artifacts" > collected/INDEX.txt
-          echo "Repository: ${{ github.repository }}" >> collected/INDEX.txt
-          echo "Timestamp: $(date -u +"%Y-%m-%dT%H:%M:%SZ")" >> collected/INDEX.txt
-          echo "" >> collected/INDEX.txt
-          find collected -type f | sort >> collected/INDEX.txt
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from datetime import datetime
+
+          root = Path("collected")
+          files = [str(p) for p in sorted(root.rglob("*")) if p.is_file()]
+          index = {
+            "title": "Collected CI Artifacts",
+            "repository": "${{ github.repository }}",
+            "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "files": files
+          }
+          Path("collected/INDEX.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
+          lines = [
+            "Collected CI Artifacts",
+            f"Repository: {index['repository']}",
+            f"Timestamp: {index['timestamp']}",
+            ""
+          ] + files
+          Path("collected/INDEX.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
 
       - name: Zip Collected Artifacts Per Workflow
         run: |
@@ -109,7 +126,9 @@ jobs:
           (cd collected && zip -r "pipeline-artifacts-collection.zip" .) >/dev/null
 
       - name: Upload Collected Artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: pipeline-artifacts-collection
           path: collected/
+

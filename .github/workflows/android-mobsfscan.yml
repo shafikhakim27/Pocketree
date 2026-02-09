@@ -13,10 +13,10 @@ jobs:
         working-directory: ./android
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -24,9 +24,6 @@ jobs:
 
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
-
-      - name: Build APK (Debug)
-        run: ./gradlew assembleDebug
 
       - name: Install MobSF Scanner
         run: |
@@ -37,24 +34,59 @@ jobs:
         run: |
           mkdir -p "$GITHUB_WORKSPACE/mobsf"
           mobsfscan .. > "$GITHUB_WORKSPACE/mobsf/mobsfscan.txt" || true
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import re, os
+
+          out_dir = Path(os.environ["GITHUB_WORKSPACE"]) / "mobsf"
+          out_dir.mkdir(parents=True, exist_ok=True)
+          report = out_dir / "mobsfscan.txt"
+          counts = {}
+          if report.exists():
+            text = report.read_text(encoding="utf-8", errors="ignore")
+            for match in re.finditer(r"Severity:\s*([A-Za-z]+)", text):
+              sev = match.group(1).upper()
+              counts[sev] = counts.get(sev, 0) + 1
+          out = {
+            "summary": "MobSF Scan",
+            "total": sum(counts.values()),
+            "by_severity": counts
+          }
+          (out_dir / "mobsfscan.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
+          PY
 
       - name: Upload MobSF Report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: android-mobsf-report
-          path: ${{ github.workspace }}/mobsf/
+          path: |
+            ${{ github.workspace }}/mobsf/mobsfscan.json
+            ${{ github.workspace }}/mobsf/mobsfscan.txt
 
       - name: Build Summary
         if: always()
         run: |
-          echo "Android DAST Summary (MobSF Scan)" > "$GITHUB_WORKSPACE/summary.txt"
-          echo "APK Build: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
-          echo "MobSF Scan: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
+          cat > "$GITHUB_WORKSPACE/summary.json" <<'JSON'
+          {
+            "summary": "Android MobSF Scan",
+            "mobsf_scan": "Completed"
+          }
+          JSON
+          cat > "$GITHUB_WORKSPACE/summary.txt" <<'TXT'
+          Android MobSF Scan
+          MobSF Scan: Completed
+          TXT
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
-          name: android-dast-summary
-          path: ${{ github.workspace }}/summary.txt
+          if-no-files-found: warn
+          name: android-mobsfscan-summary
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
+

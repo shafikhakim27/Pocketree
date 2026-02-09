@@ -7,16 +7,18 @@ on:
 
 permissions:
   contents: read
+  security-events: write
+  actions: read
 
 jobs:
   api-quality-coverage:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v4.3.0
         with:
           dotnet-version: 9.0.x
 
@@ -37,29 +39,47 @@ jobs:
             -targetdir:coverage-report \
             "-reporttypes:Html;TextSummary"
 
-      - name: Upload Coverage Artifacts
-        if: always()
-        uses: actions/upload-artifact@v6
-        with:
-          name: api-coverage-report
-          path: |
-            ${{ github.workspace }}/TestResults/**/coverage.cobertura.xml
-            ${{ github.workspace }}/coverage-report/
-
       - name: Build Summary
         if: always()
         run: |
-          echo "API Code Quality & Coverage" > "$GITHUB_WORKSPACE/summary.txt"
-          if [ -f coverage-report/Summary.txt ]; then
-            cat coverage-report/Summary.txt >> "$GITHUB_WORKSPACE/summary.txt"
-          fi
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          summary = {
+            "summary": "API Code Quality & Coverage",
+            "coverage_summary": ""
+          }
+          summary_path = Path("coverage-report/Summary.txt")
+          if summary_path.exists():
+            summary["coverage_summary"] = summary_path.read_text(encoding="utf-8", errors="ignore")
+
+          Path("summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+          Path("summary.txt").write_text(
+            "API Code Quality & Coverage\n\n" + summary.get("coverage_summary", ""),
+            encoding="utf-8"
+          )
+          PY
+
+      - name: Upload Coverage Artifacts
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: api-coverage-report
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: api-coverage-summary
-          path: ${{ github.workspace }}/summary.txt
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
 
   android-quality:
     runs-on: ubuntu-latest
@@ -68,10 +88,10 @@ jobs:
         working-directory: ./android
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Set up JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '21'
           distribution: 'temurin'
@@ -83,24 +103,166 @@ jobs:
       - name: Run Android Lint
         run: ./gradlew lintDebug || true
 
+      - name: Summarize Lint Severities
+        if: always()
+        run: |
+          report="${{ github.workspace }}/android/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path(r"""${{ github.workspace }}/android/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt""")
+          data = {"summary": "Android Lint Summary"}
+          if report.exists():
+            text = report.read_text(encoding="utf-8", errors="ignore")
+            data.update({
+              "critical": text.lower().count("severity: fatal"),
+              "high": text.lower().count("severity: error"),
+              "medium": text.lower().count("severity: warning"),
+              "low": text.lower().count("severity: information")
+            })
+          else:
+            data["error"] = "Lint report not found."
+          Path("summary.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
+          lines = [
+            "Android Lint Summary",
+            f"Critical: {data.get('critical', 0)}",
+            f"High: {data.get('high', 0)}",
+            f"Medium: {data.get('medium', 0)}",
+            f"Low: {data.get('low', 0)}",
+          ]
+          if data.get("error"):
+            lines.append(f"Error: {data['error']}")
+          Path("summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
       - name: Upload Lint Report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
+          if-no-files-found: warn
           name: android-lint-report
           path: |
-            ${{ github.workspace }}/android/app/build/reports/lint-results-debug.html
-            ${{ github.workspace }}/android/app/build/reports/lint-results-debug.xml
-            ${{ github.workspace }}/android/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
+
+      - name: Upload Summary
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: android-lint-summary
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
+
+  ml-service-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python
+        uses: actions/setup-python@v6.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r ml-service/requirements.txt -r ml-service/requirements-dev.txt
+
+      - name: Run ML Service Tests
+        run: |
+          pytest ml-service/tests --junitxml=ml-service-test-results.xml
+
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: ml-service-test-results
+          path: ${{ github.workspace }}/ml-service-test-results.xml
 
       - name: Build Summary
         if: always()
         run: |
-          echo "Android Lint: Completed" > "$GITHUB_WORKSPACE/summary.txt"
+          cat > summary.json <<'JSON'
+          {
+            "summary": "ML Service Tests",
+            "status": "Completed"
+          }
+          JSON
+          cat > summary.txt <<'TXT'
+          ML Service Tests
+          Status: Completed
+          TXT
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
-          name: android-lint-summary
-          path: ${{ github.workspace }}/summary.txt
+          if-no-files-found: warn
+          name: ml-service-quality-summary
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'csharp', 'java-kotlin', 'python' ]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v4.31.10
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Build (C#)
+        if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@v4.3.0
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Compile (C#)
+        if: matrix.language == 'csharp'
+        run: dotnet build api/api.sln --configuration Release
+
+      - name: Build (Java/Kotlin)
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Compile (Java/Kotlin)
+        if: matrix.language == 'java-kotlin'
+        working-directory: ./android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Autobuild (Python)
+        if: matrix.language == 'python'
+        uses: github/codeql-action/autobuild@v4.31.10
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v4.31.10
+        with:
+          output: codeql-results
+
+      - name: Upload CodeQL Report
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: codeql-sarif-${{ matrix.language }}
+          path: ${{ github.workspace }}/codeql-results/**/*.sarif
+

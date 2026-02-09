@@ -56,6 +56,29 @@ class UserViewModel: ViewModel() {
     private val taskBaseUrl = ApiConfiguration.TASK_API_URL
     private val userBaseUrl = ApiConfiguration.USER_API_URL
 
+//
+//    // ==========================================
+//    // MOCK data testing, to trigger withering
+//    // ==========================================
+//    fun mockWitheredState() {
+//        val current = userState.value ?: UserState()
+//        userState.postValue(current.copy(
+//            isWithered = true,
+//            plantHealthPercent = 0,
+//            levelName = "Withered State (Mock)"
+//        ))
+//    }
+//
+//    // MOCK data testing, to trigger revive
+//    fun mockReviveState() {
+//        val current = userState.value ?: UserState()
+//        userState.postValue(current.copy(
+//            isWithered = false,
+//            plantHealthPercent = 100,
+//            levelName = "Revived State (Mock)"
+//        ))
+//    }
+
     // helper function - to update all LiveData at once
     private fun updateLiveData (user:User) {
         if (user == null) return // don't proceed if entire user object is null
