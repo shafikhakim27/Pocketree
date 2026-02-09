@@ -1,11 +1,7 @@
 name: Android UI Test
 
 on:
-  push:
-    branches: ["main", "develop"]
-    paths:
-      - 'android/**'
-      - '.github/workflows/android-ui-test.yml'
+  workflow_dispatch:
 
 jobs:
   ui-test:
