@@ -12,22 +12,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger develop workflows
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.0.1
         with:
           script: |
             const workflows = [
               "api-ci.yml",
-              "api-dast.yml",
               "ml-service-ci.yml",
-              "ml-dast.yml",
               "android-ci.yml",
               "android-ui-test.yml",
-              "android-dast.yml",
-              "android-mobsfscan.yml",
-              "security-report.yml",
-              "code-quality.yml",
-              "contribution-report.yml",
-              "Pipeline Artifacts.yml"
+              "android-mobsfscan.yml"
             ];
 
             for (const wf of workflows) {
@@ -39,3 +32,4 @@ jobs:
                 ref: "develop"
               });
             }
+

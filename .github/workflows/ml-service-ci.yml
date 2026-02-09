@@ -20,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6.1.0
         with:
           python-version: "3.11"
 
@@ -32,13 +32,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ml-service/requirements.txt -r ml-service/requirements-dev.txt
 
+      - name: TruffleHog Scan
+        run: |
+          docker run --rm -v "$PWD":/repo trufflesecurity/trufflehog:latest \
+            git file:///repo --since-commit=$(git rev-parse HEAD~1) \
+            --json > trufflehog.json
+
+      - name: Upload TruffleHog Report
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: trufflehog-report
+          path: ${{ github.workspace }}/trufflehog.json
+
       - name: Run ML Service Tests
         run: |
           pytest ml-service/tests --junitxml=ml-service-test-results.xml
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: ml-service-test-results
           path: ${{ github.workspace }}/ml-service-test-results.xml
@@ -52,7 +65,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Snyk Python Scan
         uses: snyk/actions/python@master
@@ -76,13 +89,13 @@ jobs:
 
       - name: Upload Snyk SARIF
         if: always() && env.SKIP_SNYK_SARIF != 'true'
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4.31.10
         with:
           sarif_file: ml-service-snyk.sarif
 
       - name: Upload Snyk Report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: ml-snyk-report
           path: |
@@ -91,7 +104,7 @@ jobs:
 
       - name: Upload Bandit Report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: ml-bandit-report
           path: ${{ github.workspace }}/bandit-report.json
@@ -104,13 +117,25 @@ jobs:
       - name: Build Summary
         if: always()
         run: |
-          echo "ML Service CI Summary" > "$GITHUB_WORKSPACE/summary.txt"
-          echo "Snyk: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
-          echo "Bandit: Completed" >> "$GITHUB_WORKSPACE/summary.txt"
+          cat > summary.json <<'JSON'
+          {
+            "summary": "ML Service CI Summary",
+            "snyk": "Completed",
+            "bandit": "Completed"
+          }
+          JSON
+          cat > summary.txt <<'TXT'
+          ML Service CI Summary
+          Snyk: Completed
+          Bandit: Completed
+          TXT
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: ml-service-ci-summary
-          path: ${{ github.workspace }}/summary.txt
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
+

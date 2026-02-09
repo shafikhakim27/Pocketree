@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger main workflows
-        uses: actions/github-script@v7
+        uses: actions/github-script@v7.0.1
         with:
           script: |
             const workflows = [
@@ -25,7 +25,6 @@ jobs:
               "android-ci.yml",
               "android-ui-test.yml",
               "android-release.yml",
-              "android-dast.yml",
               "android-mobsfscan.yml",
               "security-report.yml",
               "code-quality.yml",
@@ -42,3 +41,4 @@ jobs:
                 ref: "main"
               });
             }
+

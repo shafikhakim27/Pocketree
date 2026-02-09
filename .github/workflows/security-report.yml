@@ -16,7 +16,7 @@ jobs:
       WORKFLOWS: |
         api-dast.yml
         ml-dast.yml
-        android-dast.yml
+        android-mobsfscan.yml
     steps:
       - name: Prepare workspace
         run: |
@@ -74,21 +74,34 @@ jobs:
             try:
               data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
             except Exception:
-              return {"total": 0, "high": 0}
+              return {"total": 0, "high_confidence": 0, "by_risk": {}}
             alerts = []
             for site in data.get("site", []):
               alerts.extend(site.get("alerts", []))
-            high = [a for a in alerts if str(a.get("confidence", "")).lower() == "high"]
-            return {"total": len(alerts), "high": len(high)}
+            high_conf = [a for a in alerts if str(a.get("confidence", "")).lower() == "high"]
+            by_risk = {}
+            for a in alerts:
+              risk = (
+                str(a.get("riskdesc", "")).split(" ")[0].strip().capitalize()
+                or str(a.get("risk", "")).strip().capitalize()
+                or str(a.get("riskcode", "")).strip()
+              )
+              if not risk:
+                risk = "Unknown"
+              by_risk[risk] = by_risk.get(risk, 0) + 1
+            return {"total": len(alerts), "high_confidence": len(high_conf), "by_risk": by_risk}
 
           def parse_mobsfscan(path: Path):
-            text = path.read_text(encoding="utf-8", errors="ignore")
-            counts = {}
-            for match in re.finditer(r"Severity:\s*([A-Za-z]+)", text):
-              sev = match.group(1).upper()
-              counts[sev] = counts.get(sev, 0) + 1
-            total = sum(counts.values())
-            return {"total": total, "by_severity": counts}
+            try:
+              data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+              if isinstance(data, dict):
+                return {
+                  "total": data.get("total", 0),
+                  "by_severity": data.get("by_severity", {})
+                }
+            except Exception:
+              pass
+            return {"total": 0, "by_severity": {}}
 
           def get_latest(base, patterns):
             files = find_files(base, patterns)
@@ -101,8 +114,8 @@ jobs:
             prev_base = previous / workflow
 
             if "android" in workflow:
-              cur_file = get_latest(cur_base, ["mobsfscan.txt"])
-              prev_file = get_latest(prev_base, ["mobsfscan.txt"])
+              cur_file = get_latest(cur_base, ["mobsfscan.json"])
+              prev_file = get_latest(prev_base, ["mobsfscan.json"])
               cur = parse_mobsfscan(cur_file) if cur_file else None
               prev = parse_mobsfscan(prev_file) if prev_file else None
               return {"type": "mobsfscan", "current": cur, "previous": prev}
@@ -113,7 +126,7 @@ jobs:
               prev = parse_zap(prev_file) if prev_file else None
               return {"type": "zap", "current": cur, "previous": prev}
 
-          workflows = ["api-dast.yml", "ml-dast.yml", "android-dast.yml"]
+          workflows = ["api-dast.yml", "ml-dast.yml", "android-mobsfscan.yml"]
           results = {wf: summarize(wf) for wf in workflows}
 
           def delta(cur, prev):
@@ -125,50 +138,62 @@ jobs:
               return f"-{prev['total'] - cur['total']}"
             return "0"
 
-          md = []
-          md.append("# Security Testing Report")
-          md.append("")
-          md.append(f"Generated: {datetime.utcnow().isoformat()}Z")
-          md.append("")
-          for wf in workflows:
-            res = results[wf]
-            md.append(f"## {wf}")
-            cur = res["current"]
-            prev = res["previous"]
-            if not cur:
-              md.append("- Current: no data")
-              md.append("")
-              continue
-            if res["type"] == "zap":
-              md.append(f"- Current alerts: {cur['total']} (high confidence: {cur['high']})")
-              if prev:
-                md.append(f"- Previous alerts: {prev['total']} (high confidence: {prev['high']})")
-                md.append(f"- Delta: {delta(cur, prev)}")
-              else:
-                md.append("- Previous alerts: n/a")
-            else:
-              md.append(f"- Current findings: {cur['total']}")
-              if cur.get("by_severity"):
-                md.append(f"- Current by severity: {cur['by_severity']}")
-              if prev:
-                md.append(f"- Previous findings: {prev['total']}")
-                if prev.get("by_severity"):
-                  md.append(f"- Previous by severity: {prev['by_severity']}")
-                md.append(f"- Delta: {delta(cur, prev)}")
-              else:
-                md.append("- Previous findings: n/a")
-            md.append("")
-          md.append("## Notes")
-          md.append("- Detailed scan artifacts are available in the workflow run artifacts.")
-
           report_dir = root / "out"
           report_dir.mkdir(parents=True, exist_ok=True)
-          (report_dir / "security-report.md").write_text("\n".join(md), encoding="utf-8")
-          (report_dir / "security-report.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+          report_obj = {
+            "generated": datetime.utcnow().isoformat() + "Z",
+            "workflows": results,
+            "notes": [
+              "Detailed scan artifacts are available in the workflow run artifacts.",
+              "Android DAST workflow was renamed to MobSF SAST (android-mobsfscan.yml)."
+            ]
+          }
+          (report_dir / "security-report.json").write_text(json.dumps(report_obj, indent=2), encoding="utf-8")
+
+          lines = []
+          lines.append("Security Testing Report")
+          lines.append(f"Generated: {report_obj['generated']}")
+          lines.append("")
+          for wf, res in results.items():
+            lines.append(f"{wf}:")
+            cur = res.get("current")
+            prev = res.get("previous")
+            if not cur:
+              lines.append("  Current: no data")
+              lines.append("")
+              continue
+            if res.get("type") == "zap":
+              lines.append(f"  Current alerts: {cur.get('total', 0)} (high confidence: {cur.get('high_confidence', 0)})")
+              if cur.get("by_risk"):
+                lines.append(f"  Current by risk: {cur.get('by_risk')}")
+              if prev:
+                lines.append(f"  Previous alerts: {prev.get('total', 0)} (high confidence: {prev.get('high_confidence', 0)})")
+                if prev.get("by_risk"):
+                  lines.append(f"  Previous by risk: {prev.get('by_risk')}")
+              else:
+                lines.append("  Previous alerts: n/a")
+            else:
+              lines.append(f"  Current findings: {cur.get('total', 0)}")
+              if cur.get("by_severity"):
+                lines.append(f"  Current by severity: {cur.get('by_severity')}")
+              if prev:
+                lines.append(f"  Previous findings: {prev.get('total', 0)}")
+                if prev.get("by_severity"):
+                  lines.append(f"  Previous by severity: {prev.get('by_severity')}")
+              else:
+                lines.append("  Previous findings: n/a")
+            lines.append("")
+          lines.append("Notes:")
+          for note in report_obj["notes"]:
+            lines.append(f"- {note}")
+          (report_dir / "security-report.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
       - name: Upload Security Report
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: security-report
-          path: ${{ github.workspace }}/report/out/
+          path: |
+            ${{ github.workspace }}/report/out/security-report.json
+            ${{ github.workspace }}/report/out/security-report.txt
+

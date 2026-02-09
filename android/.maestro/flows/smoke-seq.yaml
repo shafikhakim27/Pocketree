@@ -1,0 +1,6 @@
+appId: com.pocketree.app
+---
+- runFlow: home.yaml
+- runFlow: tasks.yaml
+- runFlow: redeem-skin.yaml
+- runFlow: logout.yaml

@@ -161,7 +161,7 @@ namespace ADproject.Controllers
             // Get the task details 
             var task = await db.Tasks.FindAsync(taskId);
             if (user == null || task == null) return BadRequest("Invalid User or Task.");
-/*
+            // uncommenting for testing purposes
             // Perform verification check only for "Hard" tasks
             if (task.Difficulty == "Hard" && status =="Completed")
             {
@@ -174,7 +174,6 @@ namespace ADproject.Controllers
                     return Ok(new { success = false, message = "Image verification failed" });
                 }
             }
-*/
 
             if (status == "Failed")
             {

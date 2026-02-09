@@ -20,20 +20,20 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Authenticate to Google Cloud
-        uses: google-github-actions/auth@v2
+        uses: google-github-actions/auth@v3.0.0
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up gcloud
-        uses: google-github-actions/setup-gcloud@v2
+        uses: google-github-actions/setup-gcloud@v3.0.0
         with:
           project_id: ${{ env.GCP_PROJECT_ID }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3.12.0
 
       - name: Ensure Artifact Registry exists
         run: |
@@ -54,6 +54,47 @@ jobs:
           docker build -f ml-service/Dockerfile -t "$IMAGE_URI" ml-service
           docker push "$IMAGE_URI"
 
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_URI }}
+          format: 'json'
+          output: 'trivy-report.json'
+          exit-code: '1'
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+
+      - name: Build Trivy Text Report
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          src = Path("trivy-report.json")
+          out = Path("trivy-report.txt")
+          if not src.exists():
+            out.write_text("Trivy report not found.\n", encoding="utf-8")
+            raise SystemExit(0)
+          data = json.loads(src.read_text(encoding="utf-8", errors="ignore") or "{}")
+          results = data.get("Results", [])
+          lines = ["Trivy Report", f"Targets: {len(results)}"]
+          for r in results:
+            target = r.get("Target", "unknown")
+            vulns = r.get("Vulnerabilities", []) or []
+            lines.append(f"- {target}: {len(vulns)} findings")
+          out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
+      - name: Upload Trivy Report
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          name: trivy-report
+          path: |
+            ${{ github.workspace }}/trivy-report.json
+            ${{ github.workspace }}/trivy-report.txt
+
       - name: Deploy to Cloud Run
         run: |
           set -euo pipefail
@@ -72,3 +113,4 @@ jobs:
             --ingress all \
             --set-env-vars "GUNICORN_CMD_ARGS=--timeout 600 --preload --workers 1" \
             --allow-unauthenticated
+

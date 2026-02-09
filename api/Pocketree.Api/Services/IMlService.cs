@@ -5,7 +5,8 @@ namespace ADproject.Services
 {
     public interface IMlService
     {
-        // Task<bool> ClassifyImageAsync(Stream imageStream, string keyword);
+        // uncommenting for testing purposes
+        Task<bool> ClassifyImageAsync(Stream imageStream, string keyword);
         Task<List<Task>> GetRecommendedTasks(int userId);
     }
 }

@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.10.0
+        uses: zaproxy/action-baseline@v0.15.0
         with:
           target: https://pocketree-api.azurewebsites.net
           cmd_options: "-J zap_report.json -r zap_report.html -T 1200 -z \"-config connection.timeoutInSecs=120 -config spider.maxDuration=5\""
@@ -38,24 +38,60 @@ jobs:
               raise SystemExit(1)
           PY
 
+      - name: Build ZAP Text Report
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("zap_report.json")
+          out = Path("zap_report.txt")
+          if not report.exists():
+            out.write_text("ZAP report not found.\n", encoding="utf-8")
+            raise SystemExit(0)
+          data = json.loads(report.read_text(encoding="utf-8", errors="ignore") or "{}")
+          alerts = []
+          for site in data.get("site", []):
+            alerts.extend(site.get("alerts", []))
+          high = [a for a in alerts if str(a.get("confidence", "")).lower() == "high"]
+          lines = [
+            "ZAP Baseline Report",
+            f"Total alerts: {len(alerts)}",
+            f"High confidence alerts: {len(high)}"
+          ]
+          out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
       - name: Upload ZAP Report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: zap-report
           path: |
             ${{ github.workspace }}/zap_report.json
-            ${{ github.workspace }}/zap_report.html
+            ${{ github.workspace }}/zap_report.txt
 
       - name: Build Summary
         if: always()
         run: |
-          echo "API DAST Summary" > summary.txt
-          echo "ZAP Baseline: Completed" >> summary.txt
+          cat > summary.json <<'JSON'
+          {
+            "summary": "API DAST Summary",
+            "zap_baseline": "Completed"
+          }
+          JSON
+          cat > summary.txt <<'TXT'
+          API DAST Summary
+          ZAP Baseline: Completed
+          TXT
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: api-dast-summary
-          path: ${{ github.workspace }}/summary.txt
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
+

@@ -17,26 +17,26 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
 
       - name: Setup .NET
-        uses: actions/setup-dotnet@v5
+        uses: actions/setup-dotnet@v4.3.0
         with:
           dotnet-version: 9.0.x
 
       # Docker Build & Push
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v3.12.0
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v3.6.0
         with:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v5.9.0
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
@@ -44,7 +44,7 @@ jobs:
             type=sha,format=long
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6.18.0
         with:
           context: .
           file: api/Dockerfile
@@ -55,43 +55,79 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@master
         with:
           image-ref: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
-          format: 'table'
-          output: 'trivy-report.txt'
+          format: 'json'
+          output: 'trivy-report.json'
           exit-code: '1'
           severity: 'CRITICAL'
           ignore-unfixed: true
 
+      - name: Build Trivy Text Report
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          src = Path("trivy-report.json")
+          out = Path("trivy-report.txt")
+          if not src.exists():
+            out.write_text("Trivy report not found.\n", encoding="utf-8")
+            raise SystemExit(0)
+          data = json.loads(src.read_text(encoding="utf-8", errors="ignore") or "{}")
+          results = data.get("Results", [])
+          lines = ["Trivy Report", f"Targets: {len(results)}"]
+          for r in results:
+            target = r.get("Target", "unknown")
+            vulns = r.get("Vulnerabilities", []) or []
+            lines.append(f"- {target}: {len(vulns)} findings")
+          out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+
       - name: Upload Trivy Report
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: trivy-report
-          path: ${{ github.workspace }}/trivy-report.txt
+          path: |
+            ${{ github.workspace }}/trivy-report.json
+            ${{ github.workspace }}/trivy-report.txt
 
       - name: Build Summary
         if: always()
         run: |
-          echo "API CD Summary" > summary.txt
-          echo "Docker Build & Push: Completed" >> summary.txt
-          echo "Trivy Scan: Completed" >> summary.txt
+          cat > summary.json <<'JSON'
+          {
+            "summary": "API CD Summary",
+            "docker_build_push": "Completed",
+            "trivy_scan": "Completed"
+          }
+          JSON
+          cat > summary.txt <<'TXT'
+          API CD Summary
+          Docker Build & Push: Completed
+          Trivy Scan: Completed
+          TXT
 
       - name: Upload Summary
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v6.0.0
         with:
           name: api-cd-summary
-          path: ${{ github.workspace }}/summary.txt
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
 
       - name: Azure Login
-        uses: azure/login@v1
+        uses: azure/login@v2.3.0
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v3
+        uses: azure/webapps-deploy@v2.2.17
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           images: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
+

@@ -6,11 +6,11 @@ appId: com.pocketree.app
     timeout: 15000
 
 # --- Login Screen ---
-- assertVisible: "Welcome!\\s*Please log in"
 - assertVisible:
     id: "username"
 - assertVisible:
     id: "password"
+- assertVisible: "Welcome!\\s*Please log in"
 - tapOn:
     id: "username"
 - inputText: "ecotester"
