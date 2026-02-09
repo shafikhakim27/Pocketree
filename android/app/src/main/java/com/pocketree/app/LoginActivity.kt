@@ -23,7 +23,10 @@ class LoginActivity: AppCompatActivity() {
     private val gson = NetworkClient.gson
 
     override fun onCreate(savedInstanceState: Bundle?) {
-
+// NOTE: super.onCreate SHOULD BE HERE  must be called before any early return.
+// If moved below the token check, the token path can return before
+// super.onCreate executes, causing SuperNotCalledException.
+   
         // check for existing token
         val existingToken = NetworkClient.loadToken(this)
         if (!existingToken.isNullOrEmpty() && existingToken != "no_token") {

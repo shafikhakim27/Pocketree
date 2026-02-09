@@ -21,7 +21,7 @@ class MainActivityInstrumentedTest {
         val state = scenario.state
         assertTrue(
             "MainActivity should finish when token missing (state=$state)",
-            state == Lifecycle.State.DESTROYED || state == Lifecycle.State.STOPPED || state == Lifecycle.State.CREATED
+            state == Lifecycle.State.DESTROYED || state == Lifecycle.State.CREATED
         )
 
         scenario.close()

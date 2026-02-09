@@ -21,7 +21,7 @@ class LoginActivityInstrumentedTest {
         val state = scenario.state
         assertTrue(
             "LoginActivity should finish when token exists (state=$state)",
-            state == Lifecycle.State.DESTROYED || state == Lifecycle.State.STOPPED || state == Lifecycle.State.CREATED
+            state == Lifecycle.State.DESTROYED || state == Lifecycle.State.CREATED
         )
 
         scenario.close()

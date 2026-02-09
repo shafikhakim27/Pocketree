@@ -226,6 +226,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession(); // Enable Session middleware
 
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
