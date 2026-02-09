@@ -18,6 +18,17 @@ class RedeemFragment: Fragment() {
     private val binding get() = _binding!!
 
     private val sharedViewModel: UserViewModel by activityViewModels()
+    private val skinAdapter = RedeemAdapter(emptyList()) { item ->
+        if (item is Skin) {
+            if (item.isRedeemed) handleRedeemedSkinClick(item) else showSkinConfirmDialog(item)
+        }
+    }
+
+    private val voucherAdapter = RedeemAdapter(emptyList()) { item ->
+        if (item is Voucher) {
+            if (!item.isRedeemed) showVoucherConfirmDialog(item)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -29,41 +40,41 @@ class RedeemFragment: Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        binding.recyclerViewSkin.adapter = skinAdapter
+        binding.recyclerViewVoucher.adapter = voucherAdapter
+
+        sharedViewModel.fetchSkins()
+        sharedViewModel.fetchVouchers()
+
         setupRecyclerView()
-
-        // only fetch if data is not already loaded
-        if (sharedViewModel.skins.value.isNullOrEmpty()) {
-            sharedViewModel.fetchSkins()
-        }
-        if (sharedViewModel.vouchers.value.isNullOrEmpty()) {
-            sharedViewModel.fetchVouchers()
-        }
-
         observeViewModel()
     }
 
     private fun observeViewModel(){
         sharedViewModel.skins.observe(viewLifecycleOwner) { skinList ->
-            binding.recyclerViewSkin.adapter = RedeemAdapter(skinList) { item ->
-                if (item is Skin) {
-                    if (item.isRedeemed) {
-                        handleRedeemedSkinClick(item) // handle equip/level check here
-                    }
-                    else {
-                        showSkinConfirmDialog(item)
-                    }
-                }
-            }
+//            binding.recyclerViewSkin.adapter = RedeemAdapter(skinList) { item ->
+//                if (item is Skin) {
+//                    if (item.isRedeemed) {
+//                        handleRedeemedSkinClick(item) // handle equip/level check here
+//                    }
+//                    else {
+//                        showSkinConfirmDialog(item)
+//                    }
+//                }
+//            }
+            skinAdapter.updateData(skinList)
         }
 
         sharedViewModel.vouchers.observe(viewLifecycleOwner) { voucherList ->
-            binding.recyclerViewVoucher.adapter = RedeemAdapter(voucherList) { item ->
-                if (item is Voucher) {
-                    if (!item.isRedeemed) {
-                        showVoucherConfirmDialog(item)
-                    }
-                }
-            }
+//            binding.recyclerViewVoucher.adapter = RedeemAdapter(voucherList) { item ->
+//                if (item is Voucher) {
+//                    if (!item.isRedeemed) {
+//                        showVoucherConfirmDialog(item)
+//                    }
+//                }
+//            }
+            voucherAdapter.updateData(voucherList)
         }
 
         // observe consolidated userState
@@ -137,13 +148,24 @@ class RedeemFragment: Fragment() {
     private fun handleRedeemedSkinClick(skin: Skin) {
         if (skin.isEquipped) return // do nothing is already equipped
 
+        // requirement: skin cannot be equipped on a withered tree
+        val treeWithered = sharedViewModel.userState.value?.isWithered ?: false
+        if (treeWithered) {
+            AlertDialog.Builder(requireContext())
+                .setTitle("Plant Withered")
+                .setMessage("Unable to equip skin on a withered plant!\nComplete a task to revive your plant!")
+                .setPositiveButton("Got it!", null)
+                .show()
+            return
+        }
+
         // Requirement: All users below level 1 can only purchase, not equip.
         val currentLevel = sharedViewModel.userState.value?.currentLevelID ?: 0
         if (currentLevel >= 1) {
             AlertDialog.Builder(requireContext())
                 .setTitle("Equip Skin")
                 .setMessage("Do you want to equip ${skin.skinName}?")
-                .setPositiveButton("Equip") {_,_ -> equipSkin(skin)}
+                .setPositiveButton("Equip") { _, _ -> equipSkin(skin) }
                 .setNegativeButton("Cancel", null)
                 .show()
         } else {

@@ -7,9 +7,14 @@ import com.bumptech.glide.Glide
 import com.pocketree.app.databinding.ItemBadgeBinding
 
 class BadgeAdapter (
-    private val badges:List<Badge>
+    private var badges:List<Badge>
 ): RecyclerView.Adapter<BadgeAdapter.BadgeViewHolder>(){
     class BadgeViewHolder(val binding: ItemBadgeBinding): RecyclerView.ViewHolder(binding.root)
+
+    fun updateData(newList:List<Badge>) {
+        this.badges = newList
+        notifyDataSetChanged()
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): BadgeViewHolder {
         val binding = ItemBadgeBinding.inflate(LayoutInflater.from(parent.context), parent, false)

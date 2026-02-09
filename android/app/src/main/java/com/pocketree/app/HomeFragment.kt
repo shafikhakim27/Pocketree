@@ -21,6 +21,7 @@ class HomeFragment: Fragment() {
 
     // ViewModel (to get the data)
     private val sharedViewModel: UserViewModel by activityViewModels()
+    private val badgeAdapter = BadgeAdapter(emptyList())
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -34,7 +35,8 @@ class HomeFragment: Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         // set up recyclerview layout manager for badges
-        binding.recyclerViewBadges.layoutManager = LinearLayoutManager(requireContext(),
+        binding.recyclerViewBadges.adapter = badgeAdapter
+        binding.recyclerViewBadges.layoutManager= LinearLayoutManager(requireContext(),
             LinearLayoutManager.HORIZONTAL, false)
 
         observeViewModel()
@@ -88,7 +90,9 @@ class HomeFragment: Fragment() {
         sharedViewModel.earnedBadges.observe(viewLifecycleOwner) { badges ->
             if (!badges.isNullOrEmpty()) {
                 binding.badgesHeader.visibility = View.VISIBLE
-                binding.recyclerViewBadges.adapter = BadgeAdapter(badges)
+                badgeAdapter.updateData(badges)
+            } else {
+                binding.badgesHeader.visibility = View.GONE
             }
         }
     }

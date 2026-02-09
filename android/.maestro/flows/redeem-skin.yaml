@@ -1,7 +1,6 @@
 appId: com.pocketree.app
 ---
 # --- Redeem Skin ---
-- runFlow: home.yaml
 - tapOn: "Redeem"
 - tapOn:
     text: "OK"
