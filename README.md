@@ -1,15 +1,16 @@
 ﻿# 🌳 Pocketree
 Welcome to **Pocketree**, a full-stack sustainability application designed to track and encourage eco-friendly habits.
-This repository operates as a **Monorepo**, containing the Backend API with Machine Learning components, packaged into an Android Mobile App.
+This repository contains the source code for the Backend API with Machine Learning components, connecting to an Android Mobile App.
 
 ## 🏗️ Architecture & Tech Stack
 The system is composed of three primary services orchestrated via Docker.
-* **📱 Frontend:** Native Android (Kotlin / Jetpack Compose)
+* **📱 Frontend:** Android (Kotlin)
 * **⚙️ Backend:** ASP.NET Core Web API 9.0 (C#)
 * **🧠 Machine Learning:** Python Service (Flask/FastAPI)
+
 * **🗄️ Database:** MySQL 8.0
-* **🐳 Infrastructure:** Docker Compose
-* **🤖 CI/CD:** GitHub Actions with automated testing and deployment
+
+* **🤖 CI/CD:** GitHub Actions with automated build, testing and deployment.
 
 ---
 **Build Status:**

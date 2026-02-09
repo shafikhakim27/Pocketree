@@ -208,7 +208,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'csharp', 'python' ]
+        language: [ 'csharp', 'java-kotlin', 'python' ]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -227,6 +227,21 @@ jobs:
       - name: Compile (C#)
         if: matrix.language == 'csharp'
         run: dotnet build api/api.sln --configuration Release
+
+      - name: Build (Java/Kotlin)
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Compile (Java/Kotlin)
+        if: matrix.language == 'java-kotlin'
+        working-directory: ./android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug
 
       - name: Autobuild (Python)
         if: matrix.language == 'python'
