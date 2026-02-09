@@ -62,6 +62,9 @@ var mlServiceUrl = builder.Configuration["MlService:Url"] ?? "http://localhost:5
 var mlRecommendUrl = builder.Configuration["MlService:RecommendUrl"] ?? mlServiceUrl;
 builder.Services.AddHttpClient("ML_Consultant", client => {
     client.BaseAddress = new Uri(mlRecommendUrl);
+    // Explicitly inform the Python API to send JSON back
+    client.DefaultRequestHeaders.Accept.Add(
+        new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 });
 
 // Add CORS policy for API access
@@ -258,7 +261,7 @@ async System.Threading.Tasks.Task initDB(IServiceProvider services)
         if (!ctx.Tasks.Any())
         {
             // Add Tasks from Tasks.json
-            var jsonData = await File.ReadAllTextAsync("tasks.json");
+            var jsonData = await File.ReadAllTextAsync(Path.Combine(Directory.GetCurrentDirectory(), "tasks.json"));
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
             var tasks = JsonSerializer.Deserialize<List<Task>>(jsonData, options);
             
@@ -333,6 +336,7 @@ async System.Threading.Tasks.Task initDB(IServiceProvider services)
                     IsOnline = false
                 });
         }
+        await ctx.SaveChangesAsync();
 
         if (!ctx.UserPreferences.Any())
         {

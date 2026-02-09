@@ -25,8 +25,8 @@ html {
 }
 
 .login-card {
-    min-width: 900px;
     min-height: 550px;
+    height: auto;
 }
 
 .rounded-4 {
