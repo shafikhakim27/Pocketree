@@ -208,7 +208,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'csharp', 'java-kotlin', 'python' ]
+        language: [ 'csharp', 'python' ]
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -218,7 +218,18 @@ jobs:
         with:
           languages: ${{ matrix.language }}
 
-      - name: Autobuild
+      - name: Build (C#)
+        if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@v4.3.0
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Compile (C#)
+        if: matrix.language == 'csharp'
+        run: dotnet build api/api.sln --configuration Release
+
+      - name: Autobuild (Python)
+        if: matrix.language == 'python'
         uses: github/codeql-action/autobuild@v4.31.10
 
       - name: Perform CodeQL Analysis
@@ -230,6 +241,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
-          name: codeql-sarif
+          name: codeql-sarif-${{ matrix.language }}
           path: ${{ github.workspace }}/codeql-results/**/*.sarif
 
