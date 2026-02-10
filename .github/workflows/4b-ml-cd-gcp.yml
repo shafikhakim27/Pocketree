@@ -150,6 +150,7 @@ jobs:
         id: ensure_endpoint
         run: |
           set -euo pipefail
+          unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
           ENDPOINT_ID="$(gcloud ai endpoints list \
             --region "${{ env.GCP_REGION }}" \
             --filter="display_name=${{ env.ENDPOINT_DISPLAY_NAME }}" \
@@ -166,13 +167,78 @@ jobs:
           echo "ENDPOINT_ID=$ENDPOINT_ID" >> "$GITHUB_ENV"
           echo "endpoint_id=$ENDPOINT_ID" >> "$GITHUB_OUTPUT"
 
+      - name: Cleanup Failed Deployments
+        run: |
+          set -euo pipefail
+          unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
+          failed_ids=$(gcloud ai endpoints describe "$ENDPOINT_ID" \
+            --region "${{ env.GCP_REGION }}" \
+            --format="json" | \
+            python - <<'PY'
+          import json, sys
+          data = json.load(sys.stdin)
+          ids = []
+          for dm in data.get("deployedModels", []):
+            if dm.get("status", "") == "FAILED":
+              ids.append(dm.get("id"))
+          print(" ".join(ids))
+          PY
+          )
+          if [ -n "$failed_ids" ]; then
+            for id in $failed_ids; do
+              echo "Undeploying failed deployment $id"
+              gcloud ai endpoints undeploy-model "$ENDPOINT_ID" \
+                --region "${{ env.GCP_REGION }}" \
+                --deployed-model-id "$id" || true
+            done
+          else
+            echo "No failed deployments to remove."
+          fi
+
+      - name: Compute Deployment Display Name
+        id: compute_display
+        run: |
+          set -euo pipefail
+          unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
+          names=$(gcloud ai endpoints describe "$ENDPOINT_ID" \
+            --region "${{ env.GCP_REGION }}" \
+            --format="json" | \
+            python - <<'PY'
+          import json, sys, re
+          data = json.load(sys.stdin)
+          names = []
+          for dm in data.get("deployedModels", []):
+            name = dm.get("displayName", "")
+            if name.startswith("pocketree-ml-deploy "):
+              names.append(name)
+          print("\\n".join(names))
+          PY
+          )
+          max_n=0
+          if [ -n "$names" ]; then
+            max_n=$(python - <<'PY'
+          import sys, re
+          nums=[]
+          for line in sys.stdin.read().splitlines():
+            m=re.search(r"pocketree-ml-deploy\\s+(\\d+)$", line.strip())
+            if m:
+              nums.append(int(m.group(1)))
+          print(max(nums) if nums else 0)
+          PY
+            <<< "$names")
+          fi
+          next_n=$((max_n+1))
+          echo "DEPLOY_DISPLAY_NAME=pocketree-ml-deploy $next_n" >> "$GITHUB_ENV"
+          echo "deploy_display_name=pocketree-ml-deploy $next_n" >> "$GITHUB_OUTPUT"
+
       - name: Deploy Model to Vertex AI Endpoint
         run: |
           set -euo pipefail
+          unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
           gcloud ai endpoints deploy-model "$ENDPOINT_ID" \
             --region "${{ env.GCP_REGION }}" \
             --model "$MODEL_ID" \
-            --display-name "sha-${{ github.sha }}" \
+            --display-name "${{ env.DEPLOY_DISPLAY_NAME }}" \
             --machine-type "${{ env.MACHINE_TYPE }}" \
             --accelerator "type=${{ env.ACCELERATOR_TYPE }},count=${{ env.ACCELERATOR_COUNT }}" \
             --min-replica-count "${{ env.MIN_REPLICA_COUNT }}" \

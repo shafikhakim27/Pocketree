@@ -267,6 +267,89 @@ jobs:
             ${{ github.workspace }}/relaxed-checks-android.md
             ${{ github.workspace }}/relaxed-checks-android.html
 
+      - name: Suggested Improvements (Author)
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import subprocess
+
+          def get_author():
+            try:
+              return subprocess.check_output(
+                ["git", "log", "-1", "--pretty=format:%an"],
+                text=True
+              ).strip() or "Unknown"
+            except Exception:
+              return "Unknown"
+
+          suggestions = []
+          owners = {
+            "mobile": ["@shirleytjy", "CHEN HAOTING"],
+            "api": ["@shafikhakim27", "@gohwnyyhw"],
+            "ml": ["@wcyapplemist", "@fresfrida"]
+          }
+
+          # Android lint summary (code style)
+          summary = Path("summary.json")
+          if summary.exists():
+            data = json.loads(summary.read_text(encoding="utf-8", errors="ignore"))
+            critical = int(data.get("critical", 0))
+            high = int(data.get("high", 0))
+            medium = int(data.get("medium", 0))
+            if critical or high:
+              suggestions.append(("Fix Android lint critical/high issues (lintDebug) before merging.", "mobile"))
+            elif medium:
+              suggestions.append(("Address Android lint warnings to reduce noisy UI regressions.", "mobile"))
+
+          # Ruff (if present)
+          ruff = Path("ruff-report.json")
+          if ruff.exists():
+            try:
+              items = json.loads(ruff.read_text(encoding="utf-8", errors="ignore"))
+              if isinstance(items, list) and items:
+                suggestions.append(("Clean up Python style issues flagged by ruff.", "ml"))
+            except Exception:
+              pass
+
+          # Mypy (if present)
+          mypy = Path("mypy-report.txt")
+          if mypy.exists() and mypy.read_text(encoding="utf-8", errors="ignore").strip():
+            suggestions.append(("Resolve mypy type errors for safer ML/service changes.", "ml"))
+
+          # Fallback if no signals found
+          if not suggestions:
+            suggestions.append(("No code-style improvements detected in this run.", "api"))
+
+          # Limit to 3
+          suggestions = suggestions[:3]
+
+          author = get_author()
+          out = Path("suggested-improvements.md")
+          lines = [
+            "## Suggested Improvements",
+            f"Author: **{author}**",
+            "",
+            "| # | Suggestion | Owner(s) |",
+            "| --- | --- | --- |",
+          ]
+          for i, (s, team) in enumerate(suggestions, 1):
+            owner_list = owners.get(team, [])
+            owner_text = ", ".join(owner_list) if owner_list else "Unassigned"
+            lines.append(f"| {i} | {s} | {owner_text} |")
+          out.write_text("\n".join(lines) + "\n", encoding="utf-8")
+          PY
+          cat suggested-improvements.md >> $GITHUB_STEP_SUMMARY
+
+      - name: Upload Suggested Improvements
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: code-quality-suggested-improvements
+          path: ${{ github.workspace }}/suggested-improvements.md
+
       - name: Build Relaxed Dashboard
         if: always()
         run: |

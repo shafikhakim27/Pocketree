@@ -23,7 +23,6 @@ from sklearn.tree import DecisionTreeClassifier
 from typing import List, Optional
 from transformers import pipeline
 
-
 # Allowed categories
 ALLOWED_CATEGORIES = ["reuse", "reduce", "recycle", "food", "nature", "exercise"]
 
@@ -316,21 +315,21 @@ app = FastAPI(lifespan=lifespan)
 
 # --- DATABASE SETUP ---
 
-# DB_CONFIG = {
-#   "host": "127.0.0.1",
-#   "port": 3306,
-#   "user": "root",
-#   "password": "password", 
-#   "database": "PocketreeDb",
-#   "cursorclass": pymysql.cursors.DictCursor
-#}
+DB_CONFIG = {
+    "host": "127.0.0.1",
+    "port": 3306,
+    "user": "root",
+    "password": "password", 
+    "database": "PocketreeDb",
+    "cursorclass": pymysql.cursors.DictCursor
+}
 
-# db_pool = PooledDB(
-#     creator=pymysql, 
-#     mincached=2, 
-#     maxcached=5, 
-#     **DB_CONFIG
-# )
+db_pool = PooledDB(
+    creator=pymysql, 
+    mincached=2, 
+    maxcached=5, 
+    **DB_CONFIG
+)
 
 ### --- USE CASE 1: IMAGE VERIFICATION (CLIP) --- ###
 
@@ -859,17 +858,24 @@ class TaskData(BaseModel):
 class VertexRequest(BaseModel):
     instances: List[TaskData]
 
-# 3. Update your @app.post endpoint
+# 3. Update your @app.post endpoint    
 @app.post("/predict")
 async def predict(request: VertexRequest):
     # Vertex sends a list, so we take the first item
     data = request.instances[0]
     
     # Now you can use data.user_id, data.totalScore, etc.
-    # ... your ML logic here ...    
+    # 2. Convert Vertex TaskData to your internal TaskRequest model
+    # This ensures aliases like 'totalScore' map correctly to 'total_coins'
+    internal_request = TaskRequest(**data.model_dump())
+    # 3. Call your actual logic
+    result = await predict_bundle(internal_request)
+    # 4. VERTEX REQUIREMENT: Return inside a "predictions" list
+    # Your result dictionary already contains "user_tier" and "tasks"
+    return {
+        "predictions": [result]
+    }
 
-
-async def predict_bundle(req: TaskRequest):
 
     if models.get("llm") is None:
         raise HTTPException(status_code=503, detail="LLM disabled for speed test")
