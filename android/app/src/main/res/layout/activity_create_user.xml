@@ -8,7 +8,7 @@
     <ImageView
         android:id="@+id/backgroundImageView"
         android:layout_width="match_parent"
-        android:layout_height="130dp"
+        android:layout_height="110dp"
         android:alpha="0.35"
         android:contentDescription="@null"
         android:scaleType="centerCrop"
@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:layout_marginTop="130dp"
+        android:layout_marginTop="110dp"
         android:padding="20dp">
 
         <TextView
