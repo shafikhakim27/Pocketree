@@ -7,6 +7,8 @@ using Microsoft.Extensions.Configuration;
 using Pocketree.Api.Models.DTOs;
 using System;
 using System.Net.Http;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 using Task = ADproject.Models.Entities.Task;
 
@@ -90,16 +92,25 @@ namespace ADproject.Services
             // Prepare data for Python
             var payload = new
             {
-                preferredDifficulty = userPreferences.Difficulty,
-                preferredCategory = userPreferences.Category,
+                user_id = userId,
                 totalScore = userScore,
+                preferredCategory = userPreferences.Category,
                 tasks = await GetTop10HistoricalTasks(userId) // Get recent top 10 tasks completed
             };
 
             try
             {
+                // Inside ML Service method
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase, // Forces "ImageBase64" to "imageBase64"
+                    PropertyNameCaseInsensitive = true
+                };
+
+                var jsonContent = JsonSerializer.Serialize(payload, options);
+                var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
                 // Send data to Python by calling the Python Flask API 
-                var response = await _httpClient2.PostAsJsonAsync("predict", payload);
+                var response = await _httpClient2.PostAsJsonAsync("predict", content);
                 // Receive responses from Python
                 if (response.IsSuccessStatusCode)
                 {
