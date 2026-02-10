@@ -10,12 +10,6 @@ on:
     paths:
       - 'api/**'
       - '.github/workflows/3a-api-ci.yml'
-  pull_request:
-    branches: ["main", "develop"]
-    paths:
-      - 'api/**'
-      - '.github/workflows/3a-api-ci.yml'
-
 permissions:
   contents: read
   security-events: write
@@ -102,30 +96,32 @@ jobs:
           )
           html = Path("relaxed-checks.html")
           html.write_text(
-            f"""<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>API Relaxed Checks</title>
-    <style>
-      body {{ font-family: Arial, sans-serif; margin: 24px; }}
-      table {{ border-collapse: collapse; width: 320px; }}
-      th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-      th {{ background: #f3f4f6; }}
-      .section {{ margin-top: 16px; }}
-    </style>
-  </head>
-  <body>
-    <h2>API Relaxed Checks (dotnet format)</h2>
-    <table>
-      <tr><th>Metric</th><th>Count</th></tr>
-      <tr><td>Errors</td><td>{errors}</td></tr>
-      <tr><td>Warnings</td><td>{warnings}</td></tr>
-    </table>
-    <div class="section"><strong>Suggested actions</strong><div>{suggestions[0]}</div></div>
-    <div class="section"><strong>Details</strong><div>dotnet-format errors={errors} warnings={warnings}</div></div>
-  </body>
-</html>""",
+            "\n".join([
+              "<!doctype html>",
+              "<html lang=\"en\">",
+              "  <head>",
+              "    <meta charset=\"utf-8\" />",
+              "    <title>API Relaxed Checks</title>",
+              "    <style>",
+              "      body {{ font-family: Arial, sans-serif; margin: 24px; }}",
+              "      table {{ border-collapse: collapse; width: 320px; }}",
+              "      th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}",
+              "      th {{ background: #f3f4f6; }}",
+              "      .section {{ margin-top: 16px; }}",
+              "    </style>",
+              "  </head>",
+              "  <body>",
+              "    <h2>API Relaxed Checks (dotnet format)</h2>",
+              "    <table>",
+              "      <tr><th>Metric</th><th>Count</th></tr>",
+              "      <tr><td>Errors</td><td>{errors}</td></tr>",
+              "      <tr><td>Warnings</td><td>{warnings}</td></tr>",
+              "    </table>",
+              "    <div class=\"section\"><strong>Suggested actions</strong><div>{suggestions[0]}</div></div>",
+              "    <div class=\"section\"><strong>Details</strong><div>dotnet-format errors={errors} warnings={warnings}</div></div>",
+              "  </body>",
+              "</html>"
+            ]),
             encoding="utf-8"
           )
           PY

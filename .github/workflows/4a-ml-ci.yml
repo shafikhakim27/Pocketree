@@ -132,39 +132,41 @@ jobs:
           )
           html = Path("relaxed-checks-tests.html")
           html.write_text(
-            f"""<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <title>ML Service Relaxed Checks</title>
-    <style>
-      body {{ font-family: Arial, sans-serif; margin: 24px; }}
-      table {{ border-collapse: collapse; width: 360px; }}
-      th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
-      th {{ background: #f3f4f6; }}
-      .section {{ margin-top: 16px; }}
-      ul {{ margin: 6px 0 0 18px; }}
-    </style>
-  </head>
-  <body>
-    <h2>ML Service Relaxed Checks (tests)</h2>
-    <table>
-      <tr><th>Metric</th><th>Count</th></tr>
-      <tr><td>Errors</td><td>{errors}</td></tr>
-      <tr><td>Warnings</td><td>{warnings}</td></tr>
-    </table>
-    <div class="section"><strong>Suggested actions</strong>
-      <ul>
-        {''.join(f'<li>{s}</li>' for s in suggestions)}
-      </ul>
-    </div>
-    <div class="section"><strong>Details</strong>
-      <ul>
-        {''.join(f'<li>{d}</li>' for d in details)}
-      </ul>
-    </div>
-  </body>
-</html>""",
+            "\n".join([
+              "<!doctype html>",
+              "<html lang=\"en\">",
+              "  <head>",
+              "    <meta charset=\"utf-8\" />",
+              "    <title>ML Service Relaxed Checks</title>",
+              "    <style>",
+              "      body {{ font-family: Arial, sans-serif; margin: 24px; }}",
+              "      table {{ border-collapse: collapse; width: 360px; }}",
+              "      th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}",
+              "      th {{ background: #f3f4f6; }}",
+              "      .section {{ margin-top: 16px; }}",
+              "      ul {{ margin: 6px 0 0 18px; }}",
+              "    </style>",
+              "  </head>",
+              "  <body>",
+              "    <h2>ML Service Relaxed Checks (tests)</h2>",
+              "    <table>",
+              "      <tr><th>Metric</th><th>Count</th></tr>",
+              "      <tr><td>Errors</td><td>{errors}</td></tr>",
+              "      <tr><td>Warnings</td><td>{warnings}</td></tr>",
+              "    </table>",
+              "    <div class=\"section\"><strong>Suggested actions</strong>",
+              "      <ul>",
+              "        {''.join(f'<li>{s}</li>' for s in suggestions)}",
+              "      </ul>",
+              "    </div>",
+              "    <div class=\"section\"><strong>Details</strong>",
+              "      <ul>",
+              "        {''.join(f'<li>{d}</li>' for d in details)}",
+              "      </ul>",
+              "    </div>",
+              "  </body>",
+              "</html>"
+            ]),
             encoding="utf-8"
           )
           PY
