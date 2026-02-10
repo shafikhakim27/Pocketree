@@ -15,8 +15,9 @@ open-clip-torch
 pydantic
 scikit-learn
 
-transformers
-sentence-transformers
+transformers==4.41.2
+accelerate==0.31.0
+sentence-transformers==2.7.0
 
 langchain-text-splitters
 langchain-community
