@@ -1,6 +1,7 @@
 name: 2a) Android CI
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 12 * * *"
     - cron: "0 20 * * *"
@@ -9,7 +10,6 @@ on:
     paths:
       - 'android/**'
       - '.github/workflows/2a-android-ci.yml'
-  workflow_dispatch:
 
 jobs:
   build-android:

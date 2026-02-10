@@ -1,11 +1,11 @@
 name: 4c) ML DAST
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["4b) ML CD (Deploy -GCP)", "4f) ML CD (v2 Cloud Run)", "4g) ML CD (v3 Azure)"]
     types:
       - completed
-  workflow_dispatch:
 
 jobs:
   zap-baseline:

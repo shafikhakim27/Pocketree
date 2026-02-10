@@ -1,6 +1,7 @@
 name: 4d) ML CI (v2 Cloud Run)
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 12 * * *"
     - cron: "0 20 * * *"
@@ -9,7 +10,6 @@ on:
     paths:
       - 'ml-service-v2/**'
       - '.github/workflows/4d-ml-v2-ci.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read

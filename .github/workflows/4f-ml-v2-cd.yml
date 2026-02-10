@@ -1,11 +1,11 @@
 name: 4f) ML CD (v2 Cloud Run)
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["4d) ML CI (v2 Cloud Run)"]
     types:
       - completed
-  workflow_dispatch:
 
 env:
   GCP_PROJECT_ID: pocketree-ml-service

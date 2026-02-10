@@ -1,11 +1,11 @@
 name: 2d) Android UI - Maestro
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["2a) Android CI"]
     types:
       - completed
-  workflow_dispatch:
 
 jobs:
   ui-test:

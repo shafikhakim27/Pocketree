@@ -1,11 +1,11 @@
 name: 3b) API CD (Deploy - Azure)
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["3a) API CI (Build, Test, Scan, SAST)"]
     types:
       - completed
-  workflow_dispatch:
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-api

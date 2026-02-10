@@ -1,11 +1,11 @@
 name: 4b) ML CD (Deploy -GCP)
 
 on:
+  workflow_dispatch:
   workflow_run:
     workflows: ["4a) ML CI (Build, Test, Scan, SAST)"]
     types:
       - completed
-  workflow_dispatch:
 
 env:
   GCP_PROJECT_ID: pocketree-ml-service

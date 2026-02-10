@@ -1,6 +1,7 @@
 name: 4e) ML CI (v3 Azure)
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 12 * * *"
     - cron: "0 20 * * *"
@@ -9,7 +10,6 @@ on:
     paths:
       - 'ml-service-v3/**'
       - '.github/workflows/4e-ml-v3-ci.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read

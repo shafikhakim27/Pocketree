@@ -1,6 +1,7 @@
 name: 4a) ML CI (Build, Test, Scan, SAST)
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 12 * * *"
     - cron: "0 20 * * *"
@@ -9,7 +10,6 @@ on:
     paths:
       - 'ml-service/**'
       - '.github/workflows/4a-ml-ci.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read
