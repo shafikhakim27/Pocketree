@@ -114,11 +114,11 @@ class PockeTreeBot:
         return profile["name"]
     
     def handle_small_talk(self, text, user_id):
-        name = self.extract_and_greet(text, user_id)
-        greet_name = f", {name}" if name else ""
         
+        name = self.extract_and_greet(text, user_id)
         text_lower = text.lower().strip()
         words = text_lower.split()
+
         if len(words) < 4 and any(greet in text_lower for greet in ["hi", "hello", "morning", "afternoon", "evening", "yo", "what's up"]):
             name = self.extract_and_greet(text, user_id)
             greet_name = f", {name}" if name else ""
