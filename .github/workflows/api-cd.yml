@@ -1,6 +1,9 @@
 name: Backend API CD
 
 on:
+  schedule:
+    - cron: "0 12 * * *"
+    - cron: "0 20 * * *"
   push:
     branches: ["main"]
     paths:
@@ -65,7 +68,6 @@ jobs:
           image-ref: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           format: 'json'
           output: 'trivy-report.json'
-          skip-version-check: 'true'
           exit-code: '1'
           severity: 'CRITICAL'
           ignore-unfixed: true

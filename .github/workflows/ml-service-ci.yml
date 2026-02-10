@@ -1,6 +1,9 @@
 name: ML Service CI
 
 on:
+  schedule:
+    - cron: "0 12 * * *"
+    - cron: "0 20 * * *"
   push:
     branches: ["main", "develop"]
     paths:

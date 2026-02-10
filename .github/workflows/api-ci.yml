@@ -1,6 +1,9 @@
 name: Backend API CI
 
 on:
+  schedule:
+    - cron: "0 12 * * *"
+    - cron: "0 20 * * *"
   push:
     branches: ["main", "develop"]
     paths:
@@ -40,7 +43,7 @@ jobs:
         run: |
           dotnet tool install --global dotnet-format
           echo "$HOME/.dotnet/tools" >> $GITHUB_PATH
-          dotnet format api/api.sln --verify-no-changes --report format-report.json --report-format json
+          dotnet format api/api.sln --verify-no-changes --report format-report.json
 
       - name: Upload Lint Report
         if: always()

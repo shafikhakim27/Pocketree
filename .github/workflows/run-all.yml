@@ -2,7 +2,10 @@ name: Run All Pipelines
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "0 12 * * *"
 
+    - cron: "0 20 * * *"
 permissions:
   contents: read
   actions: write
@@ -19,17 +22,17 @@ jobs:
               "api-ci.yml",
               "api-cd.yml",
               "api-dast.yml",
-              "ml-service-ci.yml",
-              "ml-service-cd.yml",
-              "ml-dast.yml",
               "android-ci.yml",
               "android-ui-test.yml",
               "android-release.yml",
               "android-mobsfscan.yml",
-              "security-report.yml",
               "code-quality.yml",
               "contribution-report.yml",
-              "Pipeline Artifacts.yml"
+              "ml-service-ci.yml",
+              "ml-service-cd.yml",
+              "ml-dast.yml",
+              "Pipeline Artifacts.yml",
+              "security-report.yml"
             ];
 
             for (const wf of workflows) {

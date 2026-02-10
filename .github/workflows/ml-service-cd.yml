@@ -1,6 +1,9 @@
 name: ML Service CD
 
 on:
+  schedule:
+    - cron: "0 12 * * *"
+    - cron: "0 20 * * *"
   push:
     branches: ["main"]
     paths:
@@ -13,7 +16,13 @@ env:
   GCP_REGION: asia-southeast1
   AR_REPO: pocketree-ml
   IMAGE_NAME: pocketree-ml
-  SERVICE_NAME: pocketree-ml
+  MODEL_DISPLAY_NAME: pocketree-ml
+  ENDPOINT_DISPLAY_NAME: pocketree-ml-endpoint
+  MACHINE_TYPE: n1-standard-4
+  ACCELERATOR_TYPE: nvidia-tesla-t4
+  ACCELERATOR_COUNT: "1"
+  MIN_REPLICA_COUNT: "1"
+  MAX_REPLICA_COUNT: "1"
 
 jobs:
   build-and-deploy-ml:
@@ -48,9 +57,11 @@ jobs:
         run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev" --quiet
 
       - name: Build and push ML Docker image
+        id: build_image
         run: |
           IMAGE_URI="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
+          echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
           docker build -f ml-service/Dockerfile -t "$IMAGE_URI" ml-service
           docker push "$IMAGE_URI"
 
@@ -62,10 +73,9 @@ jobs:
       - name: Run Trivy Vulnerability Scanner
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_URI }}
+          image-ref: ${{ steps.build_image.outputs.image_uri }}
           format: 'json'
           output: 'trivy-report.json'
-          skip-version-check: 'true'
           exit-code: '1'
           severity: 'CRITICAL'
           ignore-unfixed: true
@@ -102,22 +112,59 @@ jobs:
             ${{ github.workspace }}/trivy-report.json
             ${{ github.workspace }}/trivy-report.txt
 
-      - name: Deploy to Cloud Run
+      - name: Upload Model to Vertex AI
+        id: upload_model
         run: |
           set -euo pipefail
-          gcloud run deploy "${{ env.SERVICE_NAME }}" \
-            --project "${{ env.GCP_PROJECT_ID }}" \
+          MODEL_ID="$(gcloud ai models list \
             --region "${{ env.GCP_REGION }}" \
-            --platform managed \
-            --image "$IMAGE_URI" \
-            --port 8080 \
-            --cpu 2 \
-            --memory 8Gi \
-            --timeout 600 \
-            --concurrency 10 \
-            --min-instances 1 \
-            --max-instances 1 \
-            --ingress all \
-            --set-env-vars "GUNICORN_CMD_ARGS=--timeout 600 --preload --workers 1" \
-            --allow-unauthenticated
+            --filter="display_name=${{ env.MODEL_DISPLAY_NAME }}" \
+            --sort-by=~createTime \
+            --limit=1 \
+            --format="value(name)")"
+
+          MODEL_ID="$(gcloud ai models upload \
+            --region "${{ env.GCP_REGION }}" \
+            --display-name "${{ env.MODEL_DISPLAY_NAME }}" \
+            --container-image-uri "$IMAGE_URI" \
+            --container-predict-route="/predict" \
+            --container-health-route="/health" \
+            --container-ports=8080 \
+            --format="value(name)")"
+
+          echo "MODEL_ID=$MODEL_ID" >> "$GITHUB_ENV"
+          echo "model_id=$MODEL_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Ensure Vertex AI Endpoint exists
+        id: ensure_endpoint
+        run: |
+          set -euo pipefail
+          ENDPOINT_ID="$(gcloud ai endpoints list \
+            --region "${{ env.GCP_REGION }}" \
+            --filter="display_name=${{ env.ENDPOINT_DISPLAY_NAME }}" \
+            --limit=1 \
+            --format="value(name)")"
+
+          if [ -z "$ENDPOINT_ID" ]; then
+            ENDPOINT_ID="$(gcloud ai endpoints create \
+              --region "${{ env.GCP_REGION }}" \
+              --display-name "${{ env.ENDPOINT_DISPLAY_NAME }}" \
+              --format="value(name)")"
+          fi
+
+          echo "ENDPOINT_ID=$ENDPOINT_ID" >> "$GITHUB_ENV"
+          echo "endpoint_id=$ENDPOINT_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Model to Vertex AI Endpoint
+        run: |
+          set -euo pipefail
+          gcloud ai endpoints deploy-model "$ENDPOINT_ID" \
+            --region "${{ env.GCP_REGION }}" \
+            --model "$MODEL_ID" \
+            --display-name "sha-${{ github.sha }}" \
+            --machine-type "${{ env.MACHINE_TYPE }}" \
+            --accelerator "type=${{ env.ACCELERATOR_TYPE }},count=${{ env.ACCELERATOR_COUNT }}" \
+            --min-replica-count "${{ env.MIN_REPLICA_COUNT }}" \
+            --max-replica-count "${{ env.MAX_REPLICA_COUNT }}" \
+            --traffic-split "0=100"
 

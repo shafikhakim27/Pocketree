@@ -1,6 +1,9 @@
 name: Android Release Build
 
 on:
+  schedule:
+    - cron: "0 12 * * *"
+    - cron: "0 20 * * *"
   push:
     branches: ["main"]
     paths:

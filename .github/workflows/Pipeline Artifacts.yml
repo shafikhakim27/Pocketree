@@ -5,6 +5,8 @@ on:
   schedule:
     - cron: "30 2 * * *"
 
+    - cron: "0 12 * * *"
+    - cron: "0 20 * * *"
 permissions:
   contents: read
   actions: read
@@ -40,6 +42,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          missing_log="collected/missing-artifacts.txt"
+          touch "$missing_log"
           while IFS= read -r wf; do
             [ -z "$wf" ] && continue
             echo "Fetching latest success run for $wf"
@@ -47,7 +51,9 @@ jobs:
             if [ -n "${success_id:-}" ]; then
               echo "Downloading success artifacts for run $success_id ($wf)"
               mkdir -p "collected/success/$wf"
-              gh run download "$success_id" -D "collected/success/$wf" || echo "No artifacts for $wf (success)"
+              if ! gh run download "$success_id" -D "collected/success/$wf"; then
+                echo "NO_ARTIFACTS success $wf run=$success_id" >> "$missing_log"
+              fi
             else
               echo "No successful runs found for $wf"
             fi
@@ -57,7 +63,9 @@ jobs:
             if [ -n "${failure_id:-}" ]; then
               echo "Downloading failure artifacts for run $failure_id ($wf)"
               mkdir -p "collected/failure/$wf"
-              gh run download "$failure_id" -D "collected/failure/$wf" || echo "No artifacts for $wf (failure)"
+              if ! gh run download "$failure_id" -D "collected/failure/$wf"; then
+                echo "NO_ARTIFACTS failure $wf run=$failure_id" >> "$missing_log"
+              fi
             else
               echo "No failed runs found for $wf"
             fi
@@ -67,7 +75,9 @@ jobs:
             if [ -n "${cancelled_id:-}" ]; then
               echo "Downloading cancelled/timed_out artifacts for run $cancelled_id ($wf)"
               mkdir -p "collected/cancelled/$wf"
-              gh run download "$cancelled_id" -D "collected/cancelled/$wf" || echo "No artifacts for $wf (cancelled/timed_out)"
+              if ! gh run download "$cancelled_id" -D "collected/cancelled/$wf"; then
+                echo "NO_ARTIFACTS cancelled_or_timed_out $wf run=$cancelled_id" >> "$missing_log"
+              fi
             else
               echo "No cancelled/timed_out runs found for $wf"
             fi
@@ -77,7 +87,9 @@ jobs:
             if [ -n "${skipped_id:-}" ]; then
               echo "Downloading skipped/neutral artifacts for run $skipped_id ($wf)"
               mkdir -p "collected/skipped/$wf"
-              gh run download "$skipped_id" -D "collected/skipped/$wf" || echo "No artifacts for $wf (skipped/neutral)"
+              if ! gh run download "$skipped_id" -D "collected/skipped/$wf"; then
+                echo "NO_ARTIFACTS skipped_or_neutral $wf run=$skipped_id" >> "$missing_log"
+              fi
             else
               echo "No skipped/neutral runs found for $wf"
             fi
@@ -92,11 +104,16 @@ jobs:
 
           root = Path("collected")
           files = [str(p) for p in sorted(root.rglob("*")) if p.is_file()]
+          missing = []
+          missing_log = root / "missing-artifacts.txt"
+          if missing_log.exists():
+            missing = [line.strip() for line in missing_log.read_text(encoding="utf-8").splitlines() if line.strip()]
           index = {
             "title": "Collected CI Artifacts",
             "repository": "${{ github.repository }}",
             "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "files": files
+            "files": files,
+            "missing_artifacts": missing
           }
           Path("collected/INDEX.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
           lines = [
@@ -105,6 +122,8 @@ jobs:
             f"Timestamp: {index['timestamp']}",
             ""
           ] + files
+          if missing:
+            lines += ["", "Missing Artifacts:"] + missing
           Path("collected/INDEX.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 

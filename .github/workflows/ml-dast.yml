@@ -3,6 +3,8 @@ name: ML Service DAST
 on:
   schedule:
     - cron: "30 2 * * *"
+    - cron: "0 12 * * *"
+    - cron: "0 20 * * *"
   workflow_dispatch:
 
 env:
