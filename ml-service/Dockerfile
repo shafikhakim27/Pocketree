@@ -14,4 +14,4 @@ COPY . .
 # Pre-download weights
 RUN python3 -c "import open_clip; open_clip.create_model_and_transforms('MobileCLIP2-S0', pretrained='dfndr2b')"
 
-CMD ["uvicorn", "CLIPModelMobile_donotmerge:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "MainModelML:app", "--host", "0.0.0.0", "--port", "8080"]
