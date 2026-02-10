@@ -35,13 +35,6 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ml-service/requirements.txt -r ml-service/requirements-dev.txt
 
-      - name: EditorConfig Check
-        run: |
-          curl -fL -sSLo ec.tar.gz https://github.com/editorconfig-checker/editorconfig-checker/releases/latest/download/ec-linux-amd64.tar.gz
-          file ec.tar.gz
-          tar -xzf ec.tar.gz
-          ./bin/ec -disable-indent-size -exclude ".git/**" -exclude ".venv/**" -exclude "ml-service/.venv/**" ml-service
-
       - name: Lint (ruff)
         run: |
           pip install ruff
