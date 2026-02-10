@@ -1,4 +1,4 @@
-name: Android Build & Unit Test
+name: 2a) Android CI
 
 on:
   schedule:

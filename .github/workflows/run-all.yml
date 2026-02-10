@@ -1,4 +1,4 @@
-name: Run All Pipelines
+name: 1e) Run All Workflows
 
 on:
   workflow_dispatch:
@@ -30,6 +30,10 @@ jobs:
               "contribution-report.yml",
               "ml-service-ci.yml",
               "ml-service-cd.yml",
+              "ml-service-v2-ci.yml",
+              "ml-service-v2-cd.yml",
+              "ml-service-v3-ci.yml",
+              "ml-service-v3-cd.yml",
               "ml-dast.yml",
               "Pipeline Artifacts.yml",
               "security-report.yml"

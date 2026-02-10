@@ -1,4 +1,4 @@
-name: Android SAST (MobSF Scan)
+name: 2b) Android Mobsfscan - SAST
 
 on:
   schedule:

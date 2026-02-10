@@ -503,3 +503,6 @@ appsettings.*.json
 
 # Maestro local outputs (root)
 /.maestro/
+
+# IDE workspace settings
+**/.settings/

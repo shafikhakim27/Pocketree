@@ -1,4 +1,4 @@
-name: Code Quality & Coverage
+name: 1a) Code Quality and Coverage
 
 on:
   workflow_dispatch:

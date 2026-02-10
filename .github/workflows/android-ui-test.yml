@@ -1,4 +1,4 @@
-name: Android UI Test
+name: 2d) Android UI - Maestro
 
 on:
   schedule:

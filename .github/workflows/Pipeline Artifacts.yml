@@ -1,4 +1,4 @@
-name: Pipeline Artifacts
+name: 1d) Pipeline Compiled Artifacts
 
 on:
   workflow_dispatch:

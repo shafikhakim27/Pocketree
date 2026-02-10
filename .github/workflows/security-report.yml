@@ -1,4 +1,4 @@
-name: Security Report
+name: 1b) Security Tests Report
 
 on:
   workflow_dispatch:

@@ -1,4 +1,4 @@
-name: 3b) API CD (Deploy - Azure)
+name: 4g) ML CD (v3 Azure)
 
 on:
   schedule:
@@ -7,13 +7,13 @@ on:
   push:
     branches: ["main"]
     paths:
-      - 'api/**'
-      - '.github/workflows/api-cd.yml'
+      - 'ml-service-v3/**'
+      - '.github/workflows/ml-service-v3-cd.yml'
   workflow_dispatch:
 
 env:
-  IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-api
-  AZURE_WEBAPP_NAME: pocketree-api
+  IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-ml-v3
+  AZURE_WEBAPP_NAME: pocketree-ml-service
 
 jobs:
   build-and-deploy:
@@ -22,12 +22,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4.3.0
-        with:
-          dotnet-version: 9.0.x
-
-      # Docker Build & Push
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.12.0
 
@@ -49,8 +43,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6.18.0
         with:
-          context: .
-          file: api/Dockerfile
+          context: ml-service-v3
+          file: ml-service-v3/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -99,36 +93,10 @@ jobs:
         uses: actions/upload-artifact@v6.0.0
         with:
           if-no-files-found: warn
-          name: trivy-report
+          name: trivy-report-ml-v3
           path: |
             ${{ github.workspace }}/trivy-report.json
             ${{ github.workspace }}/trivy-report.txt
-
-      - name: Build Summary
-        if: always()
-        run: |
-          cat > summary.json <<'JSON'
-          {
-            "summary": "API CD Summary",
-            "docker_build_push": "Completed",
-            "trivy_scan": "Completed"
-          }
-          JSON
-          cat > summary.txt <<'TXT'
-          API CD Summary
-          Docker Build & Push: Completed
-          Trivy Scan: Completed
-          TXT
-
-      - name: Upload Summary
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
-        with:
-          if-no-files-found: warn
-          name: api-cd-summary
-          path: |
-            ${{ github.workspace }}/summary.json
-            ${{ github.workspace }}/summary.txt
 
       - name: Azure Login
         uses: azure/login@v2.3.0
@@ -140,4 +108,3 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           images: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
-

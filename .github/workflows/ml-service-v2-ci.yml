@@ -1,4 +1,4 @@
-name: 4a) ML CI (Build, Test, Scan, SAST)
+name: 4d) ML CI (v2 Cloud Run)
 
 on:
   schedule:
@@ -7,8 +7,8 @@ on:
   push:
     branches: ["main", "develop"]
     paths:
-      - 'ml-service/**'
-      - '.github/workflows/ml-service-ci.yml'
+      - 'ml-service-v2/**'
+      - '.github/workflows/ml-service-v2-ci.yml'
   workflow_dispatch:
 
 permissions:
@@ -28,53 +28,53 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v6.1.0
         with:
-          python-version: "3.11"
+          python-version: "3.10"
 
       - name: Install Dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r ml-service/requirements.txt -r ml-service/requirements-dev.txt
+          pip install -r ml-service-v2/requirements.txt -r ml-service-v2/requirements-dev.txt
 
       - name: EditorConfig Check
         run: |
           curl -sSLo ec.tar.gz https://github.com/editorconfig-checker/editorconfig-checker/releases/download/2.7.3/ec-linux-amd64.tar.gz
           tar -xzf ec.tar.gz
-          ./bin/ec -disable-indent-size -exclude ".git/**" -exclude ".venv/**" -exclude "ml-service/.venv/**" ml-service
+          ./bin/ec -disable-indent-size -exclude ".git/**" -exclude ".venv/**" -exclude "ml-service-v2/.venv/**" ml-service-v2
 
       - name: Lint (ruff)
         run: |
           pip install ruff
-          ruff check ml-service --output-format json --output-file ruff-report.json
+          ruff check ml-service-v2 --output-format json --output-file ruff-report.json
 
       - name: Type Check (mypy)
         run: |
           pip install mypy
-          mypy --config-file ml-service/mypy.ini ml-service
+          mypy --config-file ml-service-v2/mypy.ini ml-service-v2
 
       - name: Upload Lint Report
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
           if-no-files-found: warn
-          name: ml-ruff-report
+          name: ml-v2-ruff-report
           path: ${{ github.workspace }}/ruff-report.json
 
       - name: Run ML Service Tests
         run: |
-          pytest ml-service/tests --junitxml=ml-service-test-results.xml
+          pytest ml-service-v2/tests --junitxml=ml-service-v2-test-results.xml
 
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
           if-no-files-found: warn
-          name: ml-service-test-results
-          path: ${{ github.workspace }}/ml-service-test-results.xml
+          name: ml-service-v2-test-results
+          path: ${{ github.workspace }}/ml-service-v2-test-results.xml
 
       - name: Build Summary
         if: always()
         run: |
-          echo "ML Service Tests: Completed" >> "$GITHUB_STEP_SUMMARY"
+          echo "ML Service v2 Tests: Completed" >> "$GITHUB_STEP_SUMMARY"
 
   security-scans:
     runs-on: ubuntu-latest
@@ -87,17 +87,17 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=ml-service/requirements.txt --severity-threshold=high --skip-unresolved --json-file-output=ml-service-snyk.json --sarif-file-output=ml-service-snyk.sarif
+          args: --file=ml-service-v2/requirements.txt --severity-threshold=high --skip-unresolved --json-file-output=ml-service-v2-snyk.json --sarif-file-output=ml-service-v2-snyk.sarif
 
       - name: Run Bandit
         run: |
           pip install bandit
-          bandit -r ml-service/ -lll -iii -f json -o bandit-report.json
+          bandit -r ml-service-v2/ -lll -iii -f json -o bandit-report.json
 
       - name: Check Snyk SARIF
         if: always()
         run: |
-          if [ ! -s ml-service-snyk.sarif ]; then
+          if [ ! -s ml-service-v2-snyk.sarif ]; then
             echo "SKIP_SNYK_SARIF=true" >> $GITHUB_ENV
             echo "Snyk SARIF missing or empty, skipping upload."
           fi
@@ -106,54 +106,27 @@ jobs:
         if: always() && env.SKIP_SNYK_SARIF != 'true'
         uses: github/codeql-action/upload-sarif@v4.31.10
         with:
-          sarif_file: ml-service-snyk.sarif
+          sarif_file: ml-service-v2-snyk.sarif
 
       - name: Upload Snyk Report
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
           if-no-files-found: warn
-          name: ml-snyk-report
+          name: ml-v2-snyk-report
           path: |
-            ${{ github.workspace }}/ml-service-snyk.json
-            ${{ github.workspace }}/ml-service-snyk.sarif
+            ${{ github.workspace }}/ml-service-v2-snyk.json
+            ${{ github.workspace }}/ml-service-v2-snyk.sarif
 
       - name: Upload Bandit Report
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
           if-no-files-found: warn
-          name: ml-bandit-report
+          name: ml-v2-bandit-report
           path: ${{ github.workspace }}/bandit-report.json
 
       - name: Security Summary
         if: always()
         run: |
-          echo "ML Service Security Scans: Completed" >> $GITHUB_STEP_SUMMARY
-
-      - name: Build Summary
-        if: always()
-        run: |
-          cat > summary.json <<'JSON'
-          {
-            "summary": "ML Service CI Summary",
-            "snyk": "Completed",
-            "bandit": "Completed"
-          }
-          JSON
-          cat > summary.txt <<'TXT'
-          ML Service CI Summary
-          Snyk: Completed
-          Bandit: Completed
-          TXT
-
-      - name: Upload Summary
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
-        with:
-          if-no-files-found: warn
-          name: ml-service-ci-summary
-          path: |
-            ${{ github.workspace }}/summary.json
-            ${{ github.workspace }}/summary.txt
-
+          echo "ML Service v2 Security Scans: Completed" >> $GITHUB_STEP_SUMMARY

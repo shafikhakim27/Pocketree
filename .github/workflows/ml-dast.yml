@@ -1,4 +1,4 @@
-name: ML Service DAST
+name: 4c) ML DAST
 
 on:
   schedule:

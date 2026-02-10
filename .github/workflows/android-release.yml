@@ -1,4 +1,4 @@
-name: Android Release Build
+name: 2c) Android CD Release Build
 
 on:
   schedule:

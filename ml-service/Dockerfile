@@ -1,17 +1,26 @@
 FROM nvidia/cuda:12.1.1-runtime-ubuntu22.04
 
-RUN apt-get update && apt-get install -y python3.10 python3-pip libgl1 libglib2.0-0 \
-    && rm -rf /var/lib/apt/lists/*
-
+ENV DEBIAN_FRONTEND=noninteractive
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y \
+    python3.10 python3-pip python3.10-dev \
+    build-essential git curl \
+    libgl1 libglib2.0-0 \
+    libffi-dev libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY requirements.txt .
-# GPU build: use CUDA wheels
-RUN pip3 install --no-cache-dir -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cu121
+
+RUN python3 -m pip install --upgrade pip setuptools wheel
+
+# Install (CUDA torch wheels)
+RUN python3 -m pip install --no-cache-dir -r requirements.txt \
+    --extra-index-url https://download.pytorch.org/whl/cu121
 
 COPY . .
 
 # Pre-download weights
 RUN python3 -c "import open_clip; open_clip.create_model_and_transforms('MobileCLIP2-S0', pretrained='dfndr2b')"
 
-CMD ["uvicorn", "MainModelML:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["python3","-m","uvicorn","MainModelML:app","--host","0.0.0.0","--port","8080"]

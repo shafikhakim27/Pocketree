@@ -1,4 +1,4 @@
-name: Backend API CI
+name: 3a) API CI (Build, Test, Scan, SAST)
 
 on:
   schedule:
