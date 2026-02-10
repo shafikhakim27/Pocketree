@@ -39,13 +39,44 @@ jobs:
               "1b-security-tests-report.yml"
             ];
 
+            const wfList = await github.rest.actions.listRepoWorkflows({
+              owner: context.repo.owner,
+              repo: context.repo.repo
+            });
+            const byPath = new Map(
+              (wfList.data.workflows || []).map(wf => [wf.path.replace(".github/workflows/", ""), wf])
+            );
+
+            const failures = [];
             for (const wf of workflows) {
-              core.info(`Dispatching ${wf}`);
-              await github.rest.actions.createWorkflowDispatch({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                workflow_id: wf,
-                ref: context.ref.replace("refs/heads/", "")
-              });
+              const wfInfo = byPath.get(wf);
+              if (!wfInfo) {
+                const msg = "Workflow not found in repo workflow list";
+                core.warning(`Failed to dispatch ${wf}: ${msg}`);
+                failures.push({ workflow: wf, error: msg });
+                continue;
+              }
+              core.info(`Dispatching ${wf} (id=${wfInfo.id})`);
+              try {
+                await github.rest.actions.createWorkflowDispatch({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  workflow_id: wfInfo.id,
+                  ref: context.ref.replace("refs/heads/", "")
+                });
+              } catch (err) {
+                const msg = err?.message || String(err);
+                core.warning(`Failed to dispatch ${wf}: ${msg}`);
+                failures.push({ workflow: wf, error: msg });
+              }
+            }
+
+            core.info(`Dispatch complete. Failures: ${failures.length}`);
+            if (failures.length) {
+              core.setOutput("dispatch_failures", JSON.stringify(failures));
+              const lines = failures.map(f => `- ${f.workflow}: ${f.error}`);
+              core.summary.addHeading("Dispatch Failures");
+              core.summary.addRaw(lines.join("\n"));
+              await core.summary.write();
             }
 
