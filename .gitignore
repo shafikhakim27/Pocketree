@@ -506,3 +506,4 @@ appsettings.*.json
 
 # IDE workspace settings
 **/.settings/
+ml-service/github-key.json
