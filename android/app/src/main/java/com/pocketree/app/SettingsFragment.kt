@@ -162,8 +162,6 @@ class SettingsFragment: Fragment() {
         binding.btnLogout.setOnClickListener {
             SignalRManager.stopConnection()
             (activity as? MainActivity)?.stopMusic()
-            // Clear local login state
-            sharedViewModel.performLocalCleanup(requireContext())
             sharedViewModel.logout()
         }
     }
