@@ -76,7 +76,7 @@ class TaskRequest(BaseModel):
 
 
 async def get_llm_response(prompt: str):
-    return await anyio.to_thread.run_sync(models["llm"].generate, prompt)  # type: ignore[union-attr]
+    return await anyio.to_thread.run_sync(models["llm"].generate, prompt)
 
 
 async def generate_single_task(difficulty: str, category: str, history: list, reward: int):
