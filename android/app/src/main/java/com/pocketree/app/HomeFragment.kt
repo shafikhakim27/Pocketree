@@ -3,11 +3,11 @@ package com.pocketree.app
 import android.animation.ObjectAnimator
 import android.app.AlertDialog
 import android.content.res.ColorStateList
-import android.graphics.Color
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -52,6 +52,26 @@ class HomeFragment: Fragment() {
 //        view.postDelayed({
 //            sharedViewModel.mockReviveState() // trigger revive
 //        }, 6000)
+
+//        // --- Mock testing for healthBar ---
+//
+//        view.postDelayed({
+//            sharedViewModel.setMockState(percent = 100, withered = false, stage = "Healthy Tree")
+//        }, 2000)
+//
+//        view.postDelayed({
+//            sharedViewModel.setMockState(percent = 60, withered = false, stage = "Need Water")
+//        }, 5000)
+//
+//        view.postDelayed({
+//            sharedViewModel.setMockState(percent = 30, withered = false, stage = "Dying...")
+//        }, 8000)
+//
+//        view.postDelayed({
+//            sharedViewModel.setMockState(percent = 0, withered = true, stage = "Withered")
+//        }, 11000)
+//
+//        // --- Mock testing ends ---
     }
 
     fun observeViewModel() {
@@ -79,20 +99,30 @@ class HomeFragment: Fragment() {
                 .setDuration(1000) // takes 1 sec to complete "animation" of change in bar color
                 .start()
 
-            // colour of health bar changes to red when percentage drops below 40%
-            // (ie user has not done a task in 2 days and tree will wither in another day)
-            when {
-                state.plantHealthPercent == 0 || state.isWithered -> {
+            // color situations
+            val colorResId = when {
+                state.isWithered || state.plantHealthPercent == 0 -> {
                     // withered
-                    binding.healthBar.progressTintList = ColorStateList.valueOf(Color.DKGRAY)
+                    R.color.grey
                 }
                 state.plantHealthPercent < 40 -> {
-                    binding.healthBar.progressTintList = ColorStateList.valueOf(Color.RED)
+                    // 3 days no activity
+                    R.color.red
+                }
+                state.plantHealthPercent < 65 -> {
+                    // 2 days no activity
+                    R.color.yellow
                 }
                 else -> {
-                    binding.healthBar.progressTintList = ColorStateList.valueOf(Color.parseColor("#4CAF50"))
+                    // i day no activity
+                    R.color.green
                 }
             }
+
+            // implement to change colour of health bar
+            val colorValue = ContextCompat.getColor(requireContext(), colorResId)
+            binding.healthBar.progressTintList = ColorStateList.valueOf(colorValue)
+
             handleWithering(state.isWithered)
         }
 

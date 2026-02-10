@@ -46,7 +46,6 @@ class SettingsFragment: Fragment() {
         backgroundMusic()
         soundEffects()
         changePassword()
-        observeViewModel()
         logOut()
     }
 
@@ -94,13 +93,14 @@ class SettingsFragment: Fragment() {
 
         // listen for password success
         sharedViewModel.passwordUpdateSuccess.observe(viewLifecycleOwner) { success ->
-            if (success) {
-                Toast.makeText(
-                    context,
-                    "Password updated successfully!",
-                    Toast.LENGTH_SHORT
-                ).show()
+            if (success == true) {
                 sharedViewModel.passwordUpdateSuccess.value = null
+
+                context?.applicationContext?.let {
+                    Toast.makeText(it, "Password updated successfully!", Toast.LENGTH_SHORT).show()
+                }
+//                logOut()
+//                navigateToLogin()
             }
         }
     }
@@ -162,11 +162,16 @@ class SettingsFragment: Fragment() {
         binding.btnLogout.setOnClickListener {
             SignalRManager.stopConnection()
             (activity as? MainActivity)?.stopMusic()
+            // Clear local login state
+            sharedViewModel.performLocalCleanup(requireContext())
             sharedViewModel.logout()
         }
     }
 
     private fun navigateToLogin() {
+        val currentActivity = activity ?: return // if activity is null, do nothing
+        if (currentActivity.isFinishing) return // if activity is in fishing, do nothing
+
         val loginIntent = Intent(requireContext(), LoginActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
             // clears app history so user can't press Back button to head back to Settings tab
@@ -182,46 +187,103 @@ class SettingsFragment: Fragment() {
         }
     }
 
-    private fun showChangePasswordDialog(){
+    private fun showChangePasswordDialog() {
         val dialogView = LayoutInflater.from(requireContext()).inflate(
-            R.layout.dialog_change_password, null)
+            R.layout.dialog_change_password, null
+        )
 
+        // Get Mother Containers (TextInputLayout)
+        // 获取母容器 (TextInputLayout)
         val layoutCurrent = dialogView.findViewById<TextInputLayout>(R.id.tilCurrentPassword)
         val layoutNew = dialogView.findViewById<TextInputLayout>(R.id.tilNewPassword)
         val layoutConfirm = dialogView.findViewById<TextInputLayout>(R.id.tilConfirmPassword)
 
+        // Get Input Fields
+        // 获取输入内容框
         val etCurrent = dialogView.findViewById<TextInputEditText>(R.id.etCurrentPassword)
         val etNew = dialogView.findViewById<TextInputEditText>(R.id.etNewPassword)
         val etConfirm = dialogView.findViewById<TextInputEditText>(R.id.etConfirmPassword)
 
-        // real time validation within dialog context
+        // Error message constants
+        // 错误信息常量
+        val sameAsOldError = "New password cannot be the same as the current one"
+        val lengthError = "Password must be at least 8 characters"
+        val mismatchError = "Passwords do not match"
+
+        // 1. Monitor New Password Input
+        // 1. 监听新密码输入
+        etNew.doAfterTextChanged { text ->
+            val currentPass = etCurrent.text.toString()
+            val newPass = text.toString()
+            val confirmPass = etConfirm.text.toString()
+
+            when {
+                // Length check (Min 8 chars)
+                newPass.isNotEmpty() && newPass.length < 8 -> {
+                    layoutNew.error = lengthError
+                }
+                // Check if same as old password
+                newPass.isNotEmpty() && newPass == currentPass -> {
+                    layoutNew.error = sameAsOldError
+                    if (confirmPass.isNotEmpty()) layoutConfirm.error = sameAsOldError
+                }
+                else -> {
+                    layoutNew.error = null
+                    // If the new pass is now valid, re-evaluate the confirm field
+                    if (confirmPass.isNotEmpty()) {
+                        layoutConfirm.error = if (confirmPass != newPass) mismatchError else null
+                    }
+                }
+            }
+        }
+
+        // 2. Monitor Confirm Password Input
+        etConfirm.doAfterTextChanged { text ->
+            val currentPass = etCurrent.text.toString()
+            val newPass = etNew.text.toString()
+            val confirmPass = text.toString()
+
+            when {
+                // If new password matches old one, confirm field also shows this error
+                confirmPass.isNotEmpty() && newPass == currentPass -> {
+                    layoutConfirm.error = sameAsOldError
+                }
+                // Check match (Strictly follow your logic)
+                confirmPass != newPass -> {
+                    layoutConfirm.error = mismatchError
+                }
+                else -> {
+                    layoutConfirm.error = null
+                }
+            }
+        }
+
+        // 3. Current password input clears its own error
         etCurrent.doAfterTextChanged { layoutCurrent.error = null }
-        etNew.doAfterTextChanged { layoutNew.error = null }
-        etConfirm.doAfterTextChanged { layoutConfirm.error = null }
 
         val dialog = AlertDialog.Builder(requireContext())
             .setView(dialogView)
             .setTitle("Change Password")
-            .setPositiveButton("Update", null) // set null here to override later
+            .setPositiveButton("Update", null)
             .setNegativeButton("Cancel", null)
             .create()
 
         dialog.show()
 
-        // override the positive button onClick handler to prevent auto-dismiss
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
             val currentPass = etCurrent.text.toString()
             val newPass = etNew.text.toString()
             val confirmPass = etConfirm.text.toString()
 
+            // Final validation before submission
             val isValid = validatePasswordInput(
                 currentPass, newPass, confirmPass,
                 layoutCurrent, layoutNew, layoutConfirm
             )
 
-            if (isValid){
+            if (isValid) {
                 sharedViewModel.sendPasswordChangeRequest(currentPass, newPass, confirmPass)
-                dialog.dismiss() // close dialog only on success
+                dialog.dismiss()
             }
         }
     }
@@ -232,6 +294,7 @@ class SettingsFragment: Fragment() {
     ):Boolean{
         var isValid = true
 
+        // check the required fields
         if (current.isEmpty()) {
             layoutCurrent.error = "Current password required"
             isValid = false
@@ -247,8 +310,16 @@ class SettingsFragment: Fragment() {
             isValid = false
         }
 
+        if (!isValid) return false // if there's anything empty, don't do the following validation
+
         if (new.length <8) {
             layoutNew.error = "Password must be at least 8 characters"
+            isValid = false
+        }
+
+        // check whether the new pwd is the same as the current one
+        if (new == current) {
+            layoutNew.error = "New password cannot be the same as the current one"
             isValid = false
         }
 

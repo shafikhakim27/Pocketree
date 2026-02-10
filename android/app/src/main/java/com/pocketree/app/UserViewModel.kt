@@ -79,6 +79,17 @@ class UserViewModel: ViewModel() {
 //        ))
 //    }
 
+//    // MOCK data testing for healthPercent bar
+//    fun setMockState(percent: Int, withered: Boolean, stage: String) {
+//        val currentState = userState.value ?: return
+//        userState.value = currentState.copy(
+//            plantHealthPercent = percent,
+//            isWithered = withered,
+//            levelName = stage
+//        )
+//    }
+
+
     // helper function - to update all LiveData at once
     private fun updateLiveData (user:User) {
         if (user == null) return // don't proceed if entire user object is null
