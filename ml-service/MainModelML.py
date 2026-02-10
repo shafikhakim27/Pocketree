@@ -4,6 +4,7 @@ import io, torch, time, base64, json
 import numpy as np
 import open_clip, pymysql
 import pickle
+import re
 
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
@@ -125,17 +126,23 @@ class PockeTreeBot:
             return f"Hello{greet_name}! PockeTree here. Ready to go green today?"
         
         if "who am i" in text_lower or "my name" in text_lower:
-            if name: return f"You are {name} lah, we just talked what!"
+            if name: return f"You are {name}. So good to know you!"
             return "I don't know your name yet.... What should I call you?"
         
         if "how are you" in text_lower:
-            return "I'm steady lah! Just busy thinking how to save the planet. You?"
+            return "I'm good! Just busy thinking how to save the planet. You?"
         
         if any(sad in text_lower for sad in ["lonely", "sad", "bored"]):
             return "I'm sorry to hear that, let's go walk at the park and see some greenery. It will make you feel better!"
             
         if "funny" in text_lower or "joke" in text_lower:
-            return "I have only one: why did the recycling bin break up with the trash can? Because he found out she was 'wasted'! Hahaha!"
+            return "Sorry, I have only one: why did the recycling bin break up with the trash can? Because he found out she was 'wasted'! Hahaha!"
+        
+        if "coins" in text_lower:
+            return "I'm sorry I don't have access to that information yet right now. But you can check this in your app or web portal."
+        
+        if "plant health" in text_lower:
+            return "I'm sorry I don't have access to that information yet right now. But you may see this by checking your plant health bar in your app or web portal."
 
         return None
 
@@ -170,7 +177,6 @@ class PockeTreeBot:
         
         system_instr = (
             f"You are PockeTree, a wise and friendly Singaporean eco-mentor talking to {name}. "
-            "Talk like a Singaporean local. You may use Singlish. "
             "Give the answer in EXACTLY two short sentences. "
             "Sentence 1: The facts. Sentence 2: Action."
             "Refer to the Chat History if the user asks follow-up questions."
@@ -302,7 +308,6 @@ async def lifespan(app: FastAPI):
     
     print("All models loaded & trained!")
     yield
-    db_pool.destroy()
 
 app = FastAPI(lifespan=lifespan)
 
@@ -547,7 +552,7 @@ async def generate_single_task(difficulty: str, category: str, history: list, re
     desc_only = clean_text.replace('"', '').split('|')[0].strip()
     desc_split = re.split(r'[\n.]', desc_only)
     desc_final = next((s.strip() for s in desc_split if len(s.strip()) > 5), "Perform an eco-friendly action.")
-    final_description = desc_final.rstrip('.') + "."
+    final_description = "*" + desc_final.rstrip('.') + "."
 
     import random
     all_potential = category_data.get(category, ["nature"])
@@ -839,6 +844,9 @@ async def generate_single_task(difficulty: str, category: str, history: list, re
 @app.post("/predict")
 async def predict_bundle(req: TaskRequest):
 
+    if models.get("llm") is None:
+        raise HTTPException(status_code=503, detail="LLM disabled for speed test")
+
     # Decision Tree for Background Analytics
     now = datetime.now(timezone.utc)
     try:
@@ -922,14 +930,13 @@ SUSTAINABILITY_REPORTS = [
 
 SG_EXPERT_FACTS = {
     "recycling": "In Singapore, we use 'Commingled Recycling'. Use the blue bins for paper, plastic, glass, and metal. Items MUST be clean and dry!",
-    "vouchers": "The Climate Friendly Households Programme provides $300 in vouchers for HDB households for 10 types of energy/water-saving appliances.",
     "food": "Food waste is one of SG's largest waste streams. Use the 'UglyFood' app or donate excess to The Food Bank Singapore.",
     "aircon": "Setting your aircon to 25°C instead of 20°C can save you up to $250 a year in Singapore!",
     "parks": "Target 2026: Develop 130ha of new parks. By 2030, every home will be within a 10-min walk of a park!",
     "landfill": "Target 2026: Reduce per capita waste to landfill by 20% to extend Semakau Landfill's life.",
     "solar": "Singapore is hitting 1.5GWp of solar deployment this year (2025/26), meeting 2 percent of our energy needs.",
     "ev": "By the end of 2025, all HDB carparks are officially EV-ready with charging points!",
-    "vouchers": "HDB and private property households can claim a total of $400 in Climate Vouchers via go.gov.sg/cv-claim using Singpass lah!"
+    "vouchers": "HDB and private property households can claim a total of $400 in Climate Vouchers via go.gov.sg/cv-claim using Singpass!"
 }
 
 class ChatReq(BaseModel):
@@ -938,6 +945,10 @@ class ChatReq(BaseModel):
 
 @app.post("/chat")
 async def chat(req: ChatReq):
+
+    if models.get("sustain_bot") is None:
+        raise HTTPException(status_code=503, detail="Chat bot disabled for speed test")
+
     # Ensure user_id exists in request
     user_id = getattr(req, 'user_id', 'anon_user')
     reply = await anyio.to_thread.run_sync(models["sustain_bot"].get_response, req.message, user_id)
@@ -958,4 +969,3 @@ if __name__ == "__main__":
         print(f"Starting server on port {port}")
     except KeyboardInterrupt:
         print("\nShutting down PockeTree gracefully... Bye!")
-    uvicorn.run(app, host="0.0.0.0", port=port)
