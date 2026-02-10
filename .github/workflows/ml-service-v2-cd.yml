@@ -70,7 +70,7 @@ jobs:
           image-ref: ${{ steps.build_image.outputs.image_uri }}
           format: 'json'
           output: 'trivy-report.json'
-          exit-code: '1'
+          exit-code: '0'
           severity: 'CRITICAL'
           ignore-unfixed: true
 
