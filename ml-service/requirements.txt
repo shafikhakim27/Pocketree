@@ -1,6 +1,6 @@
 anyio
 httpx
-numpy
+numpy==1.26.4
 fastapi
 uvicorn
 python-multipart

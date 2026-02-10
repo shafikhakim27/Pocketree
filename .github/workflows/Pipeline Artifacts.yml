@@ -113,6 +113,7 @@ jobs:
             "repository": "${{ github.repository }}",
             "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "files": files,
+            "relaxed_dashboard": "collected/relaxed-dashboard-aggregate.html",
             "missing_artifacts": missing
           }
           Path("collected/INDEX.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
@@ -120,6 +121,7 @@ jobs:
             "Collected CI Artifacts",
             f"Repository: {index['repository']}",
             f"Timestamp: {index['timestamp']}",
+            "Relaxed Dashboard: collected/relaxed-dashboard-aggregate.html",
             ""
           ] + files
           if missing:
@@ -127,6 +129,45 @@ jobs:
           Path("collected/INDEX.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
           cat collected/INDEX.txt >> $GITHUB_STEP_SUMMARY
+
+      - name: Build Relaxed Dashboard Aggregate
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import html
+          import re
+
+          root = Path("collected")
+          dashboards = sorted(root.rglob("relaxed-dashboard.html"))
+
+          def extract_body(content: str) -> str:
+            m = re.search(r"<body[^>]*>(.*)</body>", content, flags=re.S | re.I)
+            return m.group(1).strip() if m else content
+
+          sections = []
+          for dash in dashboards:
+            content = dash.read_text(encoding="utf-8", errors="ignore")
+            body = extract_body(content)
+            title = dash.parent.name
+            sections.append(f"<section><h3>{html.escape(title)}</h3>{body}</section>")
+
+          if not sections:
+            sections.append("<section><h3>No dashboards found</h3><p>No relaxed dashboards were found in artifacts.</p></section>")
+
+          out = Path("collected/relaxed-dashboard-aggregate.html")
+          out.write_text(
+            "<!doctype html><html><head><meta charset='utf-8'/>"
+            "<title>Relaxed Checks Aggregate</title>"
+            "<style>body{font-family:Arial,sans-serif;margin:24px;}section{margin-bottom:24px;}"
+            "h3{margin:0 0 8px 0;}table{border-collapse:collapse;width:100%;}"
+            "th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f3f4f6;}</style>"
+            "</head><body><h2>Relaxed Checks Aggregate</h2>" +
+            "".join(sections) +
+            "</body></html>",
+            encoding="utf-8"
+          )
+          PY
+          echo "Relaxed dashboard aggregate built: collected/relaxed-dashboard-aggregate.html" >> $GITHUB_STEP_SUMMARY
 
       - name: Zip Collected Artifacts Per Workflow
         run: |

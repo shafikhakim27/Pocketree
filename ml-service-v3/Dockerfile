@@ -2,6 +2,14 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+ENV OMP_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    NUMEXPR_NUM_THREADS=1 \
+    TOKENIZERS_PARALLELISM=false \
+    TRANSFORMERS_VERBOSITY=error \
+    PYTHONUNBUFFERED=1
+
 RUN apt-get update && apt-get install -y \
     build-essential git curl \
     libgl1 libglib2.0-0 \
