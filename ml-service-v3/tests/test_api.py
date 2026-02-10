@@ -22,26 +22,17 @@ def test_health_ok():
     assert data.get("status") == "ok"
 
 
-def test_predict_bundle_shape():
+def test_chat_response_shape():
     base_url = _require_base_url()
     payload = {
-        "user_id": 1,
-        "totalScore": 250,
-        "preferredDifficulty": "Normal",
-        "preferredCategory": "nature",
-        "tasks": ["Recycle a plastic bottle"],
-        "not_attempted": 0,
-        "failed_verifications": 0,
-        "earliest_login_date": None,
-        "last_activity_date": None,
+        "user_id": "test_user",
+        "message": "Hello, can you share a quick sustainability tip?",
     }
 
     with httpx.Client(base_url=base_url, timeout=120.0) as client:
-        resp = client.post("/predict", json=payload)
+        resp = client.post("/chat", json=payload)
 
     assert resp.status_code == 200
     data = resp.json()
-    assert "user_tier" in data
-    assert "tasks" in data
-    assert isinstance(data["tasks"], list)
-    assert len(data["tasks"]) == 3
+    assert data.get("bot") == "PockeTree"
+    assert "response" in data
