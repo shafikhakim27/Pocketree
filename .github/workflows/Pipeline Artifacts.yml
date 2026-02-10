@@ -126,6 +126,7 @@ jobs:
             lines += ["", "Missing Artifacts:"] + missing
           Path("collected/INDEX.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
+          cat collected/INDEX.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Zip Collected Artifacts Per Workflow
         run: |

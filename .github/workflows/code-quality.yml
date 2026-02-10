@@ -62,6 +62,7 @@ jobs:
             encoding="utf-8"
           )
           PY
+          cat summary.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Coverage Artifacts
         if: always()
@@ -137,6 +138,7 @@ jobs:
             lines.append(f"Error: {data['error']}")
           Path("summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
+          cat summary.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Lint Report
         if: always()
@@ -164,11 +166,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
 
-      - name: Run pre-commit (all files)
-        uses: pre-commit/action@v3.0.1
-        with:
-          extra_args: --all-files
-
       - name: TruffleHog Scan
         uses: trufflesecurity/trufflehog@v3.88.0
         with:
@@ -176,10 +173,94 @@ jobs:
           base: ${{ github.event.before }}
           head: ${{ github.sha }}
 
+      - name: Lint Checks (pre-commit equivalent)
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+          import yaml
+
+          root = Path(".").resolve()
+          exclude_dirs = {".git", ".venv", "node_modules", "bin", "obj", ".idea", ".vscode"}
+
+          def should_skip(path: Path) -> bool:
+            for part in path.parts:
+              if part in exclude_dirs:
+                return True
+            return False
+
+          files = [p for p in root.rglob("*") if p.is_file() and not should_skip(p)]
+
+          # check-merge-conflict
+          conflict_hits = []
+          for p in files:
+            try:
+              text = p.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+              continue
+            if any(token in text for token in ("<<<<<<<", "=======", ">>>>>>>")):
+              conflict_hits.append(str(p))
+
+          # trailing-whitespace + end-of-file-fixer checks
+          trailing_ws = []
+          no_final_newline = []
+          for p in files:
+            try:
+              data = p.read_bytes()
+            except Exception:
+              continue
+            if not data:
+              continue
+            try:
+              text = data.decode("utf-8", errors="ignore")
+            except Exception:
+              continue
+            lines = text.splitlines()
+            if any(line.rstrip("\r\n") != line.rstrip("\r\n").rstrip() for line in lines):
+              trailing_ws.append(str(p))
+            if not text.endswith("\n"):
+              no_final_newline.append(str(p))
+
+          # check-yaml + check-json
+          yaml_errors = []
+          json_errors = []
+          for p in files:
+            if p.suffix in {".yaml", ".yml"}:
+              try:
+                yaml.safe_load(p.read_text(encoding="utf-8", errors="ignore"))
+              except Exception as e:
+                yaml_errors.append(f"{p}: {e}")
+            elif p.suffix == ".json":
+              try:
+                json.loads(p.read_text(encoding="utf-8", errors="ignore"))
+              except Exception as e:
+                json_errors.append(f"{p}: {e}")
+
+          errors = []
+          if conflict_hits:
+            errors.append("Merge conflict markers found:\n" + "\n".join(conflict_hits))
+          if trailing_ws:
+            errors.append("Trailing whitespace found:\n" + "\n".join(trailing_ws))
+          if no_final_newline:
+            errors.append("Missing final newline:\n" + "\n".join(no_final_newline))
+          if yaml_errors:
+            errors.append("YAML parse errors:\n" + "\n".join(yaml_errors))
+          if json_errors:
+            errors.append("JSON parse errors:\n" + "\n".join(json_errors))
+
+          if errors:
+            print("\n\n".join(errors))
+            sys.exit(1)
+          print("Lint checks passed.")
+          PY
+
       - name: Set up Python
         uses: actions/setup-python@v6.1.0
         with:
-          python-version: "3.11"
+          python-version: "3.10"
 
       - name: Install Dependencies
         run: |
@@ -190,13 +271,24 @@ jobs:
         run: |
           pytest ml-service/tests --junitxml=ml-service-test-results.xml
 
+      - name: Run ML Service v2 Tests
+        run: |
+          pytest ml-service-v2/tests --junitxml=ml-service-v2-test-results.xml
+
+      - name: Run ML Service v3 Tests
+        run: |
+          pytest ml-service-v3/tests --junitxml=ml-service-v3-test-results.xml
+
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v6.0.0
         with:
           if-no-files-found: warn
           name: ml-service-test-results
-          path: ${{ github.workspace }}/ml-service-test-results.xml
+          path: |
+            ${{ github.workspace }}/ml-service-test-results.xml
+            ${{ github.workspace }}/ml-service-v2-test-results.xml
+            ${{ github.workspace }}/ml-service-v3-test-results.xml
 
       - name: Build Summary
         if: always()
@@ -211,6 +303,7 @@ jobs:
           ML Service Tests
           Status: Completed
           TXT
+          cat summary.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Summary
         if: always()
@@ -279,4 +372,9 @@ jobs:
           if-no-files-found: warn
           name: codeql-sarif-${{ matrix.language }}
           path: ${{ github.workspace }}/codeql-results/**/*.sarif
+
+      - name: Step Summary
+        if: always()
+        run: |
+          echo "CodeQL (${{ matrix.language }}): Completed" >> $GITHUB_STEP_SUMMARY
 

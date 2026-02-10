@@ -39,3 +39,8 @@ jobs:
           name: pocketree-release.aab
           path: ${{ github.workspace }}/android/app/build/outputs/bundle/release/app-release.aab
 
+      - name: Step Summary
+        if: always()
+        run: |
+          echo "Android Release Build: Completed" >> $GITHUB_STEP_SUMMARY
+

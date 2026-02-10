@@ -71,6 +71,7 @@ jobs:
           Unit Tests: Completed
           APK Build: Completed
           TXT
+          cat summary.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Summary
         if: always()

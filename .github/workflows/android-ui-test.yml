@@ -120,6 +120,7 @@ jobs:
           Android UI Test Summary
           Maestro UI Tests: Completed
           TXT
+          cat summary.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Summary
         if: always()

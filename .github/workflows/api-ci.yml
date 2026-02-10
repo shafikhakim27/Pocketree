@@ -217,3 +217,8 @@ jobs:
             ${{ github.workspace }}/summary.json
             ${{ github.workspace }}/summary.txt
 
+      - name: Step Summary
+        if: always()
+        run: |
+          cat summary.txt >> $GITHUB_STEP_SUMMARY
+

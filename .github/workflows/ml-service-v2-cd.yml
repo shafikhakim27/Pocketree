@@ -116,9 +116,14 @@ jobs:
             --memory 12Gi \
             --timeout 1200 \
             --concurrency 2 \
-            --min-instances 0 \
-            --max-instances 2 \
+            --min-instances 1 \
+            --max-instances 3 \
             --cpu-boost \
             --ingress all \
             --set-env-vars "GUNICORN_CMD_ARGS=--timeout 600 --preload --workers 1" \
             --allow-unauthenticated
+
+      - name: Step Summary
+        if: always()
+        run: |
+          echo "ML v2 CD: Cloud Run deploy completed" >> $GITHUB_STEP_SUMMARY

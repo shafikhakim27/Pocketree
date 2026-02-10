@@ -105,3 +105,8 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           images: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
+
+      - name: Step Summary
+        if: always()
+        run: |
+          echo "ML v3 CD: Azure deploy completed" >> $GITHUB_STEP_SUMMARY

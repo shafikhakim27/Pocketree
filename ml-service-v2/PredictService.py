@@ -198,6 +198,15 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/")
+def landing():
+    return {
+        "title": "PockeTree ML v2 - Predict Service",
+        "status": "ok",
+        "endpoints": ["/predict", "/health"],
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     import os

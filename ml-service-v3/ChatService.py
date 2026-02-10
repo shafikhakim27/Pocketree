@@ -163,6 +163,15 @@ def health():
     return {"status": "ok"}
 
 
+@app.get("/")
+def landing():
+    return {
+        "title": "PockeTree ML v3 - Chat Service",
+        "status": "ok",
+        "endpoints": ["/chat", "/health"],
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     import os

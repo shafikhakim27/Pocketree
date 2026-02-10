@@ -1,5 +1,5 @@
 anyio
-numpy
+numpy<2
 fastapi
 uvicorn
 pydantic

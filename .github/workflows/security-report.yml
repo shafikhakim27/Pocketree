@@ -233,6 +233,7 @@ jobs:
             lines.append("- (none)")
           (report_dir / "security-report.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
+          cat report/out/security-report.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Security Report
         uses: actions/upload-artifact@v6.0.0

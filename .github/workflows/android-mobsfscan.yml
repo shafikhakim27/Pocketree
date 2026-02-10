@@ -81,6 +81,7 @@ jobs:
           Android MobSF Scan
           MobSF Scan: Completed
           TXT
+          cat "$GITHUB_WORKSPACE/summary.txt" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Summary
         if: always()

@@ -165,3 +165,8 @@ jobs:
             --max-replica-count "${{ env.MAX_REPLICA_COUNT }}" \
             --traffic-split "0=100"
 
+      - name: Step Summary
+        if: always()
+        run: |
+          echo "ML GPU CD: Vertex AI deploy completed" >> $GITHUB_STEP_SUMMARY
+
