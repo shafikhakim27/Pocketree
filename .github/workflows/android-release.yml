@@ -1,19 +1,16 @@
 name: 2c) Android CD Release Build
 
 on:
-  schedule:
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
-  push:
-    branches: ["main"]
-    paths:
-      - 'android/**'
-      - '.github/workflows/android-release.yml'
+  workflow_run:
+    workflows: ["2a) Android CI"]
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
   build-release-android:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     defaults:
       run:
         working-directory: ./android

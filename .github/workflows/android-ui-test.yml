@@ -1,14 +1,16 @@
 name: 2d) Android UI - Maestro
 
 on:
-  schedule:
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
+  workflow_run:
+    workflows: ["2a) Android CI"]
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
   ui-test:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     defaults:
       run:
         working-directory: ./android

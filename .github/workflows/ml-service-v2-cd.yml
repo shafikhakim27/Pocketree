@@ -1,14 +1,10 @@
 name: 4f) ML CD (v2 Cloud Run)
 
 on:
-  schedule:
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
-  push:
-    branches: ["main"]
-    paths:
-      - 'ml-service-v2/**'
-      - '.github/workflows/ml-service-v2-cd.yml'
+  workflow_run:
+    workflows: ["4d) ML CI (v2 Cloud Run)"]
+    types:
+      - completed
   workflow_dispatch:
 
 env:
@@ -21,6 +17,7 @@ env:
 jobs:
   build-and-deploy-ml:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -116,11 +113,12 @@ jobs:
             --image "$IMAGE_URI" \
             --port 8080 \
             --cpu 2 \
-            --memory 8Gi \
-            --timeout 600 \
+            --memory 16Gi \
+            --timeout 1200 \
             --concurrency 10 \
             --min-instances 1 \
             --max-instances 1 \
+            --cpu-boost \
             --ingress all \
             --set-env-vars "GUNICORN_CMD_ARGS=--timeout 600 --preload --workers 1" \
             --allow-unauthenticated

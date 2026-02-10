@@ -1,23 +1,27 @@
 name: 4c) ML DAST
 
 on:
-  schedule:
-    - cron: "30 2 * * *"
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
+  workflow_run:
+    workflows: ["4b) ML CD (Deploy -GCP)", "4f) ML CD (v2 Cloud Run)", "4g) ML CD (v3 Azure)"]
+    types:
+      - completed
   workflow_dispatch:
-
-env:
-  ML_SERVICE_URL: https://pocketree-ml-r7owjdp2qa-as.a.run.app
 
 jobs:
   zap-baseline:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - https://pocketree-ml-500550710563.asia-southeast1.run.app
+          - https://pocketree-ml-service.azurewebsites.net
     steps:
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.15.0
         with:
-          target: ${{ env.ML_SERVICE_URL }}
+          target: ${{ matrix.target }}
           cmd_options: "-J zap_report.json -r zap_report.html"
           fail_action: false
 
@@ -63,7 +67,8 @@ jobs:
           lines = [
             "ZAP Baseline Report",
             f"Total alerts: {len(alerts)}",
-            f"High confidence alerts: {len(high)}"
+            f"High confidence alerts: {len(high)}",
+            "Target: ${{ matrix.target }}"
           ]
           out.write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
@@ -85,13 +90,13 @@ jobs:
           {
             "summary": "ML Service DAST Summary",
             "zap_baseline": "Completed",
-            "target": "${{ env.ML_SERVICE_URL }}"
+            "target": "${{ matrix.target }}"
           }
           JSON
           cat > summary.txt <<'TXT'
           ML Service DAST Summary
           ZAP Baseline: Completed
-          Target: ${{ env.ML_SERVICE_URL }}
+          Target: ${{ matrix.target }}
           TXT
 
       - name: Upload Summary

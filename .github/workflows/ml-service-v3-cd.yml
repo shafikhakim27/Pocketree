@@ -1,14 +1,10 @@
 name: 4g) ML CD (v3 Azure)
 
 on:
-  schedule:
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
-  push:
-    branches: ["main"]
-    paths:
-      - 'ml-service-v3/**'
-      - '.github/workflows/ml-service-v3-cd.yml'
+  workflow_run:
+    workflows: ["4e) ML CI (v3 Azure)"]
+    types:
+      - completed
   workflow_dispatch:
 
 env:
@@ -18,6 +14,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2

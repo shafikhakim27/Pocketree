@@ -1,15 +1,16 @@
 name: 3c) API DAST
 
 on:
-  schedule:
-    - cron: "0 2 * * *"
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
+  workflow_run:
+    workflows: ["3b) API CD (Deploy - Azure)"]
+    types:
+      - completed
   workflow_dispatch:
 
 jobs:
   zap-baseline:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.15.0
