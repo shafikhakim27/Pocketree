@@ -37,7 +37,7 @@ jobs:
 
       - name: EditorConfig Check
         run: |
-          curl -L -sSLo ec.tar.gz https://github.com/editorconfig-checker/editorconfig-checker/releases/download/2.7.3/ec-linux-amd64.tar.gz
+          curl -fL -sSLo ec.tar.gz https://github.com/editorconfig-checker/editorconfig-checker/releases/download/v2.7.3/ec-linux-amd64.tar.gz
           file ec.tar.gz
           tar -xzf ec.tar.gz
           ./bin/ec -disable-indent-size -exclude ".git/**" -exclude ".venv/**" -exclude "ml-service-v2/.venv/**" ml-service-v2
