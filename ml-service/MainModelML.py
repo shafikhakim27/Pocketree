@@ -16,10 +16,13 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import PyPDFLoader
 from PIL import Image, ImageOps
 from pydantic import BaseModel, Field
+from pydantic import BaseModel
+from typing import List
 from sentence_transformers import SentenceTransformer
 from sklearn.tree import DecisionTreeClassifier
 from typing import List, Optional
 from transformers import pipeline
+
 
 # Allowed categories
 ALLOWED_CATEGORIES = ["reuse", "reduce", "recycle", "food", "nature", "exercise"]
@@ -840,8 +843,32 @@ async def generate_single_task(difficulty: str, category: str, history: list, re
 #         conn.close()
 
 #     return task_data
-    
+
+# 1. Create a model for the actual data
+class TaskData(BaseModel):
+    user_id: int
+    totalScore: int
+    not_attempted: int
+    failed_verifications: int
+    last_activity_date: str
+    preferredDifficulty: str
+    preferredCategory: str
+    tasks: List[str]
+
+# 2. Create the wrapper that Vertex AI sends
+class VertexRequest(BaseModel):
+    instances: List[TaskData]
+
+# 3. Update your @app.post endpoint
 @app.post("/predict")
+async def predict(request: VertexRequest):
+    # Vertex sends a list, so we take the first item
+    data = request.instances[0]
+    
+    # Now you can use data.user_id, data.totalScore, etc.
+    # ... your ML logic here ...    
+
+
 async def predict_bundle(req: TaskRequest):
 
     if models.get("llm") is None:

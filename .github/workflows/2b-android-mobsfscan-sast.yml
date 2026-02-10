@@ -128,42 +128,40 @@ jobs:
             encoding="utf-8"
           )
           html = out_dir / "relaxed-checks-mobsf.html"
-          html.write_text(
-            "\n".join([
-              "<!doctype html>",
-              "<html lang=\"en\">",
-              "  <head>",
-              "    <meta charset=\"utf-8\" />",
-              "    <title>Android MobSF (relaxed)</title>",
-              "    <style>",
-              "      body {{ font-family: Arial, sans-serif; margin: 24px; }}",
-              "      table {{ border-collapse: collapse; width: 360px; }}",
-              "      th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}",
-              "      th {{ background: #f3f4f6; }}",
-              "      .section {{ margin-top: 16px; }}",
-              "      ul {{ margin: 6px 0 0 18px; }}",
-              "    </style>",
-              "  </head>",
-              "  <body>",
-              "    <h2>Android MobSF (relaxed)</h2>",
-              "    <table>",
-              "      <tr><th>Metric</th><th>Count</th></tr>",
-              "      <tr><td>Errors</td><td>{errors}</td></tr>",
-              "      <tr><td>Warnings</td><td>{warnings}</td></tr>",
-              "    </table>",
-              "    <div class=\"section\"><strong>Suggested actions</strong>",
-              "      <ul><li>{suggestions[0]}</li></ul>",
-              "    </div>",
-              "    <div class=\"section\"><strong>Details</strong>",
-              "      <ul>",
-              "        {''.join(f'<li>{d}</li>' for d in details)}",
-              "      </ul>",
-              "    </div>",
-              "  </body>",
-              "</html>"
-            ]),
-            encoding="utf-8"
-          )
+          html_lines = [
+            "<!doctype html>",
+            "<html lang=\"en\">",
+            "  <head>",
+            "    <meta charset=\"utf-8\" />",
+            "    <title>Android MobSF (relaxed)</title>",
+            "    <style>",
+            "      body {{ font-family: Arial, sans-serif; margin: 24px; }}",
+            "      table {{ border-collapse: collapse; width: 360px; }}",
+            "      th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}",
+            "      th {{ background: #f3f4f6; }}",
+            "      .section {{ margin-top: 16px; }}",
+            "      ul {{ margin: 6px 0 0 18px; }}",
+            "    </style>",
+            "  </head>",
+            "  <body>",
+            "    <h2>Android MobSF (relaxed)</h2>",
+            "    <table>",
+            "      <tr><th>Metric</th><th>Count</th></tr>",
+            f"      <tr><td>Errors</td><td>{errors}</td></tr>",
+            f"      <tr><td>Warnings</td><td>{warnings}</td></tr>",
+            "    </table>",
+            "    <div class=\"section\"><strong>Suggested actions</strong>",
+            f"      <ul><li>{suggestions[0]}</li></ul>",
+            "    </div>",
+            "    <div class=\"section\"><strong>Details</strong>",
+            "      <ul>",
+            *[f"<li>{d}</li>" for d in details],
+            "      </ul>",
+            "    </div>",
+            "  </body>",
+            "</html>"
+          ]
+          html.write_text("\\n".join(html_lines), encoding="utf-8")
           PY
           cat "$GITHUB_WORKSPACE/mobsf/relaxed-checks-mobsf.txt" >> $GITHUB_STEP_SUMMARY
           cat "$GITHUB_WORKSPACE/mobsf/relaxed-checks-mobsf.md" >> $GITHUB_STEP_SUMMARY
