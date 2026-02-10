@@ -16,19 +16,19 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WORKFLOWS: |
-        api-ci.yml
-        api-cd.yml
-        api-dast.yml
-        ml-dast.yml
-        ml-service-ci.yml
-        ml-service-cd.yml
-        android-ci.yml
-        android-ui-test.yml
-        android-release.yml
-        android-mobsfscan.yml
-        security-report.yml
-        code-quality.yml
-        contribution-report.yml
+        3a-api-ci.yml
+        3b-api-cd-azure.yml
+        3c-api-dast.yml
+        4c-ml-dast.yml
+        4a-ml-ci.yml
+        4b-ml-cd-gcp.yml
+        2a-android-ci.yml
+        2d-android-ui-maestro.yml
+        2c-android-cd-release.yml
+        2b-android-mobsfscan-sast.yml
+        1b-security-tests-report.yml
+        1a-code-quality.yml
+        1c-contribution-report.yml
     steps:
       - name: Prepare workspace
         run: |

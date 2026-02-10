@@ -8,12 +8,12 @@ on:
     branches: ["main", "develop"]
     paths:
       - 'api/**'
-      - '.github/workflows/api-ci.yml'
+      - '.github/workflows/3a-api-ci.yml'
   pull_request:
     branches: ["main", "develop"]
     paths:
       - 'api/**'
-      - '.github/workflows/api-ci.yml'
+      - '.github/workflows/3a-api-ci.yml'
   workflow_dispatch:
 
 permissions:

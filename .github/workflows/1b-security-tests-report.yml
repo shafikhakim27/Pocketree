@@ -16,9 +16,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WORKFLOWS: |
-        api-dast.yml
-        ml-dast.yml
-        android-mobsfscan.yml
+        3c-api-dast.yml
+        4c-ml-dast.yml
+        2b-android-mobsfscan-sast.yml
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -146,7 +146,7 @@ jobs:
               prev = parse_zap(prev_file) if prev_file else None
               return {"type": "zap", "current": cur, "previous": prev}
 
-          workflows = ["api-dast.yml", "ml-dast.yml", "android-mobsfscan.yml"]
+          workflows = ["3c-api-dast.yml", "4c-ml-dast.yml", "2b-android-mobsfscan-sast.yml"]
           results = {wf: summarize(wf) for wf in workflows}
 
           def delta(cur, prev):
@@ -168,7 +168,7 @@ jobs:
             "rescanning_results": [],
             "notes": [
               "Detailed scan artifacts are available in the workflow run artifacts.",
-              "Android DAST workflow was renamed to MobSF SAST (android-mobsfscan.yml).",
+              "Android DAST workflow was renamed to MobSF SAST (2b-android-mobsfscan-sast.yml).",
               "Populate identified_issues, fixes_applied, and rescanning_results as part of the remediation workflow."
             ]
           }

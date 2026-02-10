@@ -19,24 +19,24 @@ jobs:
         with:
           script: |
             const workflows = [
-              "api-ci.yml",
-              "api-cd.yml",
-              "api-dast.yml",
-              "android-ci.yml",
-              "android-ui-test.yml",
-              "android-release.yml",
-              "android-mobsfscan.yml",
-              "code-quality.yml",
-              "contribution-report.yml",
-              "ml-service-ci.yml",
-              "ml-service-cd.yml",
-              "ml-service-v2-ci.yml",
-              "ml-service-v2-cd.yml",
-              "ml-service-v3-ci.yml",
-              "ml-service-v3-cd.yml",
-              "ml-dast.yml",
-              "Pipeline Artifacts.yml",
-              "security-report.yml"
+              "3a-api-ci.yml",
+              "3b-api-cd-azure.yml",
+              "3c-api-dast.yml",
+              "2a-android-ci.yml",
+              "2d-android-ui-maestro.yml",
+              "2c-android-cd-release.yml",
+              "2b-android-mobsfscan-sast.yml",
+              "1a-code-quality.yml",
+              "1c-contribution-report.yml",
+              "4a-ml-ci.yml",
+              "4b-ml-cd-gcp.yml",
+              "4d-ml-v2-ci.yml",
+              "4f-ml-v2-cd.yml",
+              "4e-ml-v3-ci.yml",
+              "4g-ml-v3-cd.yml",
+              "4c-ml-dast.yml",
+              "1d-pipeline-artifacts.yml",
+              "1b-security-tests-report.yml"
             ];
 
             for (const wf of workflows) {

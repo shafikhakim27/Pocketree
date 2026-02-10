@@ -8,7 +8,7 @@ on:
     branches: ["main", "develop"]
     paths:
       - 'android/**'
-      - '.github/workflows/android-ci.yml'
+      - '.github/workflows/2a-android-ci.yml'
   workflow_dispatch:
 
 jobs:

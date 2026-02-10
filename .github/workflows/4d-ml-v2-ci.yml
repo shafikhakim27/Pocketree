@@ -8,7 +8,7 @@ on:
     branches: ["main", "develop"]
     paths:
       - 'ml-service-v2/**'
-      - '.github/workflows/ml-service-v2-ci.yml'
+      - '.github/workflows/4d-ml-v2-ci.yml'
   workflow_dispatch:
 
 permissions:
