@@ -39,6 +39,9 @@ class HomeFragment: Fragment() {
         binding.recyclerViewBadges.layoutManager= LinearLayoutManager(requireContext(),
             LinearLayoutManager.HORIZONTAL, false)
 
+        // allows nestedscrollview in xml to take control of scrolling
+        binding.recyclerViewBadges.isNestedScrollingEnabled = false
+
         observeViewModel()
 
         sharedViewModel.fetchLatestBadges() // fetch data

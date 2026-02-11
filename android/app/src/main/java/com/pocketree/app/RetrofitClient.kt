@@ -1,36 +1,23 @@
 package com.pocketree.app
 
-import okhttp3.Interceptor
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor // Add this import
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-// ff
+// ff, edited by shirley
 object RetrofitClient {
-    // private const val AI_URL = "https://clip-verifier-476909679179.us-central1.run.app/"
-    private const val AI_URL = "https://pocketree-ml-r7owjdp2qa-as.a.run.app/"
+    // to configure local/live testing
+    private const val IS_LOCAL_TESTING = true
 
-    // 1. Define the interceptor once
-    private val ngrokInterceptor = Interceptor { chain ->
-        val request = chain.request().newBuilder()
-            .header("ngrok-skip-browser-warning", "true")
-            .build()
-        chain.proceed(request)
-    }
+    // for image verification
+    private const val IMAGE_AI_URL = "https://pocketree-ml-r7owjdp2qa-as.a.run.app/"
 
-    // 2. Setup Logging (Essential for seeing why it fails)
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
+    // for chatbot function
+    private const val PROD_CHAT_AI_URL = "https://pocketree-ml-500550710563.asia-southeast1.run.app/"
+    private const val LOCAL_CHAT_AI_URL = "http://10.0.2.2:8080/"
 
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(ngrokInterceptor)    // Use the defined interceptor
-        .addInterceptor(loggingInterceptor)  // Use logging to see the error
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .build()
+    private val CHAT_AI_URL = if (IS_LOCAL_TESTING) LOCAL_CHAT_AI_URL else PROD_CHAT_AI_URL
 
     private val aiHttpClient = OkHttpClient.Builder()
         .connectTimeout(60, TimeUnit.SECONDS)
@@ -38,9 +25,20 @@ object RetrofitClient {
         .writeTimeout(60, TimeUnit.SECONDS)
         .build()
 
+    // instance for image verification
     val mlInstance: MlApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl(AI_URL)
+        createService(IMAGE_AI_URL)
+    }
+
+    // instance for chatbot verification
+    val chatService: MlApiService by lazy {
+        createService(CHAT_AI_URL)
+    }
+
+    // helper function
+    private fun createService(baseUrl:String): MlApiService {
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
             .client(aiHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
