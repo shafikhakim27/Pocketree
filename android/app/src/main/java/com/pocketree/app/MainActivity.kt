@@ -40,13 +40,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         // Force light mode - prevents dark mode from activating
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
-
         super.onCreate(savedInstanceState)
-
-        // add by chenyu, 2.11
-        if (intent.getBooleanExtra("isMockMode", false)) {
-            NetworkClient.isMockMode = true
-        }
 
         prefs = getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
 
