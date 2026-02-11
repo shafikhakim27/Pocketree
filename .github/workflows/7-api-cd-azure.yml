@@ -1,20 +1,20 @@
-name: 4g) ML CD (v3 Azure)
+name: 7. API CD (Deploy - Azure)
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "36 16 * * *"
-    - cron: "36 22 * * *"
-    - cron: "36 4 * * *"
-    - cron: "36 10 * * *"
+    - cron: "27 16 * * *"
+    - cron: "27 22 * * *"
+    - cron: "27 4 * * *"
+    - cron: "27 10 * * *"
   workflow_run:
-    workflows: ["4e) ML CI (v3 Azure)"]
+    workflows: ["6. API CI (Build, Test, Scan, SAST)"]
     types:
       - completed
 
 env:
-  IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-ml-v3
-  AZURE_WEBAPP_NAME: pocketree-ml-service
+  IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-api
+  AZURE_WEBAPP_NAME: pocketree-api
 
 jobs:
   build-and-deploy:
@@ -25,6 +25,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
 
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4.3.0
+        with:
+          dotnet-version: 9.0.x
+
+      # Docker Build & Push
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.12.0
 
@@ -46,8 +52,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v6.18.0
         with:
-          context: ml-service-v3
-          file: ml-service-v3/Dockerfile
+          context: .
+          file: api/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -79,4 +85,33 @@ jobs:
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           images: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
+
+      - name: API DAST (OWASP ZAP Baseline)
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: https://pocketree-api.azurewebsites.net
+          cmd_options: "-J zap_report.json -r zap_report.html -T 1200 -z \"-config connection.timeoutInSecs=120 -config spider.maxDuration=5\""
+          fail_action: false
+
+      - name: Fail on High Confidence Alerts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          report = Path("zap_report.json")
+          if not report.exists():
+              print("ZAP report not found; skipping confidence check.")
+              raise SystemExit(0)
+
+          data = json.loads(report.read_text(encoding="utf-8", errors="ignore"))
+          alerts = []
+          for site in data.get("site", []):
+              alerts.extend(site.get("alerts", []))
+
+          high = [a for a in alerts if str(a.get("confidence", "")).lower() == "high"]
+          print(f"Total alerts: {len(alerts)} | High confidence: {len(high)}")
+          if high:
+              raise SystemExit(1)
+          PY
 

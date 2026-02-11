@@ -1,22 +1,21 @@
-name: 2c) Android CD Release Build
+name: 5. Android CI/CD
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "39 16 * * *"
-    - cron: "39 22 * * *"
-    - cron: "39 4 * * *"
-    - cron: "39 10 * * *"
-  workflow_run:
-    workflows: ["2a) Android CI"]
-    types:
-      - completed
+    - cron: "9 16 * * *"
+    - cron: "9 22 * * *"
+    - cron: "9 4 * * *"
+    - cron: "9 10 * * *"
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'android/**'
+      - '.github/workflows/5-android-ci-cd.yml'
 
 jobs:
-  build-release-android:
-    continue-on-error: true
+  build-android:
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     defaults:
       run:
         working-directory: ./android
@@ -34,6 +33,12 @@ jobs:
 
       - name: Grant Execute Permission for Gradlew
         run: chmod +x gradlew
+
+      - name: Run Unit Tests
+        run: ./gradlew testDebugUnitTest
+
+      - name: Build APK (Debug)
+        run: ./gradlew assembleDebug
 
       - name: Build App Bundle (Release)
         run: ./gradlew bundleRelease

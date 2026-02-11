@@ -24,4 +24,4 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python","-m","uvicorn","PredictService:app","--host","0.0.0.0","--port","8080"]
+CMD ["python","-m","uvicorn","MainModelML_chatbot:app","--host","0.0.0.0","--port","8080"]

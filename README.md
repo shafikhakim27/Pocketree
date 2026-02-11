@@ -21,21 +21,17 @@ The system is composed of three primary services orchestrated via Docker.
 
 **Build Status:**
 
-![Android Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/android-ci.yml/badge.svg)
+![Android Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/5-android-ci-cd.yml/badge.svg)
 
-![API Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/api-ci.yml/badge.svg)
+![API Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/6-api-ci.yml/badge.svg)
 
-![ML Service Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/ml-service-ci.yml/badge.svg)
-
-![ML Service v2 Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/ml-service-v2-ci.yml/badge.svg)
-
-![ML Service v3 Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/ml-service-v3-ci.yml/badge.svg)
+![ML Service Status](https://github.com/shafikhakim27/Pocketree/actions/workflows/8-ml-ci.yml/badge.svg)
 
 
 
 **Release Status:**
 
-![Azure API Deployment](https://github.com/shafikhakim27/Pocketree/actions/workflows/api-cd.yml/badge.svg)
+![Azure API Deployment](https://github.com/shafikhakim27/Pocketree/actions/workflows/7-api-cd-azure.yml/badge.svg)
 
 **Deployment Status:**
 

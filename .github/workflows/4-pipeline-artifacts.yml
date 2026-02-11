@@ -1,4 +1,4 @@
-name: 1d) Pipeline Compiled Artifacts
+name: 4. Pipeline Compiled Artifacts
 
 on:
   workflow_dispatch:
@@ -17,19 +17,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WORKFLOWS: |
-        3a-api-ci.yml
-        3b-api-cd-azure.yml
-        3c-api-dast.yml
-        4c-ml-dast.yml
-        4a-ml-ci.yml
-        4b-ml-cd-gcp.yml
-        2a-android-ci.yml
-        2d-android-ui-maestro.yml
-        2c-android-cd-release.yml
-        2b-android-mobsfscan-sast.yml
-        1a-code-quality.yml
-        1b-code-coverage.yml
-        1c-security-tests-report.yml
+        1-code-quality.yml
+        2-code-coverage.yml
+        3-security-tests-report.yml
+        4-pipeline-artifacts.yml
+        5-android-ci-cd.yml
+        6-api-ci.yml
+        7-api-cd-azure.yml
+        8-ml-ci.yml
+        9-ml-cd-gcp.yml
     steps:
       - name: Prepare workspace
         run: |

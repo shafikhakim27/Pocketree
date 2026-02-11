@@ -1,4 +1,4 @@
-name: 1c) Security Tests Report
+name: 3. Security Tests Report
 
 on:
   workflow_dispatch:
@@ -17,9 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WORKFLOWS: |
-        3c-api-dast.yml
-        4c-ml-dast.yml
-        2b-android-mobsfscan-sast.yml
+        7-api-cd-azure.yml
+        9-ml-cd-gcp.yml
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -141,13 +140,13 @@ jobs:
               prev = parse_mobsfscan(prev_file) if prev_file else None
               return {"type": "mobsfscan", "current": cur, "previous": prev}
             else:
-              cur_file = get_latest(cur_base, ["zap_report.json"])
-              prev_file = get_latest(prev_base, ["zap_report.json"])
+              cur_file = get_latest(cur_base, ["zap_report*.json"])
+              prev_file = get_latest(prev_base, ["zap_report*.json"])
               cur = parse_zap(cur_file) if cur_file else None
               prev = parse_zap(prev_file) if prev_file else None
               return {"type": "zap", "current": cur, "previous": prev}
 
-          workflows = ["3c-api-dast.yml", "4c-ml-dast.yml", "2b-android-mobsfscan-sast.yml"]
+          workflows = ["7-api-cd-azure.yml", "9-ml-cd-gcp.yml"]
           results = {wf: summarize(wf) for wf in workflows}
 
           report_dir = root / "out"
@@ -161,7 +160,6 @@ jobs:
             "author_sections": [],
             "notes": [
               "Detailed scan artifacts are available in the workflow run artifacts.",
-              "Android DAST workflow was renamed to MobSF SAST (2b-android-mobsfscan-sast.yml).",
               "Populate identified_issues, fixes_applied, and rescanning_results as part of the remediation workflow."
             ]
           }

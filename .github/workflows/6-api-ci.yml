@@ -1,4 +1,4 @@
-name: 3a) API CI (Build, Test, Scan, SAST)
+name: 6. API CI (Build, Test, Scan, SAST)
 
 on:
   workflow_dispatch:
@@ -11,7 +11,7 @@ on:
     branches: ["main", "develop"]
     paths:
       - 'api/**'
-      - '.github/workflows/3a-api-ci.yml'
+      - '.github/workflows/6-api-ci.yml'
 permissions:
   contents: read
   security-events: write

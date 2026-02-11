@@ -1,4 +1,4 @@
-name: 1b) Code Coverage
+name: 2. Code Coverage
 
 on:
   workflow_dispatch:
