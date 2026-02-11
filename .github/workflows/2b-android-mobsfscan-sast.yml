@@ -35,7 +35,7 @@ jobs:
       - name: Run MobSF Scan
         run: |
           mkdir -p "$GITHUB_WORKSPACE/mobsf"
-          mobsfscan .. > "$GITHUB_WORKSPACE/mobsf/mobsfscan.txt" || true
+          mobsfscan .. > "$GITHUB_WORKSPACE/mobsf/mobsfscan.txt"
           python - <<'PY'
           import json
           from pathlib import Path
@@ -56,6 +56,8 @@ jobs:
             "by_severity": counts
           }
           (out_dir / "mobsfscan.json").write_text(json.dumps(out, indent=2), encoding="utf-8")
+          if counts.get("CRITICAL", 0) + counts.get("HIGH", 0) > 0:
+            raise SystemExit("MobSF Scan failed: high/critical findings present.")
           PY
 
       - name: Upload MobSF Report

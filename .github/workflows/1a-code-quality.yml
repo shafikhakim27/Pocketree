@@ -104,7 +104,7 @@ jobs:
         run: chmod +x gradlew
 
       - name: Run Android Lint
-        run: ./gradlew lintDebug || true
+        run: ./gradlew lintDebug
 
       - name: Summarize Lint Severities
         if: always()
