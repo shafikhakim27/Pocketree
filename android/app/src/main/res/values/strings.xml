@@ -48,4 +48,9 @@
     <!-- Settings -->
     <string name="notifications">Notifications</string>
     <string name="account">Account</string>
+
+    <!-- Chatbot -->
+    <string name="chatbot_name">PocketreeBot</string>
+    <string name="user_message">User Message</string>
+    <string name="ai_response">AI Response</string>
 </resources>

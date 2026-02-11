@@ -10,7 +10,6 @@ import okhttp3.OkHttpClient
 // NetworkClient is "provider" of authenticated connection
 
 object NetworkClient {
-    var isMockMode: Boolean = false
 
     val okHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain ->

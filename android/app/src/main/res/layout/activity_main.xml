@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fitsSystemWindows="true"
     tools:context=".MainActivity">
 
     <androidx.fragment.app.FragmentContainerView
@@ -13,7 +14,6 @@
         android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_above="@id/bottom_nav"
         app:defaultNavHost="true"
         app:navGraph="@navigation/nav_graph" />
 
@@ -21,7 +21,7 @@
         android:id="@+id/bottom_nav"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
+        android:layout_gravity="bottom"
         app:menu="@menu/bottom_menu"
         app:labelVisibilityMode="labeled"
         app:paddingBottomSystemWindowInsets="false"
@@ -31,4 +31,15 @@
         app:itemIconTint="@color/nav_item_color"
         app:itemTextColor="@color/nav_item_color"/>
 
-</RelativeLayout>
+  <ImageButton
+    android:id="@+id/fab_chatbot"
+    android:layout_width="70dp"
+    android:layout_height="75dp"
+    android:background="@android:color/transparent"
+    android:elevation="8dp"
+    android:scaleType="fitCenter"
+    app:layout_anchor="@id/bottom_nav"
+    app:layout_anchorGravity="top|end"
+    app:srcCompat="@drawable/chatbot_logo" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

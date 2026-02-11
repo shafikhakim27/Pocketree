@@ -7,11 +7,13 @@ import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.content.ContextCompat.registerReceiver
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.ViewModelProvider
@@ -19,6 +21,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.ui.setupWithNavController
 import com.pocketree.app.databinding.ActivityMainBinding
 
+// written by Haoting and Shirley
 class MainActivity : AppCompatActivity() {
     private lateinit var viewModel: UserViewModel
     private lateinit var binding: ActivityMainBinding
@@ -48,9 +51,14 @@ class MainActivity : AppCompatActivity() {
         enableEdgeToEdge()
         setContentView(binding.root)
 
+        binding.fabChatbot.setOnClickListener {
+            val chatbotDialog = ChatbotDialogFragment()
+            chatbotDialog.show(supportFragmentManager, "ChatbotDialog")
+        }
+
         ViewCompat.setOnApplyWindowInsetsListener(binding.root) { v, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, 0)
             insets
         }
 
@@ -69,6 +77,7 @@ class MainActivity : AppCompatActivity() {
         initUser()
         setupNavigation()
         observeViewModel()
+        makeFabDraggable()
     }
 
     // Helper function to play background music
@@ -169,6 +178,67 @@ class MainActivity : AppCompatActivity() {
 //                viewModel.playSoundEffectEvent.value = false
 //            }
 //        }
+    }
+
+    private fun makeFabDraggable() {
+        var dX = 0f
+        var dY = 0f
+        var startX = 0f // record where the touch started
+        var startY = 0f
+
+        binding.fabChatbot.setOnTouchListener { view, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    // capture initial offset
+                    // (app remembers distance between corner of button and where your finger landed)
+                    dX = view.x - event.rawX
+                    // event.rawX is the exact pixel coordinate on the entire screen where your finger is
+                    // view.x is the coordinate of the top-left of the button
+                    // dX is the "offset"
+                    dY = view.y - event.rawY
+                    startX = event.rawX
+                    startY = event.rawY
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    // update view position
+                    view.animate()
+                        .x(event.rawX + dX) // event.rawX is new finger position; add back inital offset dX here
+                        .y(event.rawY + dY)
+                        .setDuration(0) // to reposition button immediately
+                        .start()
+                }
+
+                MotionEvent.ACTION_UP -> {
+                    // calculate total distance moved from the start
+                    val distanceX = event.rawX - startX
+                    val distanceY = event.rawY - startY
+                    val totalDistance = Math.sqrt((distanceX * distanceX + distanceY * distanceY).toDouble())
+                    // calculated by pythagoras' theorem
+
+                    // only click if movement was tiny (less than 10 pixels)
+                    val clickThreshold = 10 // checks how far button moved (10 is the number of pixels)
+                    if (totalDistance < clickThreshold) {
+                        view.performClick()
+                    } else {
+                        // not a click but a drag
+                        val screenWidth = resources.displayMetrics.widthPixels.toFloat()
+                        val middle = screenWidth / 2
+                        val targetX =
+                            if (view.x + view.width / 2 < middle) 0f else screenWidth - view.width
+                        // if user releases the button in the middle of the screen
+                        // button will move to right/left of screen
+
+                        view.animate()
+                            .x(targetX)
+                            .setDuration(300)
+                            .start()
+                    }
+                }
+                else -> return@setOnTouchListener false
+            }
+            true
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

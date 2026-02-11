@@ -14,4 +14,6 @@
     <color name="grey">#F3F9FF</color>
     <color name="light_grey">#D7D6D6</color>
     <color name="dark_grey">#ADB1C7</color>
+    <color name="chat_bot_user">#4CAF50</color>
+    <color name="chat_bot_ai">#E0E0E0</color>
 </resources>
