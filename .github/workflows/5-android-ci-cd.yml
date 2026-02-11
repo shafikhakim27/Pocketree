@@ -80,6 +80,15 @@ jobs:
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
+      
+      - name: DEBUG - Show me the REAL file content
+        run: |
+          echo "================ START OF FLOW.YAML ================"
+          cat "$GITHUB_WORKSPACE/android/.maestro/flow.yaml"
+          echo ""
+          echo "================ END OF FLOW.YAML ================"
+          echo "PWD is: $(pwd)"
+          ls -R "$GITHUB_WORKSPACE/android/.maestro"
 
       - name: Run Maestro Flow (non-blocking stage)
         uses: reactivecircus/android-emulator-runner@v2.35.0
