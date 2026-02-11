@@ -2,5 +2,11 @@ anyio
 fastapi
 uvicorn
 pydantic
-scikit-learn
-gpt4all
+httpx
+numpy<2
+torch==2.2.2
+langchain-text-splitters
+langchain-community
+pypdf
+sentence-transformers
+transformers

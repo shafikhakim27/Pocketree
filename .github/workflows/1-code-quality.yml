@@ -12,8 +12,8 @@ on:
     paths:
       - 'api/**'
       - 'ml-service/**'
-      - 'ml-service-v2/**'
-      - 'ml-service-v3/**'
+      - 'ml-service-chat/**'
+      - 'ml-service-classify/**'
       - 'android/**'
       - '.github/workflows/1-code-quality.yml'
 permissions:

@@ -326,7 +326,7 @@ jobs:
           IMAGE_URI="${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}"
           echo "IMAGE_URI=$IMAGE_URI" >> $GITHUB_ENV
           echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
-          docker build -f ml-service-v2/Dockerfile -t "$IMAGE_URI" ml-service-v2
+          docker build -f ml-service-chat/Dockerfile -t "$IMAGE_URI" ml-service-chat
           docker push "$IMAGE_URI"
 
       - name: Free Disk Space
@@ -396,8 +396,8 @@ jobs:
       - name: Build and push Docker image (v3)
         uses: docker/build-push-action@v6.18.0
         with:
-          context: ml-service-v3
-          file: ml-service-v3/Dockerfile
+          context: ml-service-classify
+          file: ml-service-classify/Dockerfile
           push: true
           tags: ${{ steps.meta_v3.outputs.tags }}
           labels: ${{ steps.meta_v3.outputs.labels }}

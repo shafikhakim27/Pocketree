@@ -11,8 +11,8 @@ on:
     branches: ["main", "develop"]
     paths:
       - 'ml-service/**'
-      - 'ml-service-v2/**'
-      - 'ml-service-v3/**'
+      - 'ml-service-chat/**'
+      - 'ml-service-classify/**'
       - '.github/workflows/8-ml-ci.yml'
 
 permissions:
@@ -39,23 +39,23 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r ml-service/requirements.txt -r ml-service/requirements-dev.txt
-          pip install -r ml-service-v2/requirements.txt -r ml-service-v2/requirements-dev.txt
-          pip install -r ml-service-v3/requirements.txt -r ml-service-v3/requirements-dev.txt
+          pip install -r ml-service-chat/requirements.txt -r ml-service-chat/requirements-dev.txt
+          pip install -r ml-service-classify/requirements.txt -r ml-service-classify/requirements-dev.txt
 
       - name: Lint (ruff)
         run: |
           pip install ruff
           ruff check ml-service --exit-zero --output-format json --output-file ruff-report.json
-          ruff check ml-service-v2 --exit-zero --output-format json --output-file ruff-report-v2.json
-          ruff check ml-service-v3 --exit-zero --output-format json --output-file ruff-report-v3.json
+          ruff check ml-service-chat --exit-zero --output-format json --output-file ruff-report-v2.json
+          ruff check ml-service-classify --exit-zero --output-format json --output-file ruff-report-v3.json
 
       - name: Type Check (mypy)
         continue-on-error: true
         run: |
           pip install mypy
           mypy --config-file ml-service/mypy.ini ml-service
-          mypy --config-file ml-service-v2/mypy.ini ml-service-v2
-          mypy --config-file ml-service-v3/mypy.ini ml-service-v3
+          mypy --config-file ml-service-chat/mypy.ini ml-service-chat
+          mypy --config-file ml-service-classify/mypy.ini ml-service-classify
 
       - name: Run ML Service Tests
         run: |
@@ -64,12 +64,12 @@ jobs:
 
       - name: Run ML Service v2 Tests
         run: |
-          pytest ml-service-v2/tests --junitxml=ml-service-v2-test-results.xml
+          pytest ml-service-chat/tests --junitxml=ml-service-v2-test-results.xml
         continue-on-error: true
 
       - name: Run ML Service v3 Tests
         run: |
-          pytest ml-service-v3/tests --junitxml=ml-service-v3-test-results.xml
+          pytest ml-service-classify/tests --junitxml=ml-service-v3-test-results.xml
         continue-on-error: true
 
       - name: Checkout Code
