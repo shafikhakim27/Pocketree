@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 class UserViewModelTest {
     @get:Rule
     val instantExecutorRule = InstantTaskExecutorRule()
-    //aaaa
+
     @Test
     fun fetchDailyTasks_postsTasks() {
         RuntimeEnvironment.getApplication()

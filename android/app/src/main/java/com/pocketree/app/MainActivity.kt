@@ -42,6 +42,12 @@ class MainActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO)
 
         super.onCreate(savedInstanceState)
+
+        // add by chenyu, 2.11
+        if (intent.getBooleanExtra("isMockMode", false)) {
+            NetworkClient.isMockMode = true
+        }
+
         prefs = getSharedPreferences("AppSettings", Context.MODE_PRIVATE)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
