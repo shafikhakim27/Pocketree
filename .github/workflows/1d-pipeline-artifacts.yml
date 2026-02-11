@@ -102,6 +102,7 @@ jobs:
           import json
           from pathlib import Path
           from datetime import datetime
+          import html
 
           root = Path("collected")
           files = [str(p) for p in sorted(root.rglob("*")) if p.is_file()]
@@ -109,13 +110,27 @@ jobs:
           missing_log = root / "missing-artifacts.txt"
           if missing_log.exists():
             missing = [line.strip() for line in missing_log.read_text(encoding="utf-8").splitlines() if line.strip()]
+          table_rows = []
+          for status_dir in ["success", "failure", "cancelled", "skipped"]:
+            base = root / status_dir
+            if not base.exists():
+              continue
+            for wf_dir in sorted(base.iterdir()):
+              if not wf_dir.is_dir():
+                continue
+              count = sum(1 for p in wf_dir.rglob("*") if p.is_file())
+              table_rows.append((wf_dir.name, status_dir, count))
           index = {
             "title": "Collected CI Artifacts",
             "repository": "${{ github.repository }}",
             "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "files": files,
             "relaxed_dashboard": "collected/relaxed-dashboard-aggregate.html",
-            "missing_artifacts": missing
+            "missing_artifacts": missing,
+            "artifact_table": [
+              {"workflow": wf, "status": status, "files": count}
+              for wf, status, count in table_rows
+            ]
           }
           Path("collected/INDEX.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
           lines = [
@@ -128,6 +143,40 @@ jobs:
           if missing:
             lines += ["", "Missing Artifacts:"] + missing
           Path("collected/INDEX.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          # Group table rows by workflow for HTML view
+          grouped = {}
+          for wf, status, count in table_rows:
+            grouped.setdefault(wf, []).append((status, count))
+
+          sections = []
+          for wf in sorted(grouped.keys()):
+            rows = grouped[wf]
+            sections.append(
+              "<section>"
+              f"<h4>{html.escape(wf)}</h4>"
+              "<table><tr><th>Status</th><th>Files</th></tr>" +
+              "".join(
+                f"<tr><td>{html.escape(status)}</td><td>{count}</td></tr>"
+                for status, count in rows
+              ) +
+              "</table></section>"
+            )
+
+          html_out = root / "INDEX.html"
+          html_out.write_text(
+            "<!doctype html><html><head><meta charset='utf-8'/>"
+            "<title>Collected Artifacts</title>"
+            "<style>body{font-family:Arial,sans-serif;margin:24px;}table{border-collapse:collapse;width:100%;}"
+            "th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f3f4f6;}"
+            "section{margin-bottom:20px;}</style>"
+            "</head><body><h2>Collected CI Artifacts</h2>"
+            f"<p>Repository: {html.escape(index['repository'])}</p>"
+            f"<p>Timestamp: {html.escape(index['timestamp'])}</p>"
+            "<h3>Artifact Table (Grouped by Workflow)</h3>"
+            + "".join(sections) +
+            "</body></html>",
+            encoding="utf-8"
+          )
           PY
           cat collected/INDEX.txt >> $GITHUB_STEP_SUMMARY
 

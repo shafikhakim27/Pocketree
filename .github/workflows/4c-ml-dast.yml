@@ -102,6 +102,48 @@ jobs:
           out.write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
 
+      - name: Build DAST Rich View
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import html
+
+          report = Path("zap_report.json")
+          total = high = 0
+          status = "PASS"
+          if report.exists():
+            data = json.loads(report.read_text(encoding="utf-8", errors="ignore") or "{}")
+            alerts = []
+            for site in data.get("site", []):
+              alerts.extend(site.get("alerts", []))
+            total = len(alerts)
+            high = len([a for a in alerts if str(a.get("confidence", "")).lower() == "high"])
+            if high:
+              status = "FAIL"
+            elif total:
+              status = "WARN"
+          else:
+            status = "FAIL"
+
+          Path("dast-richview.html").write_text(
+            "<!doctype html><html><head><meta charset='utf-8'/>"
+            "<title>ML DAST Summary</title>"
+            "<style>body{font-family:Arial,sans-serif;margin:24px;}table{border-collapse:collapse;width:420px;}"
+            "th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f3f4f6;}"
+            ".ok{color:#0f7b0f;font-weight:600}.warn{color:#b26a00;font-weight:600}.fail{color:#b00020;font-weight:600}</style>"
+            "</head><body><h2>ML DAST Summary</h2>"
+            f"<p>Target: {html.escape('${{ matrix.target }}')}</p>"
+            f"<p>Status: <span class='{status.lower()}'>{status}</span></p>"
+            "<table><tr><th>Metric</th><th>Count</th></tr>"
+            f"<tr><td>Total alerts</td><td>{html.escape(str(total))}</td></tr>"
+            f"<tr><td>High confidence</td><td>{html.escape(str(high))}</td></tr>"
+            "</table></body></html>",
+            encoding="utf-8"
+          )
+          PY
+
       - name: Upload ZAP Report
         if: always()
         uses: actions/upload-artifact@v6.0.0
@@ -111,6 +153,7 @@ jobs:
           path: |
             ${{ github.workspace }}/zap_report.json
             ${{ github.workspace }}/zap_report.txt
+            ${{ github.workspace }}/dast-richview.html
 
       - name: Build Summary
         if: always()
