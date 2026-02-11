@@ -29,6 +29,8 @@ models = {"clip": None}
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.clip = CLIPService()
+    # optional eager load:
+    app.state.clip.ensure_model()
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -42,17 +44,23 @@ class CLIPService:
         self.margin = 0.05
         self._load_lock = threading.Lock()
 
-    def ensure_model(self):
+def ensure_model(self):
+    if self.model is not None:
+        return
+    with self._load_lock:
         if self.model is not None:
             return
-        with self._load_lock:
-            if self.model is not None:
-                return
-            m, _, p = open_clip.create_model_and_transforms('MobileCLIP2-S0', pretrained='dfndr2b')
-            self.model = m.to(self.device).eval()
-            self.preprocess = p
-            self.tokenizer = open_clip.get_tokenizer('MobileCLIP2-S0')
-            print("MobileCLIP2 Loaded!")
+
+        model_name = "ViT-B-32"
+        pretrained = "openai"
+
+        m, _, p = open_clip.create_model_and_transforms(model_name, pretrained=pretrained)
+
+        self.model = m.to(self.device).eval()
+        self.preprocess = p
+        self.tokenizer = open_clip.get_tokenizer(model_name)
+
+        print(f"CLIP Loaded: {model_name}:{pretrained}")
 
     def _prepare_image(self, img_bytes: bytes):
         img = Image.open(io.BytesIO(img_bytes))
@@ -61,12 +69,16 @@ class CLIPService:
         return self.preprocess(img).unsqueeze(0).to(self.device) # pyright: ignore[reportAttributeAccessIssue, reportCallIssue, reportOptionalCall]
 
     def _get_features(self, phrases):
-        tokens = self.tokenizer(phrases).to(self.device) # pyright: ignore[reportOptionalCall]
-        with torch.inference_mode():
-            feat = self.model.encode_text(tokens) # pyright: ignore[reportOptionalMemberAccess, reportCallIssue]
-            return feat / feat.norm(dim=-1, keepdim=True)
+        if self.tokenizer is None or self.model is None:
+            raise RuntimeError("Model/tokenizer not loaded. Did ensure_model() fail?")
 
-    # --- MODEL 1: Simple Mobile CLIP ---
+    tokens = self.tokenizer(phrases).to(self.device)
+    with torch.inference_mode():
+        feat = self.model.encode_text(tokens)
+        return feat / feat.norm(dim=-1, keepdim=True)
+
+
+    # --- MODEL 1: Simple ViT-B-32 ---
     def classify_simple(self, image_feat, keyword: str):
 
         text_feat = self._get_features([f"a photo of a {keyword}", "object"])

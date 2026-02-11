@@ -1,4 +1,4 @@
-name: 10. ML Security (Scans + DAST)
+name: 9x. ML Security (Scans + DAST)
 
 on:
   workflow_dispatch:
@@ -8,7 +8,7 @@ on:
       - completed
 
 concurrency:
-  group: 10-ml-security-global
+  group: 9x-ml-security-global
   cancel-in-progress: true
 
 env:

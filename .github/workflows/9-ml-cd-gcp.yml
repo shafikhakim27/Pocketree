@@ -40,6 +40,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
+  DEPLOY_FREEZE: "true"
   GCP_PROJECT_ID: pocketree-ml-service
   GCP_REGION: asia-southeast1
   AR_REPO: pocketree-ml
@@ -59,7 +60,7 @@ jobs:
       group: ml-cd-gcp-cloudrun-global
       cancel-in-progress: true
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_main_model == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ env.DEPLOY_FREEZE != 'true' && ((github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_main_model == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success') }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -188,7 +189,7 @@ jobs:
 
   deploy-ml-v2-cloud-run:
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_chatbot == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ env.DEPLOY_FREEZE != 'true' && ((github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_chatbot == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success') }}
     env:
       GCP_PROJECT_ID: pocketree-ml-service
       GCP_REGION: asia-southeast1
@@ -272,7 +273,7 @@ jobs:
 
   deploy-ml-v3-azure:
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_mlpic == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ env.DEPLOY_FREEZE != 'true' && ((github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_mlpic == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success') }}
     env:
       IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-ml-v3
       AZURE_WEBAPP_NAME: pocketree-ml-service

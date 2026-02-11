@@ -3,10 +3,11 @@ fastapi
 uvicorn
 pydantic
 httpx
-numpy<2
+numpy==1.26.4
 torch==2.2.2
 langchain-text-splitters
 langchain-community
 pypdf
-sentence-transformers
-transformers
+transformers==4.41.2
+accelerate==0.31.0
+sentence-transformers==2.7.0

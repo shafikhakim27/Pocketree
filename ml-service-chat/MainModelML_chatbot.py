@@ -4,7 +4,7 @@ import io, torch, time, base64, json
 import numpy as np
 import os # for local
 import pickle # for local
-
+import asyncio
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Form, UploadFile, File, HTTPException
 from io import BytesIO
@@ -14,6 +14,32 @@ from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 from typing import List, Optional
 from transformers import pipeline
+
+# --- GLOBALS & SETUP --- #
+DISABLE_WARMUP = os.getenv("DISABLE_WARMUP", "0") == "1"
+CHAT_TIMEOUT_SECONDS = float(os.getenv("CHAT_TIMEOUT_SECONDS", "55"))
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Start serving immediately; load bot in background
+    app.state.bot_ready = False
+
+    async def init_bot():
+        try:
+            brainBot = EmbeddingBrain()
+            await brainBot.cloud_warmup(SUSTAINABILITY_REPORTS)
+            models["sustain_bot"] = PockeTreeBot(brainBot)
+            app.state.bot_ready = True
+            print("PockeTreeBot is loaded!")
+        except Exception as e:
+            print("Bot init failed:", repr(e))
+
+    if not DISABLE_WARMUP:
+        asyncio.create_task(init_bot())
+
+    yield
+
+app = FastAPI(lifespan=lifespan)
 
 ### --- USE CASE 3: POCKETREE BOT --- ###
 
@@ -57,6 +83,7 @@ else:
     device = "cpu"  # Local fallback
 
 models = {"sustain_bot": None}
+chat_semaphore = anyio.Semaphore(1)
 
 # --- Prepare for Use Case 3 ---
 
@@ -67,8 +94,9 @@ class EmbeddingBrain:
         self.vectors = None
 
     async def cloud_warmup(self, urls):
-
-        if os.path.exists("brain_cache.pkl"):   # for local
+        
+        cache_path = "/tmp/brain_cache.pkl"
+        if os.path.exists(cache_path):   # for local
             with open("brain_cache.pkl", "rb") as f:
                 data = pickle.load(f)
                 self.chunks = data["chunks"]
@@ -296,9 +324,20 @@ class PockeTreeBot:
             prompt = f"<|im_start|>system\n{system_instr}\nContext:\n{context}\nHistory:\n{hist_str}<|im_end|>\n"
             prompt += f"<|im_start|>user\n{user_text}<|im_end|>\n<|im_start|>assistant\n"
 
-            output = self.generator(prompt, max_new_tokens=80, stop_sequence="<|im_end|>")
-            raw_reply = output[0]['generated_text'].split("<|im_start|>assistant\n")[-1].strip()
-            reply = self._parse_to_two_sentences(raw_reply)
+            try:
+                output = self.generator(
+                    prompt,
+                    max_new_tokens=80,
+                    stop_sequence="<|im_end|>"
+                )
+                raw_reply = output[0]['generated_text'].split("<|im_start|>assistant\n")[-1].strip()
+                reply = self._parse_to_two_sentences(raw_reply)
+            except Exception as e:
+                print("Generation failed:", repr(e))
+                reply = (
+                    "I hit a temporary delay while thinking about that question. "
+                    "Please try again in a moment."
+                )
 
         profile = user_profiles.get(user_id, {"name": None, "history": []})
         profile["history"].append({"u": user_text, "b": reply})
@@ -376,16 +415,6 @@ class PockeTreeBot:
 
 # --- WARM UP ---
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    brainBot = EmbeddingBrain()
-    await brainBot.cloud_warmup(SUSTAINABILITY_REPORTS)
-    models["sustain_bot"] = PockeTreeBot(brainBot)
-    print("PockeTreeBot is loaded!")
-    yield
-
-app = FastAPI(lifespan=lifespan)
-
 class ChatReq(BaseModel):
     user_id: str = "default_user"
     message: str
@@ -397,14 +426,28 @@ async def chat(req: ChatReq):
         raise HTTPException(status_code=503, detail="PockeTreeBot not ready")
     user_id = req.user_id 
     user_id = getattr(req, 'user_id', 'anon_user')
-    reply = await anyio.to_thread.run_sync(bot.get_response, req.message, user_id) # pyright: ignore[reportAttributeAccessIssue]
+    try:
+        async with chat_semaphore:
+            with anyio.fail_after(CHAT_TIMEOUT_SECONDS):
+                reply = await anyio.to_thread.run_sync(bot.get_response, req.message, user_id) # pyright: ignore[reportAttributeAccessIssue]
+    except TimeoutError:
+        reply = (
+            "That question needs more processing time than usual. "
+            "Please ask a shorter follow-up or try again."
+        )
+    except Exception as e:
+        print("Chat endpoint failed:", repr(e))
+        reply = (
+            "I ran into a temporary issue answering that. "
+            "Please try again shortly."
+        )
     return {"bot": "PockeTree", "response": reply}
 
 ### --- MISC --- ###
 
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "ok", "bot_ready": getattr(app.state, "bot_ready", False)}
 
 if __name__ == "__main__":
     import uvicorn

@@ -31,5 +31,5 @@ COPY . .
 # Pre-download weights
 RUN python3 -c "import open_clip; open_clip.create_model_and_transforms('MobileCLIP2-S0', pretrained='dfndr2b')"
 
-CMD ["sh","-c","python -m uvicorn MainModelML:app --host 0.0.0.0 --port ${PORT:-8080}"]
+CMD ["sh","-c","python -m uvicorn MainModelML:app --host 0.0.0.0 --port ${PORT:-8080} --timeout-keep-alive 120 --timeout-graceful-shutdown 120"]
 

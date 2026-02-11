@@ -22,8 +22,12 @@ RUN python -m pip install --upgrade pip setuptools wheel
 
 RUN python -m pip install --no-cache-dir -r requirements.txt
 
+# Fail build early if core NLP stack is incompatible.
+RUN python -c "import torch, transformers, accelerate, sentence_transformers"
+
 COPY . .
 
 # Cloud Run sets $PORT automatically
 CMD ["sh","-c","python -m uvicorn MainModelML_chatbot:app --host 0.0.0.0 --port ${PORT:-8080}"]
+
 
