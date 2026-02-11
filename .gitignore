@@ -500,6 +500,7 @@ build/
 # Ignore configuration files
 appsettings.json
 appsettings.*.json
+vertex-key.json
 
 # Maestro local outputs (root)
 /.maestro/

@@ -1,4 +1,4 @@
-﻿using ADproject.Hubs; 
+using ADproject.Hubs; 
 using ADproject.Models.Entities;
 using ADproject.Services;
 using Microsoft.AspNetCore.Authentication.Cookies;
@@ -58,14 +58,15 @@ builder.Services.AddOpenApi(options =>
 });
 
 // Register the HttpClient for Python communication
-var mlServiceUrl = builder.Configuration["MlService:Url"] ?? "http://localhost:5000/";
-var mlRecommendUrl = builder.Configuration["MlService:RecommendUrl"] ?? mlServiceUrl;
+var mlRecommendUrl = builder.Configuration["MlService:RecommendUrl"];
 builder.Services.AddHttpClient("ML_Consultant", client => {
     client.BaseAddress = new Uri(mlRecommendUrl);
     // Explicitly inform the Python API to send JSON back
     client.DefaultRequestHeaders.Accept.Add(
         new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 });
+
+builder.Services.AddSignalR().AddAzureSignalR();
 
 // Add CORS policy for API access
 builder.Services.AddCors(options =>
