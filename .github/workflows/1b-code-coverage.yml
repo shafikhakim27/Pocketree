@@ -91,44 +91,26 @@ jobs:
           PY
           cat summary.txt >> $GITHUB_STEP_SUMMARY
 
-      - name: Coverage Rich View
+      - name: Strict Summary
         if: always()
         run: |
-          python - <<'PY'
+          python - <<'PY' >> $GITHUB_STEP_SUMMARY
           import json
           from pathlib import Path
-          import html
-
           data = {}
           summary = Path("summary.json")
           if summary.exists():
             data = json.loads(summary.read_text(encoding="utf-8", errors="ignore"))
-
           line_cov = data.get("line_coverage")
           status = "PASS"
           if data.get("error"):
             status = "FAIL"
           elif line_cov is not None and line_cov < float("${{ env.COVERAGE_MIN }}"):
             status = "FAIL"
-
-          html_out = Path("coverage-richview.html")
-          html_out.write_text(
-            "<!doctype html><html><head><meta charset='utf-8'/>"
-            "<title>API Coverage Summary</title>"
-            "<style>body{font-family:Arial,sans-serif;margin:24px;}table{border-collapse:collapse;width:420px;}"
-            "th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f3f4f6;}"
-            ".ok{color:#0f7b0f;font-weight:600;} .fail{color:#b00020;font-weight:600;}</style>"
-            "</head><body>"
-            "<h2>API Coverage Summary</h2>"
-            f"<p>Status: <span class='{ 'ok' if status=='PASS' else 'fail' }'>{status}</span></p>"
-            "<table>"
-            "<tr><th>Metric</th><th>Value</th></tr>"
-            f"<tr><td>Line coverage</td><td>{html.escape(str(line_cov) if line_cov is not None else 'n/a')}</td></tr>"
-            f"<tr><td>Minimum required</td><td>{html.escape('${{ env.COVERAGE_MIN }}')}%</td></tr>"
-            "</table>"
-            "</body></html>",
-            encoding="utf-8"
-          )
+          print("Strict Summary")
+          print(f"- Line coverage: {line_cov if line_cov is not None else 'n/a'}")
+          print(f"- Minimum required: ${{ env.COVERAGE_MIN }}%")
+          print(f"- Status: {status}")
           PY
 
       - name: Upload Coverage Artifacts
@@ -140,7 +122,6 @@ jobs:
           path: |
             ${{ github.workspace }}/summary.json
             ${{ github.workspace }}/summary.txt
-            ${{ github.workspace }}/coverage-richview.html
 
       - name: Upload Summary
         if: always()
@@ -151,4 +132,3 @@ jobs:
           path: |
             ${{ github.workspace }}/summary.json
             ${{ github.workspace }}/summary.txt
-            ${{ github.workspace }}/coverage-richview.html

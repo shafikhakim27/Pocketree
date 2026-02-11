@@ -1,4 +1,4 @@
-name: 4b) ML CD (Deploy -GCP)
+name: 4b) ML CD (Deploy - GCP)
 
 on:
   workflow_dispatch:
@@ -86,74 +86,6 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL'
           ignore-unfixed: true
-
-      - name: Build Trivy Text Report
-        if: always()
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          src = Path("trivy-report.json")
-          out = Path("trivy-report.txt")
-          if not src.exists():
-            out.write_text("Trivy report not found.\n", encoding="utf-8")
-            raise SystemExit(0)
-          data = json.loads(src.read_text(encoding="utf-8", errors="ignore") or "{}")
-          results = data.get("Results", [])
-          lines = ["Trivy Report", f"Targets: {len(results)}"]
-          for r in results:
-            target = r.get("Target", "unknown")
-            vulns = r.get("Vulnerabilities", []) or []
-            lines.append(f"- {target}: {len(vulns)} findings")
-          out.write_text("\n".join(lines) + "\n", encoding="utf-8")
-          PY
-
-      - name: Upload Trivy Report
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
-        with:
-          if-no-files-found: warn
-          name: trivy-report
-          path: |
-            ${{ github.workspace }}/trivy-report.json
-            ${{ github.workspace }}/trivy-report.txt
-
-      - name: Upload Model to Vertex AI
-        id: upload_model
-        run: |
-          set -euo pipefail
-          unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
-          MODEL_ID="$(gcloud ai models upload \
-            --region "${{ env.GCP_REGION }}" \
-            --display-name "${{ env.MODEL_DISPLAY_NAME }}" \
-            --container-image-uri "$IMAGE_URI" \
-            --container-predict-route="/predict" \
-            --container-health-route="/health" \
-            --container-ports=8080 \
-            --format="value(name)")"
-
-          if [ -z "$MODEL_ID" ]; then
-            MODEL_ID="$(gcloud ai models list \
-              --region "${{ env.GCP_REGION }}" \
-              --filter="display_name=${{ env.MODEL_DISPLAY_NAME }}" \
-              --sort-by=~createTime \
-              --limit=1 \
-              --format="value(name)")"
-          fi
-
-          if [ -z "$MODEL_ID" ]; then
-            if [ -n "${{ env.FALLBACK_MODEL_ID }}" ]; then
-              MODEL_ID="${{ env.FALLBACK_MODEL_ID }}"
-              echo "Using FALLBACK_MODEL_ID=$MODEL_ID"
-            else
-              echo "MODEL_ID not found after upload and no fallback provided."
-              exit 1
-            fi
-          fi
-
-          echo "MODEL_ID=$MODEL_ID" >> "$GITHUB_ENV"
-          echo "model_id=$MODEL_ID" >> "$GITHUB_OUTPUT"
 
       - name: Ensure Vertex AI Endpoint exists
         id: ensure_endpoint
@@ -284,9 +216,4 @@ jobs:
             --min-replica-count "${{ env.MIN_REPLICA_COUNT }}" \
             --max-replica-count "${{ env.MAX_REPLICA_COUNT }}" \
             --traffic-split "0=100"
-
-      - name: Step Summary
-        if: always()
-        run: |
-          echo "ML GPU CD: Vertex AI deploy completed" >> $GITHUB_STEP_SUMMARY
 

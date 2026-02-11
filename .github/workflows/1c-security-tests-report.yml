@@ -201,11 +201,11 @@ jobs:
             })
             # Attach parsed tag lines
             if issues:
-              report_obj["author_sections"][-1]["identified_issues"] = issues
+              report_obj["author_sections"][-1]["identified_issues"] = issues[:3]
             if fixes:
-              report_obj["author_sections"][-1]["fixes_applied"] = fixes
+              report_obj["author_sections"][-1]["fixes_applied"] = fixes[:3]
             if rescans:
-              report_obj["author_sections"][-1]["rescanning_results"] = rescans
+              report_obj["author_sections"][-1]["rescanning_results"] = rescans[:3]
           (report_dir / "security-report.json").write_text(json.dumps(report_obj, indent=2), encoding="utf-8")
 
           lines = []

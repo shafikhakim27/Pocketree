@@ -120,16 +120,67 @@ jobs:
                 continue
               count = sum(1 for p in wf_dir.rglob("*") if p.is_file())
               table_rows.append((wf_dir.name, status_dir, count))
+
+          # Build strict summaries from downloaded artifacts (best-effort)
+          strict_rows = []
+          for wf, status, _ in table_rows:
+            wf_path = root / status / wf
+            summary_json = None
+            for p in wf_path.rglob("summary.json"):
+              summary_json = p
+              break
+            if not summary_json or not summary_json.exists():
+              strict_rows.append((wf, status, "n/a", "", "", ""))
+              continue
+            try:
+              data = json.loads(summary_json.read_text(encoding="utf-8", errors="ignore"))
+            except Exception:
+              strict_rows.append((wf, status, "n/a", "", "", "invalid summary.json"))
+              continue
+
+            errors = ""
+            warnings = ""
+            status_text = "PASS"
+            note = ""
+            if "critical" in data or "high" in data:
+              errors = str(int(data.get("critical", 0)) + int(data.get("high", 0)))
+              warnings = str(int(data.get("medium", 0)) + int(data.get("low", 0)))
+              if int(errors) > 0:
+                status_text = "FAIL"
+              elif int(warnings) > 0:
+                status_text = "WARN"
+              note = "lint"
+            elif "line_coverage" in data:
+              cov = data.get("line_coverage")
+              note = f"coverage={cov}"
+              status_text = "PASS" if cov is None else "PASS"
+            elif "trx_failed" in data or "trx_total" in data:
+              failed = int(data.get("trx_failed", 0) or 0)
+              total = int(data.get("trx_total", 0) or 0)
+              errors = str(failed)
+              note = f"tests total={total}"
+              status_text = "FAIL" if failed else "PASS"
+            strict_rows.append((wf, status, status_text, errors, warnings, note))
           index = {
             "title": "Collected CI Artifacts",
             "repository": "${{ github.repository }}",
             "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
             "files": files,
-            "relaxed_dashboard": "collected/relaxed-dashboard-aggregate.html",
             "missing_artifacts": missing,
             "artifact_table": [
               {"workflow": wf, "status": status, "files": count}
               for wf, status, count in table_rows
+            ],
+            "strict_table": [
+              {
+                "workflow": wf,
+                "status": status,
+                "strict_status": strict_status,
+                "errors": errors,
+                "warnings": warnings,
+                "note": note
+              }
+              for wf, status, strict_status, errors, warnings, note in strict_rows
             ]
           }
           Path("collected/INDEX.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
@@ -137,7 +188,6 @@ jobs:
             "Collected CI Artifacts",
             f"Repository: {index['repository']}",
             f"Timestamp: {index['timestamp']}",
-            "Relaxed Dashboard: collected/relaxed-dashboard-aggregate.html",
             ""
           ] + files
           if missing:
@@ -162,6 +212,25 @@ jobs:
               "</table></section>"
             )
 
+          strict_sections = []
+          strict_grouped = {}
+          for wf, status, strict_status, errors, warnings, note in strict_rows:
+            strict_grouped.setdefault(wf, []).append((status, strict_status, errors, warnings, note))
+          for wf in sorted(strict_grouped.keys()):
+            rows = strict_grouped[wf]
+            strict_sections.append(
+              "<section>"
+              f"<h4>{html.escape(wf)}</h4>"
+              "<table><tr><th>Status</th><th>Strict</th><th>Errors</th><th>Warnings</th><th>Note</th></tr>" +
+              "".join(
+                f"<tr><td>{html.escape(status)}</td><td>{html.escape(strict_status)}</td>"
+                f"<td>{html.escape(errors)}</td><td>{html.escape(warnings)}</td>"
+                f"<td>{html.escape(note)}</td></tr>"
+                for status, strict_status, errors, warnings, note in rows
+              ) +
+              "</table></section>"
+            )
+
           html_out = root / "INDEX.html"
           html_out.write_text(
             "<!doctype html><html><head><meta charset='utf-8'/>"
@@ -174,50 +243,13 @@ jobs:
             f"<p>Timestamp: {html.escape(index['timestamp'])}</p>"
             "<h3>Artifact Table (Grouped by Workflow)</h3>"
             + "".join(sections) +
+            "<h3>Strict Summaries (Grouped by Workflow)</h3>"
+            + "".join(strict_sections) +
             "</body></html>",
             encoding="utf-8"
           )
           PY
           cat collected/INDEX.txt >> $GITHUB_STEP_SUMMARY
-
-      - name: Build Relaxed Dashboard Aggregate
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import html
-          import re
-
-          root = Path("collected")
-          dashboards = sorted(root.rglob("relaxed-dashboard.html"))
-
-          def extract_body(content: str) -> str:
-            m = re.search(r"<body[^>]*>(.*)</body>", content, flags=re.S | re.I)
-            return m.group(1).strip() if m else content
-
-          sections = []
-          for dash in dashboards:
-            content = dash.read_text(encoding="utf-8", errors="ignore")
-            body = extract_body(content)
-            title = dash.parent.name
-            sections.append(f"<section><h3>{html.escape(title)}</h3>{body}</section>")
-
-          if not sections:
-            sections.append("<section><h3>No dashboards found</h3><p>No relaxed dashboards were found in artifacts.</p></section>")
-
-          out = Path("collected/relaxed-dashboard-aggregate.html")
-          out.write_text(
-            "<!doctype html><html><head><meta charset='utf-8'/>"
-            "<title>Relaxed Checks Aggregate</title>"
-            "<style>body{font-family:Arial,sans-serif;margin:24px;}section{margin-bottom:24px;}"
-            "h3{margin:0 0 8px 0;}table{border-collapse:collapse;width:100%;}"
-            "th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f3f4f6;}</style>"
-            "</head><body><h2>Relaxed Checks Aggregate</h2>" +
-            "".join(sections) +
-            "</body></html>",
-            encoding="utf-8"
-          )
-          PY
-          echo "Relaxed dashboard aggregate built: collected/relaxed-dashboard-aggregate.html" >> $GITHUB_STEP_SUMMARY
 
       - name: Zip Collected Artifacts Per Workflow
         run: |
