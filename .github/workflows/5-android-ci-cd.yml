@@ -50,7 +50,7 @@ jobs:
     if: always()
     #runs-on: ubuntu-latest
     runs-on: macos-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: ./android
@@ -80,22 +80,13 @@ jobs:
         run: |
           curl -Ls "https://get.maestro.mobile.dev" | bash
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
-      
-      - name: DEBUG - Show me the REAL file content
-        run: |
-          echo "================ START OF FLOW.YAML ================"
-          cat "$GITHUB_WORKSPACE/android/.maestro/flow.yaml"
-          echo ""
-          echo "================ END OF FLOW.YAML ================"
-          echo "PWD is: $(pwd)"
-          ls -R "$GITHUB_WORKSPACE/android/.maestro"
 
       - name: Run Maestro Flow (non-blocking stage)
         uses: reactivecircus/android-emulator-runner@v2.35.0
         with:
-          api-level: 29
+          api-level: 31   #29
           target: default
-          arch: x86_64
+          arch: arm64-v8a   #x86_64
           profile: Nexus 6
           emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim  #new add
           script: |
