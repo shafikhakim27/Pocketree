@@ -24,4 +24,5 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["python","-m","uvicorn","ChatService:app","--host","0.0.0.0","--port","8080"]
+CMD ["sh","-c","python -m uvicorn MainModelML_pic:app --host 0.0.0.0 --port ${PORT:-8080}"]
+
