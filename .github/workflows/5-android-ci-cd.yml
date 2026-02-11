@@ -93,9 +93,7 @@ jobs:
             mkdir -p "$GITHUB_WORKSPACE/.maestro/screenshots"
             adb wait-for-device
             adb install "$GITHUB_WORKSPACE/android/app/build/outputs/apk/debug/app-debug.apk"
-            maestro test "$GITHUB_WORKSPACE/android/.maestro/flow.yaml" \
-              --format junit \
-              --output "$GITHUB_WORKSPACE/maestro-report/report.xml"
+            maestro test "$GITHUB_WORKSPACE/android/.maestro/flow.yaml" --format junit --output "$GITHUB_WORKSPACE/maestro-report/report.xml"
 
       - name: Upload Maestro Artifacts
         if: always()
