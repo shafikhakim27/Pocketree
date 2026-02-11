@@ -23,6 +23,9 @@ env:
 
 jobs:
   build-and-deploy-ml:
+    concurrency:
+      group: ml-cd-gcp-${{ github.ref }}
+      cancel-in-progress: true
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
@@ -193,6 +196,31 @@ jobs:
             done
           else
             echo "No failed deployments to remove."
+          fi
+
+      - name: Enforce Single Deployment (Undeploy Existing)
+        run: |
+          set -euo pipefail
+          unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
+          deployed_ids=$(gcloud ai endpoints describe "$ENDPOINT_ID" \
+            --region "${{ env.GCP_REGION }}" \
+            --format="json" | \
+            python - <<'PY'
+          import json, sys
+          data = json.load(sys.stdin)
+          ids = [dm.get("id") for dm in data.get("deployedModels", []) if dm.get("id")]
+          print(" ".join(ids))
+          PY
+          )
+          if [ -n "$deployed_ids" ]; then
+            for id in $deployed_ids; do
+              echo "Undeploying existing deployment $id"
+              gcloud ai endpoints undeploy-model "$ENDPOINT_ID" \
+                --region "${{ env.GCP_REGION }}" \
+                --deployed-model-id "$id"
+            done
+          else
+            echo "No existing deployments to remove."
           fi
 
       - name: Compute Deployment Display Name
