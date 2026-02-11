@@ -1,11 +1,6 @@
 appId: com.pocketree.app
 name: Main Flow
 ---
-- launchApp:
-    clearState: true
-    arguments:
-      isMockMode: true
-      
 - runFlow: flows/login.yaml
 - runFlow: flows/home.yaml
 - runFlow: flows/tasks.yaml
