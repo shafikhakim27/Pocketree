@@ -50,6 +50,7 @@ jobs:
     if: always()
     #runs-on: ubuntu-latest
     runs-on: macos-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: ./android
