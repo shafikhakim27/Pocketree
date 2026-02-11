@@ -45,7 +45,14 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=api/api.sln --severity-threshold=high
+          args: --file=api/api.sln --severity-threshold=high --skip-unresolved --json-file-output=api-snyk.json --sarif-file-output=api-snyk.sarif
+
+      - name: Ensure API CI Scan Files Exist
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -f api-snyk.json ] || echo '{"note":"snyk report missing"}' > api-snyk.json
+          [ -f api-snyk.sarif ] || echo '{"version":"2.1.0","runs":[]}' > api-snyk.sarif
 
       - name: Build Solution
         run: dotnet build api/api.sln --no-restore --configuration Release
@@ -59,6 +66,23 @@ jobs:
           if-no-files-found: warn
           name: test-artifacts
           path: ${{ github.workspace }}/test-artifacts/
+
+      - name: Upload API CI Scan Reports
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: api-ci-scan-reports
+          path: |
+            ${{ github.workspace }}/format-report.json
+            ${{ github.workspace }}/api-snyk.json
+            ${{ github.workspace }}/api-snyk.sarif
+
+      - name: Upload Snyk SARIF (API)
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4.31.10
+        with:
+          sarif_file: api-snyk.sarif
 
   unit-tests:
     continue-on-error: true

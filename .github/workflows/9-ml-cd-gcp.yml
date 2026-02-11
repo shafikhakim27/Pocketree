@@ -19,7 +19,6 @@ on:
         type: boolean
         default: true
   push:
-    branches: ["main"]
     paths:
       - 'ml-service/**'
       - 'ml-service-chat/**'
