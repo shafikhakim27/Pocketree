@@ -3,15 +3,17 @@ name: 1e) Run All Workflows
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 12 * * *"
-
-    - cron: "0 20 * * *"
+    - cron: "54 16 * * *"
+    - cron: "54 22 * * *"
+    - cron: "54 4 * * *"
+    - cron: "54 10 * * *"
 permissions:
   contents: read
   actions: write
 
 jobs:
   trigger:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - name: Trigger all workflows
@@ -27,7 +29,7 @@ jobs:
               "2c-android-cd-release.yml",
               "2b-android-mobsfscan-sast.yml",
               "1a-code-quality.yml",
-              "1c-contribution-report.yml",
+              "1b-code-coverage.yml",
               "4a-ml-ci.yml",
               "4b-ml-cd-gcp.yml",
               "4d-ml-v2-ci.yml",
@@ -36,7 +38,7 @@ jobs:
               "4g-ml-v3-cd.yml",
               "4c-ml-dast.yml",
               "1d-pipeline-artifacts.yml",
-              "1b-security-tests-report.yml"
+              "1c-security-tests-report.yml"
             ];
 
             const wfList = await github.rest.actions.listRepoWorkflows({

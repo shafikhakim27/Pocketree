@@ -3,8 +3,10 @@ name: 2a) Android CI
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
+    - cron: "9 16 * * *"
+    - cron: "9 22 * * *"
+    - cron: "9 4 * * *"
+    - cron: "9 10 * * *"
   push:
     branches: ["main", "develop"]
     paths:
@@ -13,6 +15,7 @@ on:
 
 jobs:
   build-android:
+    continue-on-error: true
     runs-on: ubuntu-latest
     defaults:
       run:

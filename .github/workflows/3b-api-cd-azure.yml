@@ -2,6 +2,11 @@ name: 3b) API CD (Deploy - Azure)
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "27 16 * * *"
+    - cron: "27 22 * * *"
+    - cron: "27 4 * * *"
+    - cron: "27 10 * * *"
   workflow_run:
     workflows: ["3a) API CI (Build, Test, Scan, SAST)"]
     types:
@@ -13,6 +18,7 @@ env:
 
 jobs:
   build-and-deploy:
+    continue-on-error: true
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:

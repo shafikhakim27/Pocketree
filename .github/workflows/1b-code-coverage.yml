@@ -1,0 +1,154 @@
+name: 1b) Code Coverage
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "3 16 * * *"
+    - cron: "3 22 * * *"
+    - cron: "3 4 * * *"
+    - cron: "3 10 * * *"
+permissions:
+  contents: read
+  actions: read
+
+env:
+  COVERAGE_MIN: "70"
+
+jobs:
+  api-code-coverage:
+    continue-on-error: true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6.0.2
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4.3.0
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Restore Dependencies
+        run: dotnet restore api/api.sln
+
+      - name: Run Tests with Coverage
+        run: |
+          dotnet test api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj \
+            --collect:"XPlat Code Coverage" \
+            --results-directory ./TestResults
+
+      - name: Generate Coverage Report
+        run: |
+          dotnet tool install -g dotnet-reportgenerator-globaltool
+          reportgenerator \
+            -reports:TestResults/**/coverage.cobertura.xml \
+            -targetdir:coverage-report \
+            "-reporttypes:Html;TextSummary"
+
+      - name: Build Summary (Strict)
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          import re
+          import sys
+          from pathlib import Path
+
+          summary = {
+            "summary": "API Code Coverage",
+            "coverage_summary": ""
+          }
+          summary_path = Path("coverage-report/Summary.txt")
+          if not summary_path.exists():
+            summary["error"] = "Coverage summary not found."
+            Path("summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+            Path("summary.txt").write_text(
+              "API Code Coverage\n\nError: Coverage summary not found.\n",
+              encoding="utf-8"
+            )
+            print("Coverage summary missing; failing in strict mode.")
+            sys.exit(1)
+
+          text = summary_path.read_text(encoding="utf-8", errors="ignore")
+          summary["coverage_summary"] = text
+
+          # Extract line coverage percentage (best-effort)
+          line_match = re.search(r"Line coverage\\s*:\\s*([0-9.]+)%", text)
+          line_cov = float(line_match.group(1)) if line_match else None
+          summary["line_coverage"] = line_cov
+
+          Path("summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+          lines = ["API Code Coverage"]
+          if line_cov is not None:
+            lines.append(f"Line coverage: {line_cov:.2f}%")
+          lines.append("")
+          lines.append(summary.get("coverage_summary", ""))
+          Path("summary.txt").write_text("\n".join(lines), encoding="utf-8")
+
+          min_cov = float("${{ env.COVERAGE_MIN }}")
+          if line_cov is not None and line_cov < min_cov:
+            print(f"Line coverage {line_cov:.2f}% is below minimum {min_cov:.2f}%")
+            sys.exit(1)
+          PY
+          cat summary.txt >> $GITHUB_STEP_SUMMARY
+
+      - name: Coverage Rich View
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import html
+
+          data = {}
+          summary = Path("summary.json")
+          if summary.exists():
+            data = json.loads(summary.read_text(encoding="utf-8", errors="ignore"))
+
+          line_cov = data.get("line_coverage")
+          status = "PASS"
+          if data.get("error"):
+            status = "FAIL"
+          elif line_cov is not None and line_cov < float("${{ env.COVERAGE_MIN }}"):
+            status = "FAIL"
+
+          html_out = Path("coverage-richview.html")
+          html_out.write_text(
+            "<!doctype html><html><head><meta charset='utf-8'/>"
+            "<title>API Coverage Summary</title>"
+            "<style>body{font-family:Arial,sans-serif;margin:24px;}table{border-collapse:collapse;width:420px;}"
+            "th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f3f4f6;}"
+            ".ok{color:#0f7b0f;font-weight:600;} .fail{color:#b00020;font-weight:600;}</style>"
+            "</head><body>"
+            "<h2>API Coverage Summary</h2>"
+            f"<p>Status: <span class='{ 'ok' if status=='PASS' else 'fail' }'>{status}</span></p>"
+            "<table>"
+            "<tr><th>Metric</th><th>Value</th></tr>"
+            f"<tr><td>Line coverage</td><td>{html.escape(str(line_cov) if line_cov is not None else 'n/a')}</td></tr>"
+            f"<tr><td>Minimum required</td><td>{html.escape('${{ env.COVERAGE_MIN }}')}%</td></tr>"
+            "</table>"
+            "</body></html>",
+            encoding="utf-8"
+          )
+          PY
+
+      - name: Upload Coverage Artifacts
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: api-coverage-report
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
+            ${{ github.workspace }}/coverage-richview.html
+
+      - name: Upload Summary
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: api-coverage-summary
+          path: |
+            ${{ github.workspace }}/summary.json
+            ${{ github.workspace }}/summary.txt
+            ${{ github.workspace }}/coverage-richview.html

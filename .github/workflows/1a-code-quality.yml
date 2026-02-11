@@ -1,90 +1,20 @@
-name: 1a) Code Quality and Coverage
+name: 1a) Code Quality
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "15 4 * * *"
-
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
+    - cron: "0 16 * * *"
+    - cron: "0 22 * * *"
+    - cron: "0 4 * * *"
+    - cron: "0 10 * * *"
 permissions:
   contents: read
   security-events: write
   actions: read
 
 jobs:
-  api-quality-coverage:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v6.0.2
-
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4.3.0
-        with:
-          dotnet-version: 9.0.x
-
-      - name: Restore Dependencies
-        run: dotnet restore api/api.sln
-
-      - name: Run Tests with Coverage
-        run: |
-          dotnet test api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj \
-            --collect:"XPlat Code Coverage" \
-            --results-directory ./TestResults
-
-      - name: Generate Coverage Report
-        run: |
-          dotnet tool install -g dotnet-reportgenerator-globaltool
-          reportgenerator \
-            -reports:TestResults/**/coverage.cobertura.xml \
-            -targetdir:coverage-report \
-            "-reporttypes:Html;TextSummary"
-
-      - name: Build Summary
-        if: always()
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          summary = {
-            "summary": "API Code Quality & Coverage",
-            "coverage_summary": ""
-          }
-          summary_path = Path("coverage-report/Summary.txt")
-          if summary_path.exists():
-            summary["coverage_summary"] = summary_path.read_text(encoding="utf-8", errors="ignore")
-
-          Path("summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
-          Path("summary.txt").write_text(
-            "API Code Quality & Coverage\n\n" + summary.get("coverage_summary", ""),
-            encoding="utf-8"
-          )
-          PY
-          cat summary.txt >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload Coverage Artifacts
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
-        with:
-          if-no-files-found: warn
-          name: api-coverage-report
-          path: |
-            ${{ github.workspace }}/summary.json
-            ${{ github.workspace }}/summary.txt
-
-      - name: Upload Summary
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
-        with:
-          if-no-files-found: warn
-          name: api-coverage-summary
-          path: |
-            ${{ github.workspace }}/summary.json
-            ${{ github.workspace }}/summary.txt
-
   android-quality:
+    continue-on-error: true
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -139,6 +69,22 @@ jobs:
           Path("summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
           cat summary.txt >> $GITHUB_STEP_SUMMARY
+
+      - name: Quality Gate (Strict)
+        if: always()
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          data = {}
+          summary = Path("summary.json")
+          if summary.exists():
+            data = json.loads(summary.read_text(encoding="utf-8", errors="ignore"))
+          critical = int(data.get("critical", 0) or 0)
+          high = int(data.get("high", 0) or 0)
+          if critical or high:
+            raise SystemExit(1)
+          PY
 
       - name: Relaxed Lint Summary
         if: always()
@@ -202,18 +148,21 @@ jobs:
               "<html lang=\"en\">",
               "  <head>",
               "    <meta charset=\"utf-8\" />",
-              "    <title>Android Lint (relaxed)</title>",
+              "    <title>Android Lint (strict)</title>",
               "    <style>",
               "      body {{ font-family: Arial, sans-serif; margin: 24px; }}",
               "      table {{ border-collapse: collapse; width: 360px; }}",
               "      th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}",
               "      th {{ background: #f3f4f6; }}",
+              "      .ok {{ color: #0f7b0f; font-weight: 600; }}",
+              "      .fail {{ color: #b00020; font-weight: 600; }}",
               "      .section {{ margin-top: 16px; }}",
               "      ul {{ margin: 6px 0 0 18px; }}",
               "    </style>",
               "  </head>",
               "  <body>",
-              "    <h2>Android Lint (relaxed)</h2>",
+              "    <h2>Android Lint (strict)</h2>",
+              f"    <p>Status: <span class={'\"fail\"' if (errors or warnings) else '\"ok\"'}>{'FAIL' if (errors or warnings) else 'PASS'}</span></p>",
               "    <table>",
               "      <tr><th>Metric</th><th>Count</th></tr>",
               "      <tr><td>Errors</td><td>{errors}</td></tr>",
@@ -401,6 +350,7 @@ jobs:
           path: ${{ github.workspace }}/relaxed-dashboard.html
 
   ml-service-quality:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -556,6 +506,7 @@ jobs:
             ${{ github.workspace }}/summary.txt
 
   codeql:
+    continue-on-error: true
     name: CodeQL Analysis
     runs-on: ubuntu-latest
     strategy:

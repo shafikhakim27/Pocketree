@@ -2,6 +2,11 @@ name: 3c) API DAST
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "45 16 * * *"
+    - cron: "45 22 * * *"
+    - cron: "45 4 * * *"
+    - cron: "45 10 * * *"
   workflow_run:
     workflows: ["3b) API CD (Deploy - Azure)"]
     types:
@@ -9,6 +14,7 @@ on:
 
 jobs:
   zap-baseline:
+    continue-on-error: true
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:

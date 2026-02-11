@@ -2,6 +2,11 @@ name: 4b) ML CD (Deploy -GCP)
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "30 16 * * *"
+    - cron: "30 22 * * *"
+    - cron: "30 4 * * *"
+    - cron: "30 10 * * *"
   workflow_run:
     workflows: ["4a) ML CI (Build, Test, Scan, SAST)"]
     types:
@@ -23,6 +28,7 @@ env:
 
 jobs:
   build-and-deploy-ml:
+    continue-on-error: true
     concurrency:
       group: ml-cd-gcp-${{ github.ref }}
       cancel-in-progress: true

@@ -3,16 +3,17 @@ name: 1d) Pipeline Compiled Artifacts
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 2 * * *"
-
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
+    - cron: "51 16 * * *"
+    - cron: "51 22 * * *"
+    - cron: "51 4 * * *"
+    - cron: "51 10 * * *"
 permissions:
   contents: read
   actions: read
 
 jobs:
   collect:
+    continue-on-error: true
     runs-on: ubuntu-latest
     env:
       WORKFLOWS: |
@@ -26,9 +27,9 @@ jobs:
         2d-android-ui-maestro.yml
         2c-android-cd-release.yml
         2b-android-mobsfscan-sast.yml
-        1b-security-tests-report.yml
         1a-code-quality.yml
-        1c-contribution-report.yml
+        1b-code-coverage.yml
+        1c-security-tests-report.yml
     steps:
       - name: Prepare workspace
         run: |

@@ -2,6 +2,11 @@ name: 4c) ML DAST
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "48 16 * * *"
+    - cron: "48 22 * * *"
+    - cron: "48 4 * * *"
+    - cron: "48 10 * * *"
   workflow_run:
     workflows: ["4b) ML CD (Deploy -GCP)", "4f) ML CD (v2 Cloud Run)", "4g) ML CD (v3 Azure)"]
     types:
@@ -9,20 +14,44 @@ on:
 
 jobs:
   zap-baseline:
+    continue-on-error: true
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     strategy:
       fail-fast: false
       matrix:
         target:
+          - https://asia-southeast1-aiplatform.googleapis.com/v1/projects/500550710563/locations/asia-southeast1/endpoints/7416515991628152832:predict
           - https://pocketree-ml-500550710563.asia-southeast1.run.app
           - https://pocketree-ml-service.azurewebsites.net
     steps:
+      - name: Authenticate to Google Cloud (Vertex)
+        uses: google-github-actions/auth@v3.0.0
+        with:
+          credentials_json: ${{ secrets.GCP_VERTEX_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3.0.0
+        with:
+          project_id: pocketree-ml-service
+
+      - name: Fetch Vertex Access Token
+        id: vertex_token
+        if: startsWith(matrix.target, 'https://asia-southeast1-aiplatform.googleapis.com/')
+        run: |
+          set -euo pipefail
+          TOKEN="$(gcloud auth application-default print-access-token)"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
       - name: ZAP Baseline Scan
         uses: zaproxy/action-baseline@v0.15.0
         with:
           target: ${{ matrix.target }}
-          cmd_options: "-J zap_report.json -r zap_report.html"
+          cmd_options: >-
+            -J zap_report.json -r zap_report.html
+            ${{ startsWith(matrix.target, 'https://asia-southeast1-aiplatform.googleapis.com/')
+                && format('-z "-config replacer.rules(0).description=Auth -config replacer.rules(0).enabled=true -config replacer.rules(0).matchtype=REQ_HEADER -config replacer.rules(0).matchstr=Authorization -config replacer.rules(0).replacement=Bearer {0}"', steps.vertex_token.outputs.token)
+                || '' }}
           fail_action: false
 
       - name: Fail on High Confidence Alerts

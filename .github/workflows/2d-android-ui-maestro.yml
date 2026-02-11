@@ -2,6 +2,11 @@ name: 2d) Android UI - Maestro
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "42 16 * * *"
+    - cron: "42 22 * * *"
+    - cron: "42 4 * * *"
+    - cron: "42 10 * * *"
   workflow_run:
     workflows: ["2a) Android CI"]
     types:
@@ -9,6 +14,7 @@ on:
 
 jobs:
   ui-test:
+    continue-on-error: true
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     defaults:

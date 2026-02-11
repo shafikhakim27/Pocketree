@@ -2,6 +2,11 @@ name: 2c) Android CD Release Build
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "39 16 * * *"
+    - cron: "39 22 * * *"
+    - cron: "39 4 * * *"
+    - cron: "39 10 * * *"
   workflow_run:
     workflows: ["2a) Android CI"]
     types:
@@ -9,6 +14,7 @@ on:
 
 jobs:
   build-release-android:
+    continue-on-error: true
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     defaults:

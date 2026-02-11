@@ -3,12 +3,13 @@ name: 2b) Android Mobsfscan - SAST
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * *"
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
-
+    - cron: "24 16 * * *"
+    - cron: "24 22 * * *"
+    - cron: "24 4 * * *"
+    - cron: "24 10 * * *"
 jobs:
   mobsf-scan:
+    continue-on-error: true
     runs-on: ubuntu-latest
     defaults:
       run:

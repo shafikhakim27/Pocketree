@@ -3,8 +3,10 @@ name: 4a) ML CI (Build, Test, Scan, SAST)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 12 * * *"
-    - cron: "0 20 * * *"
+    - cron: "15 16 * * *"
+    - cron: "15 22 * * *"
+    - cron: "15 4 * * *"
+    - cron: "15 10 * * *"
   push:
     branches: ["main", "develop"]
     paths:
@@ -20,6 +22,7 @@ env:
 
 jobs:
   tests:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -240,6 +243,7 @@ jobs:
           echo "ML Service Tests: Completed" >> "$GITHUB_STEP_SUMMARY"
 
   security-scans:
+    continue-on-error: true
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code

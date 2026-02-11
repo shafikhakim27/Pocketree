@@ -2,6 +2,11 @@ name: 4g) ML CD (v3 Azure)
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "36 16 * * *"
+    - cron: "36 22 * * *"
+    - cron: "36 4 * * *"
+    - cron: "36 10 * * *"
   workflow_run:
     workflows: ["4e) ML CI (v3 Azure)"]
     types:
@@ -13,6 +18,7 @@ env:
 
 jobs:
   build-and-deploy:
+    continue-on-error: true
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:

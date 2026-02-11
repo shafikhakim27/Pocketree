@@ -120,7 +120,15 @@ public class TestWebApplicationFactory : WebApplicationFactory<global::Program>,
 
         if (_useTestcontainers)
         {
-            db.Database.Migrate();
+            var pending = db.Database.GetPendingMigrations();
+            if (pending.Any())
+            {
+                db.Database.Migrate();
+            }
+            else
+            {
+                db.Database.EnsureCreated();
+            }
         }
         else
         {
