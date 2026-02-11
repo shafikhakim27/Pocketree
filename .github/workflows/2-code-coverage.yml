@@ -7,6 +7,11 @@ on:
     - cron: "3 22 * * *"
     - cron: "3 4 * * *"
     - cron: "3 10 * * *"
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'api/**'
+      - '.github/workflows/2-code-coverage.yml'
 permissions:
   contents: read
   actions: read
@@ -90,28 +95,6 @@ jobs:
             sys.exit(1)
           PY
           cat summary.txt >> $GITHUB_STEP_SUMMARY
-
-      - name: Strict Summary
-        if: always()
-        run: |
-          python - <<'PY' >> $GITHUB_STEP_SUMMARY
-          import json
-          from pathlib import Path
-          data = {}
-          summary = Path("summary.json")
-          if summary.exists():
-            data = json.loads(summary.read_text(encoding="utf-8", errors="ignore"))
-          line_cov = data.get("line_coverage")
-          status = "PASS"
-          if data.get("error"):
-            status = "FAIL"
-          elif line_cov is not None and line_cov < float("${{ env.COVERAGE_MIN }}"):
-            status = "FAIL"
-          print("Strict Summary")
-          print(f"- Line coverage: {line_cov if line_cov is not None else 'n/a'}")
-          print(f"- Minimum required: ${{ env.COVERAGE_MIN }}%")
-          print(f"- Status: {status}")
-          PY
 
       - name: Upload Coverage Artifacts
         if: always()

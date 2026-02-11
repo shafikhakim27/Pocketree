@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       WORKFLOWS: |
+        0-contribution-report.yml
         1-code-quality.yml
         2-code-coverage.yml
         3-security-tests-report.yml

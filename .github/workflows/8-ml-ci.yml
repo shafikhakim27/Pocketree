@@ -20,7 +20,9 @@ permissions:
   security-events: write
 
 env:
-  SKIP_SNYK_SARIF: "false"
+  SKIP_SNYK_SARIF_PREDICT: "false"
+  SKIP_SNYK_SARIF_CHAT: "false"
+  SKIP_SNYK_SARIF_CLASSIFY: "false"
 
 jobs:
   tests:
@@ -46,8 +48,8 @@ jobs:
         run: |
           pip install ruff
           ruff check ml-service --exit-zero --output-format json --output-file ruff-report.json
-          ruff check ml-service-chat --exit-zero --output-format json --output-file ruff-report-v2.json
-          ruff check ml-service-classify --exit-zero --output-format json --output-file ruff-report-v3.json
+          ruff check ml-service-chat --exit-zero --output-format json --output-file ruff-report-chat.json
+          ruff check ml-service-classify --exit-zero --output-format json --output-file ruff-report-classify.json
 
       - name: Type Check (mypy)
         continue-on-error: true
@@ -62,42 +64,81 @@ jobs:
           pytest ml-service/tests --junitxml=ml-service-test-results.xml
         continue-on-error: true
 
-      - name: Run ML Service v2 Tests
+      - name: Run ML Service Chat Tests
         run: |
-          pytest ml-service-chat/tests --junitxml=ml-service-v2-test-results.xml
+          pytest ml-service-chat/tests --junitxml=ml-service-chat-test-results.xml
         continue-on-error: true
 
-      - name: Run ML Service v3 Tests
+      - name: Run ML Service Classify Tests
         run: |
-          pytest ml-service-classify/tests --junitxml=ml-service-v3-test-results.xml
+          pytest ml-service-classify/tests --junitxml=ml-service-classify-test-results.xml
         continue-on-error: true
 
-      - name: Checkout Code
-        uses: actions/checkout@v6.0.2
-
-      - name: Snyk Python Scan
+      - name: Snyk Python Scan (Predict)
         uses: snyk/actions/python@master
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --file=ml-service/requirements.txt --severity-threshold=high --skip-unresolved --json-file-output=ml-service-snyk.json --sarif-file-output=ml-service-snyk.sarif
+          args: --file=ml-service/requirements.txt --severity-threshold=high --skip-unresolved --json-file-output=ml-service-predict-snyk.json --sarif-file-output=ml-service-predict-snyk.sarif
+
+      - name: Snyk Python Scan (Chat)
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=ml-service-chat/requirements.txt --severity-threshold=high --skip-unresolved --json-file-output=ml-service-chat-snyk.json --sarif-file-output=ml-service-chat-snyk.sarif
+
+      - name: Snyk Python Scan (Classify)
+        uses: snyk/actions/python@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --file=ml-service-classify/requirements.txt --severity-threshold=high --skip-unresolved --json-file-output=ml-service-classify-snyk.json --sarif-file-output=ml-service-classify-snyk.sarif
 
       - name: Run Bandit
         run: |
           pip install bandit
-          bandit -r ml-service/ -lll -iii -f json -o bandit-report.json
+          bandit -r ml-service/ ml-service-chat/ ml-service-classify/ -lll -iii -f json -o bandit-report.json
 
-      - name: Check Snyk SARIF
+      - name: Check Snyk SARIF (Predict)
         if: always()
         run: |
-          if [ ! -s ml-service-snyk.sarif ]; then
-            echo "SKIP_SNYK_SARIF=true" >> $GITHUB_ENV
-            echo "Snyk SARIF missing or empty, skipping upload."
+          if [ ! -s ml-service-predict-snyk.sarif ]; then
+            echo "SKIP_SNYK_SARIF_PREDICT=true" >> $GITHUB_ENV
+            echo "Predict SARIF missing or empty, skipping upload."
           fi
 
-      - name: Upload Snyk SARIF
-        if: always() && env.SKIP_SNYK_SARIF != 'true'
+      - name: Check Snyk SARIF (Chat)
+        if: always()
+        run: |
+          if [ ! -s ml-service-chat-snyk.sarif ]; then
+            echo "SKIP_SNYK_SARIF_CHAT=true" >> $GITHUB_ENV
+            echo "Chat SARIF missing or empty, skipping upload."
+          fi
+
+      - name: Check Snyk SARIF (Classify)
+        if: always()
+        run: |
+          if [ ! -s ml-service-classify-snyk.sarif ]; then
+            echo "SKIP_SNYK_SARIF_CLASSIFY=true" >> $GITHUB_ENV
+            echo "Classify SARIF missing or empty, skipping upload."
+          fi
+
+      - name: Upload Snyk SARIF (Predict)
+        if: always() && env.SKIP_SNYK_SARIF_PREDICT != 'true'
         uses: github/codeql-action/upload-sarif@v4.31.10
         with:
-          sarif_file: ml-service-snyk.sarif
+          sarif_file: ml-service-predict-snyk.sarif
+
+      - name: Upload Snyk SARIF (Chat)
+        if: always() && env.SKIP_SNYK_SARIF_CHAT != 'true'
+        uses: github/codeql-action/upload-sarif@v4.31.10
+        with:
+          sarif_file: ml-service-chat-snyk.sarif
+
+      - name: Upload Snyk SARIF (Classify)
+        if: always() && env.SKIP_SNYK_SARIF_CLASSIFY != 'true'
+        uses: github/codeql-action/upload-sarif@v4.31.10
+        with:
+          sarif_file: ml-service-classify-snyk.sarif
 

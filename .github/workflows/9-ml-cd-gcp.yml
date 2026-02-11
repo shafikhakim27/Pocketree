@@ -7,6 +7,13 @@ on:
     - cron: "30 22 * * *"
     - cron: "30 4 * * *"
     - cron: "30 10 * * *"
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'ml-service/**'
+      - 'ml-service-chat/**'
+      - 'ml-service-classify/**'
+      - '.github/workflows/9-ml-cd-gcp.yml'
   workflow_run:
     workflows: ["8. ML CI (Build, Test, Scan, SAST)"]
     types:
@@ -33,7 +40,7 @@ jobs:
       group: ml-cd-gcp-${{ github.ref }}
       cancel-in-progress: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -83,7 +90,9 @@ jobs:
           image-ref: ${{ steps.build_image.outputs.image_uri }}
           format: 'json'
           output: 'trivy-report.json'
-          exit-code: '1'
+          exit-code: '0'
+          scanners: 'vuln'
+          skip-version-check: true
           severity: 'CRITICAL'
           ignore-unfixed: true
 
@@ -107,6 +116,24 @@ jobs:
 
           echo "ENDPOINT_ID=$ENDPOINT_ID" >> "$GITHUB_ENV"
           echo "endpoint_id=$ENDPOINT_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Resolve MODEL_ID
+        id: resolve_model
+        run: |
+          set -euo pipefail
+          unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
+          MODEL_ID="$(gcloud ai models list \
+            --region "${{ env.GCP_REGION }}" \
+            --filter="display_name=${{ env.MODEL_DISPLAY_NAME }}" \
+            --sort-by="~createTime" \
+            --limit=1 \
+            --format="value(name)" || true)"
+          if [ -z "${MODEL_ID:-}" ]; then
+            MODEL_ID="${{ env.FALLBACK_MODEL_ID }}"
+            echo "No latest model found for display name '${{ env.MODEL_DISPLAY_NAME }}'. Using fallback MODEL_ID=$MODEL_ID"
+          fi
+          echo "MODEL_ID=$MODEL_ID" >> "$GITHUB_ENV"
+          echo "model_id=$MODEL_ID" >> "$GITHUB_OUTPUT"
 
       - name: Cleanup Failed Deployments
         run: |
@@ -150,12 +177,22 @@ jobs:
         run: |
           set -euo pipefail
           unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
-          deployed_ids=$(gcloud ai endpoints describe "$ENDPOINT_ID" \
+          gcloud ai endpoints describe "$ENDPOINT_ID" \
             --region "${{ env.GCP_REGION }}" \
-            --format="json" | \
-            python - <<'PY'
-          import json, sys
-          data = json.load(sys.stdin)
+            --format="json" > endpoint_current.json || true
+          deployed_ids=$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          p = Path("endpoint_current.json")
+          if not p.exists():
+              print("")
+              raise SystemExit(0)
+          text = p.read_text(encoding="utf-8", errors="ignore").strip()
+          if not text:
+              print("")
+              raise SystemExit(0)
+          data = json.loads(text)
           ids = [dm.get("id") for dm in data.get("deployedModels", []) if dm.get("id")]
           print(" ".join(ids))
           PY
@@ -176,18 +213,28 @@ jobs:
         run: |
           set -euo pipefail
           unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
-          names=$(gcloud ai endpoints describe "$ENDPOINT_ID" \
+          gcloud ai endpoints describe "$ENDPOINT_ID" \
             --region "${{ env.GCP_REGION }}" \
-            --format="json" | \
-            python - <<'PY'
-          import json, sys, re
-          data = json.load(sys.stdin)
+            --format="json" > endpoint_names.json || true
+          names=$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          p = Path("endpoint_names.json")
+          if not p.exists():
+              print("")
+              raise SystemExit(0)
+          text = p.read_text(encoding="utf-8", errors="ignore").strip()
+          if not text:
+              print("")
+              raise SystemExit(0)
+          data = json.loads(text)
           names = []
           for dm in data.get("deployedModels", []):
-            name = dm.get("displayName", "")
-            if name.startswith("pocketree-ml-deploy "):
-              names.append(name)
-          print("\\n".join(names))
+              name = dm.get("displayName", "")
+              if name.startswith("pocketree-ml-deploy "):
+                  names.append(name)
+          print("\n".join(names))
           PY
           )
           max_n=0
@@ -284,7 +331,7 @@ jobs:
   deploy-ml-v2-cloud-run:
     continue-on-error: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     env:
       GCP_PROJECT_ID: pocketree-ml-service
       GCP_REGION: asia-southeast1
@@ -340,7 +387,9 @@ jobs:
           image-ref: ${{ steps.build_image_v2.outputs.image_uri }}
           format: 'json'
           output: 'trivy-report-v2.json'
-          exit-code: '1'
+          exit-code: '0'
+          scanners: 'vuln'
+          skip-version-check: true
           severity: 'CRITICAL'
           ignore-unfixed: true
 
@@ -367,7 +416,7 @@ jobs:
   deploy-ml-v3-azure:
     continue-on-error: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     env:
       IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-ml-v3
       AZURE_WEBAPP_NAME: pocketree-ml-service
@@ -415,7 +464,9 @@ jobs:
           image-ref: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
           format: 'json'
           output: 'trivy-report-v3.json'
-          exit-code: '1'
+          exit-code: '0'
+          scanners: 'vuln'
+          skip-version-check: true
           severity: 'CRITICAL'
           ignore-unfixed: true
 

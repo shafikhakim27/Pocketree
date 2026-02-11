@@ -7,6 +7,11 @@ on:
     - cron: "27 22 * * *"
     - cron: "27 4 * * *"
     - cron: "27 10 * * *"
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'api/**'
+      - '.github/workflows/7-api-cd-azure.yml'
   workflow_run:
     workflows: ["6. API CI (Build, Test, Scan, SAST)"]
     types:
@@ -20,7 +25,7 @@ jobs:
   build-and-deploy:
     continue-on-error: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
