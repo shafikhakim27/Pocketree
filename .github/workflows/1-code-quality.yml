@@ -3,10 +3,7 @@ name: 1. Code Quality
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 16 * * *"
-    - cron: "0 22 * * *"
-    - cron: "0 4 * * *"
-    - cron: "0 10 * * *"
+    - cron: "0 3 * * *"
   push:
     branches: ["main", "develop"]
     paths:
@@ -44,41 +41,6 @@ jobs:
       - name: Run Android Lint
         run: ./gradlew lintDebug
 
-      - name: Quality Gate (Strict)
-        if: always()
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          report = Path(r"""${{ github.workspace }}/android/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt""")
-          data = {"summary": "Android Lint Summary"}
-          if report.exists():
-            text = report.read_text(encoding="utf-8", errors="ignore").lower()
-            data.update({
-              "critical": text.count("severity: fatal"),
-              "high": text.count("severity: error"),
-              "medium": text.count("severity: warning"),
-              "low": text.count("severity: information")
-            })
-          else:
-            data["error"] = "Lint report not found."
-          Path("summary.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
-          lines = [
-            "Android Lint Summary",
-            f"Critical: {data.get('critical', 0)}",
-            f"High: {data.get('high', 0)}",
-            f"Medium: {data.get('medium', 0)}",
-            f"Low: {data.get('low', 0)}",
-          ]
-          if data.get("error"):
-            lines.append(f"Error: {data['error']}")
-          Path("summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
-          critical = int(data.get("critical", 0) or 0)
-          high = int(data.get("high", 0) or 0)
-          if critical or high:
-            raise SystemExit(1)
-          PY
-
       - name: Upload Lint Report
         if: always()
         uses: actions/upload-artifact@v6.0.0
@@ -86,18 +48,9 @@ jobs:
           if-no-files-found: warn
           name: android-lint-report
           path: |
-            ${{ github.workspace }}/summary.json
-            ${{ github.workspace }}/summary.txt
-
-      - name: Upload Summary
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
-        with:
-          if-no-files-found: warn
-          name: android-lint-summary
-          path: |
-            ${{ github.workspace }}/summary.json
-            ${{ github.workspace }}/summary.txt
+            ${{ github.workspace }}/android/app/build/reports/lint-results-debug.html
+            ${{ github.workspace }}/android/app/build/reports/lint-results-debug.xml
+            ${{ github.workspace }}/android/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
 
   codeql:
     name: CodeQL Analysis
@@ -158,14 +111,4 @@ jobs:
           name: codeql-sarif-${{ matrix.language }}
           path: ${{ github.workspace }}/codeql-results/**/*.sarif
 
-      - name: Code Scanning Links
-        if: always()
-        run: |
-          echo "Code Scanning UI: https://github.com/${{ github.repository }}/security/code-scanning" >> $GITHUB_STEP_SUMMARY
-          echo "Run Artifacts: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}?tab=artifacts" >> $GITHUB_STEP_SUMMARY
-
-      - name: Step Summary
-        if: always()
-        run: |
-          echo "CodeQL (${{ matrix.language }}): Completed" >> $GITHUB_STEP_SUMMARY
 

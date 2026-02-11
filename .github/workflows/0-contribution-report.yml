@@ -2,11 +2,6 @@ name: 0. Contribution Report
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "57 16 * * *"
-    - cron: "57 22 * * *"
-    - cron: "57 4 * * *"
-    - cron: "57 10 * * *"
 
 permissions:
   contents: read
@@ -25,12 +20,9 @@ jobs:
         run: |
           mkdir -p report
           python - <<'PY'
-          import json
           import subprocess
-          from datetime import datetime
           from pathlib import Path
 
-          repo = "${{ github.repository }}"
           shortlog = subprocess.check_output(["git", "shortlog", "-sne"], text=True, encoding="utf-8")
           commits_by_author = []
           for line in shortlog.strip().splitlines():
@@ -39,32 +31,12 @@ jobs:
               count, author = parts
               commits_by_author.append({"author": author, "commits": int(count)})
 
-          recent = subprocess.check_output(
-            ["git", "log", "-n", "500", "--pretty=format:%h %ad %an %s", "--date=short"],
-            text=True, encoding="utf-8"
-          )
-          recent_activity = recent.strip().splitlines() if recent.strip() else []
-
-          report = {
-            "title": "Contribution Report",
-            "repository": repo,
-            "generated": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "commits_by_author": commits_by_author,
-            "recent_activity": recent_activity
-          }
-
-          Path("report/contribution-report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
           lines = [
             "Contribution Report",
-            f"Repository: {repo}",
-            f"Generated: {report['generated']}",
             "",
             "Commits by Author:"
           ]
           lines += [f"{c['commits']}\t{c['author']}" for c in commits_by_author]
-          lines.append("")
-          lines.append("Recent Activity (last 500 commits):")
-          lines += recent_activity
           Path("report/contribution-report.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
           cat report/contribution-report.txt >> $GITHUB_STEP_SUMMARY
@@ -75,5 +47,4 @@ jobs:
           if-no-files-found: warn
           name: contribution-report
           path: |
-            ${{ github.workspace }}/report/contribution-report.json
             ${{ github.workspace }}/report/contribution-report.txt

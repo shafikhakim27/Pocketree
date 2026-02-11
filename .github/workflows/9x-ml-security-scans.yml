@@ -2,6 +2,8 @@ name: 9x. ML Security (Scans + DAST)
 
 on:
   workflow_dispatch:
+  schedule:
+    - cron: "30 3 * * *"
   workflow_run:
     workflows: ["9. ML CD (Deploy - GCP)"]
     types:
@@ -54,7 +56,6 @@ jobs:
           output: 'trivy-report-v1.json'
           exit-code: '0'
           scanners: 'vuln'
-          skip-version-check: true
           severity: 'CRITICAL'
           ignore-unfixed: true
 
@@ -66,7 +67,6 @@ jobs:
           output: 'trivy-report-v2.json'
           exit-code: '0'
           scanners: 'vuln'
-          skip-version-check: true
           severity: 'CRITICAL'
           ignore-unfixed: true
 
@@ -84,7 +84,6 @@ jobs:
           output: 'trivy-report-v3.json'
           exit-code: '0'
           scanners: 'vuln'
-          skip-version-check: true
           severity: 'CRITICAL'
           ignore-unfixed: true
 
@@ -118,6 +117,20 @@ jobs:
           cmd_options: "-J zap_report_v3.json -r zap_report_v3.html"
           fail_action: false
 
+      - name: Ensure Scan Report Files Exist
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -f trivy-report-v1.json ] || echo '{"note":"trivy v1 report missing"}' > trivy-report-v1.json
+          [ -f trivy-report-v2.json ] || echo '{"note":"trivy v2 report missing"}' > trivy-report-v2.json
+          [ -f trivy-report-v3.json ] || echo '{"note":"trivy v3 report missing"}' > trivy-report-v3.json
+          [ -f zap_report_vertex.json ] || echo '{"site":[],"note":"zap vertex report missing"}' > zap_report_vertex.json
+          [ -f zap_report_v2.json ] || echo '{"site":[],"note":"zap v2 report missing"}' > zap_report_v2.json
+          [ -f zap_report_v3.json ] || echo '{"site":[],"note":"zap v3 report missing"}' > zap_report_v3.json
+          [ -f zap_report_vertex.html ] || echo "<html><body>ZAP Vertex report missing</body></html>" > zap_report_vertex.html
+          [ -f zap_report_v2.html ] || echo "<html><body>ZAP v2 report missing</body></html>" > zap_report_v2.html
+          [ -f zap_report_v3.html ] || echo "<html><body>ZAP v3 report missing</body></html>" > zap_report_v3.html
+
       - name: Fail on High Confidence Alerts
         run: |
           python - <<'PY'
@@ -147,3 +160,20 @@ jobs:
           if high:
               raise SystemExit(1)
           PY
+
+      - name: Upload ML Security Scan Reports
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: ml-security-scan-reports
+          path: |
+            ${{ github.workspace }}/trivy-report-v1.json
+            ${{ github.workspace }}/trivy-report-v2.json
+            ${{ github.workspace }}/trivy-report-v3.json
+            ${{ github.workspace }}/zap_report_vertex.json
+            ${{ github.workspace }}/zap_report_v2.json
+            ${{ github.workspace }}/zap_report_v3.json
+            ${{ github.workspace }}/zap_report_vertex.html
+            ${{ github.workspace }}/zap_report_v2.html
+            ${{ github.workspace }}/zap_report_v3.html

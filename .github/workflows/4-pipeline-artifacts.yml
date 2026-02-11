@@ -2,273 +2,122 @@ name: 4. Pipeline Compiled Artifacts
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "51 16 * * *"
-    - cron: "51 22 * * *"
-    - cron: "51 4 * * *"
-    - cron: "51 10 * * *"
+  workflow_run:
+    workflows:
+      - "0. Contribution Report"
+      - "1. Code Quality"
+      - "2. Code Coverage"
+      - "3. Security Tests Report"
+      - "5. Android CI/CD"
+      - "6. API CI (Build, Test, Scan, SAST)"
+      - "7. API CD (Deploy - Azure)"
+      - "8. ML CI (Build, Test, Scan, SAST)"
+      - "9. ML CD (Deploy - GCP)"
+      - "9x. ML Security (Scans + DAST)"
+    types:
+      - completed
+
 permissions:
   contents: read
   actions: read
 
+concurrency:
+  group: 4-pipeline-artifacts-${{ github.event.workflow_run.id || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   collect:
-    continue-on-error: true
     runs-on: ubuntu-latest
-    env:
-      WORKFLOWS: |
-        0-contribution-report.yml
-        1-code-quality.yml
-        2-code-coverage.yml
-        3-security-tests-report.yml
-        4-pipeline-artifacts.yml
-        5-android-ci-cd.yml
-        6-api-ci.yml
-        7-api-cd-azure.yml
-        8-ml-ci.yml
-        9-ml-cd-gcp.yml
     steps:
       - name: Prepare workspace
         run: |
-          mkdir -p collected/success
-          mkdir -p collected/failure
-          mkdir -p collected/cancelled
-          mkdir -p collected/skipped
+          mkdir -p collected
 
-      - name: Download latest artifacts per workflow
+      - name: Resolve source run
+        id: source
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "run_id=${{ github.event.workflow_run.id }}" >> "$GITHUB_OUTPUT"
+            echo "workflow_name=${{ github.event.workflow_run.name }}" >> "$GITHUB_OUTPUT"
+            echo "conclusion=${{ github.event.workflow_run.conclusion }}" >> "$GITHUB_OUTPUT"
+            echo "head_sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "run_id=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "workflow_name=manual-dispatch" >> "$GITHUB_OUTPUT"
+            echo "conclusion=n/a" >> "$GITHUB_OUTPUT"
+            echo "head_sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Save run metadata
+        run: |
+          cat > collected/run-metadata.json <<'JSON'
+          {
+            "repository": "${{ github.repository }}",
+            "collector_run_id": "${{ github.run_id }}",
+            "source_run_id": "${{ steps.source.outputs.run_id }}",
+            "source_workflow": "${{ steps.source.outputs.workflow_name }}",
+            "source_conclusion": "${{ steps.source.outputs.conclusion }}",
+            "source_head_sha": "${{ steps.source.outputs.head_sha }}",
+            "event_name": "${{ github.event_name }}"
+          }
+          JSON
+
+      - name: Download source run artifacts
+        if: ${{ github.event_name == 'workflow_run' }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          missing_log="collected/missing-artifacts.txt"
-          touch "$missing_log"
-          while IFS= read -r wf; do
-            [ -z "$wf" ] && continue
-            echo "Fetching latest success run for $wf"
-            success_id=$(gh api repos/${{ github.repository }}/actions/workflows/$wf/runs --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | head -n 1 || true)
-            if [ -n "${success_id:-}" ]; then
-              echo "Downloading success artifacts for run $success_id ($wf)"
-              mkdir -p "collected/success/$wf"
-              if ! gh run download "$success_id" -D "collected/success/$wf"; then
-                echo "NO_ARTIFACTS success $wf run=$success_id" >> "$missing_log"
-              fi
-            else
-              echo "No successful runs found for $wf"
-            fi
+          mkdir -p collected/source-artifacts
+          if ! gh run download "${{ steps.source.outputs.run_id }}" -D collected/source-artifacts; then
+            echo "No artifacts found for source run ${{ steps.source.outputs.run_id }}" > collected/no-artifacts.txt
+          fi
 
-            echo "Fetching latest failure run for $wf"
-            failure_id=$(gh api repos/${{ github.repository }}/actions/workflows/$wf/runs --jq '.workflow_runs[] | select(.conclusion=="failure") | .id' | head -n 1 || true)
-            if [ -n "${failure_id:-}" ]; then
-              echo "Downloading failure artifacts for run $failure_id ($wf)"
-              mkdir -p "collected/failure/$wf"
-              if ! gh run download "$failure_id" -D "collected/failure/$wf"; then
-                echo "NO_ARTIFACTS failure $wf run=$failure_id" >> "$missing_log"
-              fi
-            else
-              echo "No failed runs found for $wf"
-            fi
+      - name: Download source run logs
+        if: ${{ github.event_name == 'workflow_run' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if ! gh api "repos/${{ github.repository }}/actions/runs/${{ steps.source.outputs.run_id }}/logs" > collected/source-run-logs.zip; then
+            echo "Unable to download logs for source run ${{ steps.source.outputs.run_id }}" > collected/no-logs.txt
+          fi
 
-            echo "Fetching latest cancelled/timed_out run for $wf"
-            cancelled_id=$(gh api repos/${{ github.repository }}/actions/workflows/$wf/runs --jq '.workflow_runs[] | select(.conclusion=="cancelled" or .conclusion=="timed_out") | .id' | head -n 1 || true)
-            if [ -n "${cancelled_id:-}" ]; then
-              echo "Downloading cancelled/timed_out artifacts for run $cancelled_id ($wf)"
-              mkdir -p "collected/cancelled/$wf"
-              if ! gh run download "$cancelled_id" -D "collected/cancelled/$wf"; then
-                echo "NO_ARTIFACTS cancelled_or_timed_out $wf run=$cancelled_id" >> "$missing_log"
-              fi
-            else
-              echo "No cancelled/timed_out runs found for $wf"
-            fi
-
-            echo "Fetching latest skipped/neutral run for $wf"
-            skipped_id=$(gh api repos/${{ github.repository }}/actions/workflows/$wf/runs --jq '.workflow_runs[] | select(.conclusion=="skipped" or .conclusion=="neutral") | .id' | head -n 1 || true)
-            if [ -n "${skipped_id:-}" ]; then
-              echo "Downloading skipped/neutral artifacts for run $skipped_id ($wf)"
-              mkdir -p "collected/skipped/$wf"
-              if ! gh run download "$skipped_id" -D "collected/skipped/$wf"; then
-                echo "NO_ARTIFACTS skipped_or_neutral $wf run=$skipped_id" >> "$missing_log"
-              fi
-            else
-              echo "No skipped/neutral runs found for $wf"
-            fi
-          done <<< "$WORKFLOWS"
-
-      - name: Build Index
+      - name: Build index
         run: |
           python - <<'PY'
           import json
           from pathlib import Path
-          from datetime import datetime
-          import html
+          from datetime import datetime, timezone
 
           root = Path("collected")
           files = [str(p) for p in sorted(root.rglob("*")) if p.is_file()]
-          missing = []
-          missing_log = root / "missing-artifacts.txt"
-          if missing_log.exists():
-            missing = [line.strip() for line in missing_log.read_text(encoding="utf-8").splitlines() if line.strip()]
-          table_rows = []
-          for status_dir in ["success", "failure", "cancelled", "skipped"]:
-            base = root / status_dir
-            if not base.exists():
-              continue
-            for wf_dir in sorted(base.iterdir()):
-              if not wf_dir.is_dir():
-                continue
-              count = sum(1 for p in wf_dir.rglob("*") if p.is_file())
-              table_rows.append((wf_dir.name, status_dir, count))
-
-          # Build strict summaries from downloaded artifacts (best-effort)
-          strict_rows = []
-          for wf, status, _ in table_rows:
-            wf_path = root / status / wf
-            summary_json = None
-            for p in wf_path.rglob("summary.json"):
-              summary_json = p
-              break
-            if not summary_json or not summary_json.exists():
-              strict_rows.append((wf, status, "n/a", "", "", ""))
-              continue
-            try:
-              data = json.loads(summary_json.read_text(encoding="utf-8", errors="ignore"))
-            except Exception:
-              strict_rows.append((wf, status, "n/a", "", "", "invalid summary.json"))
-              continue
-
-            errors = ""
-            warnings = ""
-            status_text = "PASS"
-            note = ""
-            if "critical" in data or "high" in data:
-              errors = str(int(data.get("critical", 0)) + int(data.get("high", 0)))
-              warnings = str(int(data.get("medium", 0)) + int(data.get("low", 0)))
-              if int(errors) > 0:
-                status_text = "FAIL"
-              elif int(warnings) > 0:
-                status_text = "WARN"
-              note = "lint"
-            elif "line_coverage" in data:
-              cov = data.get("line_coverage")
-              note = f"coverage={cov}"
-              status_text = "PASS" if cov is None else "PASS"
-            elif "trx_failed" in data or "trx_total" in data:
-              failed = int(data.get("trx_failed", 0) or 0)
-              total = int(data.get("trx_total", 0) or 0)
-              errors = str(failed)
-              note = f"tests total={total}"
-              status_text = "FAIL" if failed else "PASS"
-            strict_rows.append((wf, status, status_text, errors, warnings, note))
+          meta_path = root / "run-metadata.json"
+          meta = {}
+          if meta_path.exists():
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
           index = {
-            "title": "Collected CI Artifacts",
-            "repository": "${{ github.repository }}",
-            "timestamp": datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%SZ"),
-            "files": files,
-            "missing_artifacts": missing,
-            "artifact_table": [
-              {"workflow": wf, "status": status, "files": count}
-              for wf, status, count in table_rows
-            ],
-            "strict_table": [
-              {
-                "workflow": wf,
-                "status": status,
-                "strict_status": strict_status,
-                "errors": errors,
-                "warnings": warnings,
-                "note": note
-              }
-              for wf, status, strict_status, errors, warnings, note in strict_rows
-            ]
+            "generated_at_utc": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+            "metadata": meta,
+            "files": files
           }
-          Path("collected/INDEX.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
+          (root / "INDEX.json").write_text(json.dumps(index, indent=2), encoding="utf-8")
           lines = [
-            "Collected CI Artifacts",
-            f"Repository: {index['repository']}",
-            f"Timestamp: {index['timestamp']}",
-            ""
+            "Pipeline Artifacts Bundle",
+            f"Repository: {meta.get('repository', '')}",
+            f"Source workflow: {meta.get('source_workflow', '')}",
+            f"Source run id: {meta.get('source_run_id', '')}",
+            f"Source conclusion: {meta.get('source_conclusion', '')}",
+            "",
+            "Files:"
           ] + files
-          if missing:
-            lines += ["", "Missing Artifacts:"] + missing
-          Path("collected/INDEX.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
-          # Group table rows by workflow for HTML view
-          grouped = {}
-          for wf, status, count in table_rows:
-            grouped.setdefault(wf, []).append((status, count))
-
-          sections = []
-          for wf in sorted(grouped.keys()):
-            rows = grouped[wf]
-            sections.append(
-              "<section>"
-              f"<h4>{html.escape(wf)}</h4>"
-              "<table><tr><th>Status</th><th>Files</th></tr>" +
-              "".join(
-                f"<tr><td>{html.escape(status)}</td><td>{count}</td></tr>"
-                for status, count in rows
-              ) +
-              "</table></section>"
-            )
-
-          strict_sections = []
-          strict_grouped = {}
-          for wf, status, strict_status, errors, warnings, note in strict_rows:
-            strict_grouped.setdefault(wf, []).append((status, strict_status, errors, warnings, note))
-          for wf in sorted(strict_grouped.keys()):
-            rows = strict_grouped[wf]
-            strict_sections.append(
-              "<section>"
-              f"<h4>{html.escape(wf)}</h4>"
-              "<table><tr><th>Status</th><th>Strict</th><th>Errors</th><th>Warnings</th><th>Note</th></tr>" +
-              "".join(
-                f"<tr><td>{html.escape(status)}</td><td>{html.escape(strict_status)}</td>"
-                f"<td>{html.escape(errors)}</td><td>{html.escape(warnings)}</td>"
-                f"<td>{html.escape(note)}</td></tr>"
-                for status, strict_status, errors, warnings, note in rows
-              ) +
-              "</table></section>"
-            )
-
-          html_out = root / "INDEX.html"
-          html_out.write_text(
-            "<!doctype html><html><head><meta charset='utf-8'/>"
-            "<title>Collected Artifacts</title>"
-            "<style>body{font-family:Arial,sans-serif;margin:24px;}table{border-collapse:collapse;width:100%;}"
-            "th,td{border:1px solid #ddd;padding:8px;text-align:left;}th{background:#f3f4f6;}"
-            "section{margin-bottom:20px;}</style>"
-            "</head><body><h2>Collected CI Artifacts</h2>"
-            f"<p>Repository: {html.escape(index['repository'])}</p>"
-            f"<p>Timestamp: {html.escape(index['timestamp'])}</p>"
-            "<h3>Artifact Table (Grouped by Workflow)</h3>"
-            + "".join(sections) +
-            "<h3>Strict Summaries (Grouped by Workflow)</h3>"
-            + "".join(strict_sections) +
-            "</body></html>",
-            encoding="utf-8"
-          )
+          (root / "INDEX.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
-          cat collected/INDEX.txt >> $GITHUB_STEP_SUMMARY
+          cat collected/INDEX.txt >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Zip Collected Artifacts Per Workflow
-        run: |
-          set -euo pipefail
-          mkdir -p collected/zips
-          for status in success failure cancelled skipped; do
-            if [ -d "collected/$status" ]; then
-              for wf in collected/$status/*; do
-                [ -d "$wf" ] || continue
-                wf_name=$(basename "$wf")
-                zip_path="collected/zips/${wf_name}-${status}.zip"
-                (cd "collected/$status" && zip -r "../zips/${wf_name}-${status}.zip" "$wf_name") >/dev/null
-                echo "Created $zip_path"
-              done
-            fi
-          done
-          (cd collected && zip -r "pipeline-artifacts-collection.zip" .) >/dev/null
-
-      - name: Upload Collected Artifacts
+      - name: Upload collected bundle
         uses: actions/upload-artifact@v6.0.0
         with:
           if-no-files-found: warn
-          name: pipeline-artifacts-collection
+          name: pipeline-artifacts-run-${{ steps.source.outputs.run_id }}
           path: collected/
-

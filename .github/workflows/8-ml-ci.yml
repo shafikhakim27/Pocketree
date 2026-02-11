@@ -3,10 +3,7 @@ name: 8. ML CI (Build, Test, Scan, SAST)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "15 16 * * *"
-    - cron: "15 22 * * *"
-    - cron: "15 4 * * *"
-    - cron: "15 10 * * *"
+    - cron: "20 4 * * *"
   push:
     branches: ["main", "develop"]
     paths:
