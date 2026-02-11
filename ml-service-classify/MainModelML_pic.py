@@ -1,6 +1,7 @@
 import io, torch, time, base64, json
 import numpy as np
 import open_clip
+import threading
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Form, UploadFile, File, HTTPException, Request
@@ -27,11 +28,7 @@ models = {"clip": None}
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    clip_instance = CLIPService()
-    clip_instance.ensure_model()
-    
-    app.state.clip = clip_instance
-    print("CLIP is loaded and stored in app state!")
+    app.state.clip = CLIPService()
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -43,9 +40,14 @@ class CLIPService:
         self.text_cache = {}
         self.pos_threshold = 0.150
         self.margin = 0.05
+        self._load_lock = threading.Lock()
 
     def ensure_model(self):
-        if self.model is None:
+        if self.model is not None:
+            return
+        with self._load_lock:
+            if self.model is not None:
+                return
             m, _, p = open_clip.create_model_and_transforms('MobileCLIP2-S0', pretrained='dfndr2b')
             self.model = m.to(self.device).eval()
             self.preprocess = p
@@ -106,9 +108,6 @@ class CLIPService:
         verified = bool(probs.argmax() == 0 and probs[0] >= 0.70)
         return {"verified": verified, "score": float(probs[0]), "method": "softmax"}
 
-# Initialize Service
-clip_service = CLIPService()
-
 @app.post("/classify")
 def classify(
     request: Request,
@@ -117,6 +116,7 @@ def classify(
     file: UploadFile = File(...)):
 
     service: CLIPService = request.app.state.clip
+    service.ensure_model()
     
     # 1. Image & Keyword Prep
     content =  file.file.read()
@@ -150,6 +150,9 @@ def classify(
                 
         # 4. Return as single-item list if it's just a string
         return [k]
+    
+    def norm_sim(sim: float, low: float, high: float) -> float:
+        return float(max(0.0, min(1.0, (sim - low) / (high - low))))
 
     pos_list = clean_keyword(keyword)
     neg_list = clean_keyword(negative_keyword)
@@ -160,9 +163,13 @@ def classify(
     res2 = service.classify_advanced(image_feat, pos_list, neg_list)
     res3 = service.classify_softmax(image_feat, primary_keyword)
 
+    s1 = float(res1["score"])
+    s3 = float(res3["score"])
+    s2 = norm_sim(float(res2["score"]), low=service.pos_threshold, high=service.pos_threshold + 0.10)
+
     # Feature weighting
     all_results = [res1, res2, res3]
-    avg_score = (res1["score"] * 0.25) + (res2["score"] * 0.50) + (res3["score"] * 0.25)
+    avg_score = 0.25*s1 + 0.50*s2 + 0.25*s3
 
     # # Hybrid Consensus: 
     # # Verify if 2/3 agree AND the average confidence is decent.
@@ -199,8 +206,9 @@ def classify(
 ### --- MISC --- ###
 
 @app.get("/health")
-def health():
-    return {"status": "ok"}
+def health(request: Request):
+    service: CLIPService = request.app.state.clip
+    return {"status": "ok", "model_loaded": service.model is not None}
 
 if __name__ == "__main__":
     import uvicorn
