@@ -48,7 +48,8 @@ jobs:
     continue-on-error: true
     needs: build-android
     if: always()
-    runs-on: ubuntu-latest
+    #runs-on: ubuntu-latest
+    runs-on: macos-latest
     defaults:
       run:
         working-directory: ./android
@@ -69,10 +70,10 @@ jobs:
       - name: Build APK (Debug)
         run: ./gradlew assembleDebug
 
-      - name: Install emulator libraries
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libvulkan1 libxcb-xinerama0 libx11-6 libx11-xcb1
+      #- name: Install emulator libraries
+      #  run: |
+      #    sudo apt-get update
+      #    sudo apt-get install -y libvulkan1 libxcb-xinerama0 libx11-6 libx11-xcb1
 
       - name: Install Maestro
         run: |
@@ -86,6 +87,7 @@ jobs:
           target: default
           arch: x86_64
           profile: Nexus 6
+          emulator-options: -no-window -no-snapshot -noaudio -no-boot-anim  #new add
           script: |
             cd "$GITHUB_WORKSPACE"
             mkdir -p "$GITHUB_WORKSPACE/maestro-report"
