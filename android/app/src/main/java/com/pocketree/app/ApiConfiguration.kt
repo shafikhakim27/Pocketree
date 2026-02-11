@@ -9,7 +9,7 @@ package com.pocketree.app
  */
 object ApiConfiguration {
     // Toggle between local and production mode
-    private const val LOCAL_MODE = true
+    private const val LOCAL_MODE = false
 
     // Local development URLs (Android Emulator)
     private const val LOCAL_BASE_URL = "http://10.0.2.2:5042"
@@ -23,16 +23,4 @@ object ApiConfiguration {
     // API Endpoints
     val TASK_API_URL = "$BASE_URL/api/Task"
     val USER_API_URL = "$BASE_URL/api/User"
-
-    // Image base URL (for fetching images from server)
-    val IMAGE_BASE_URL = BASE_URL
-
-    /**
-     * Converts relative image paths to full URLs
-     * Example: ~/images/trees/tree_seedling.png -> http://10.0.2.2:5042/images/trees/tree_seedling.png
-     */
-    fun resolveImageUrl(relativePath: String?): String {
-        if (relativePath.isNullOrEmpty()) return ""
-        return relativePath.replace("~/", "$IMAGE_BASE_URL/")
-    }
 }
