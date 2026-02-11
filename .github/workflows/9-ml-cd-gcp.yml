@@ -2,6 +2,22 @@ name: 9. ML CD (Deploy - GCP)
 
 on:
   workflow_dispatch:
+    inputs:
+      deploy_main_model:
+        description: "Deploy main model to Vertex AI"
+        required: true
+        type: boolean
+        default: true
+      deploy_chatbot:
+        description: "Deploy chatbot service to Cloud Run"
+        required: true
+        type: boolean
+        default: true
+      deploy_mlpic:
+        description: "Deploy ML pic/classify service to Azure"
+        required: true
+        type: boolean
+        default: true
   schedule:
     - cron: "30 16 * * *"
     - cron: "30 22 * * *"
@@ -39,12 +55,11 @@ env:
 
 jobs:
   build-and-deploy-ml:
-    continue-on-error: true
     concurrency:
       group: ml-cd-gcp-cloudrun-global
       cancel-in-progress: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_main_model == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -172,9 +187,8 @@ jobs:
             --traffic-split "0=100"
 
   deploy-ml-v2-cloud-run:
-    continue-on-error: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_chatbot == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     env:
       GCP_PROJECT_ID: pocketree-ml-service
       GCP_REGION: asia-southeast1
@@ -257,9 +271,8 @@ jobs:
           exit 1
 
   deploy-ml-v3-azure:
-    continue-on-error: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_mlpic == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     env:
       IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-ml-v3
       AZURE_WEBAPP_NAME: pocketree-ml-service
