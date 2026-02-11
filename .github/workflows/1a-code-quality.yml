@@ -7,6 +7,11 @@ on:
     - cron: "0 22 * * *"
     - cron: "0 4 * * *"
     - cron: "0 10 * * *"
+  push:
+    branches: ["main", "develop"]
+    paths:
+      - 'android/**'
+      - '.github/workflows/1a-code-quality.yml'
 permissions:
   contents: read
   security-events: write
@@ -366,6 +371,12 @@ jobs:
           name: android-relaxed-dashboard
           path: ${{ github.workspace }}/relaxed-dashboard.html
 
+      - name: Android Quality Summary
+        if: always()
+        run: |
+          echo "Android Code Quality: Completed" >> $GITHUB_STEP_SUMMARY
+          echo "API Code Quality: See 3a) API CI (Build, Test, Scan, SAST) workflow." >> $GITHUB_STEP_SUMMARY
+
   ml-service-quality:
     continue-on-error: true
     runs-on: ubuntu-latest
@@ -522,6 +533,11 @@ jobs:
             ${{ github.workspace }}/summary.json
             ${{ github.workspace }}/summary.txt
 
+      - name: ML Quality Summary
+        if: always()
+        run: |
+          echo "ML Service Code Quality: Completed" >> $GITHUB_STEP_SUMMARY
+
   codeql:
     continue-on-error: true
     name: CodeQL Analysis
@@ -580,6 +596,12 @@ jobs:
           if-no-files-found: warn
           name: codeql-sarif-${{ matrix.language }}
           path: ${{ github.workspace }}/codeql-results/**/*.sarif
+
+      - name: Code Scanning Links
+        if: always()
+        run: |
+          echo "Code Scanning UI: https://github.com/${{ github.repository }}/security/code-scanning" >> $GITHUB_STEP_SUMMARY
+          echo "Run Artifacts: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}?tab=artifacts" >> $GITHUB_STEP_SUMMARY
 
       - name: Step Summary
         if: always()

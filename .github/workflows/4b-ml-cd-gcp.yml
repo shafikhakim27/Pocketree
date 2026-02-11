@@ -182,10 +182,16 @@ jobs:
           unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
           failed_ids=$(gcloud ai endpoints describe "$ENDPOINT_ID" \
             --region "${{ env.GCP_REGION }}" \
-            --format="json" | \
-            python - <<'PY'
-          import json, sys
-          data = json.load(sys.stdin)
+            --format="json" > endpoint.json || true
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          p = Path("endpoint.json")
+          if not p.exists() or not p.read_text(encoding="utf-8").strip():
+            print("")
+            raise SystemExit(0)
+          data = json.loads(p.read_text(encoding="utf-8"))
           ids = []
           for dm in data.get("deployedModels", []):
             if dm.get("status", "") == "FAILED":
