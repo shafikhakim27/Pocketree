@@ -3,7 +3,7 @@ name: 3. Security Tests Report
 on:
   workflow_dispatch:
   schedule:
-    - cron: "20 3 * * *"
+    - cron: "20 19 * * *"
 permissions:
   contents: read
   actions: read

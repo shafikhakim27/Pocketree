@@ -3,7 +3,7 @@ name: 9x. ML Security (Scans + DAST)
 on:
   workflow_dispatch:
   schedule:
-    - cron: "30 3 * * *"
+    - cron: "30 19 * * *"
   workflow_run:
     workflows: ["9. ML CD (Deploy - GCP)"]
     types:

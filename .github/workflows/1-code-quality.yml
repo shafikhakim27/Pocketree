@@ -3,7 +3,7 @@ name: 1. Code Quality
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 3 * * *"
+    - cron: "0 19 * * *"
   push:
     branches: ["main", "develop"]
     paths:
