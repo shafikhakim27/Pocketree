@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 // ff, edited by shirley
 object RetrofitClient {
     // to configure local/live testing
-    private const val IS_LOCAL_TESTING = true
+    private const val IS_LOCAL_TESTING = false
 
     // for image verification
     private const val IMAGE_AI_URL = "https://pocketree-ml-r7owjdp2qa-as.a.run.app/"

@@ -12,7 +12,6 @@ import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.pocketree.app.databinding.LayoutChatbotBinding
 
-
 // just an overlay (does not replace the screen but sits on top of it)
 class ChatbotDialogFragment: BottomSheetDialogFragment() {
     private var _binding: LayoutChatbotBinding ?= null
@@ -149,71 +148,6 @@ class ChatbotDialogFragment: BottomSheetDialogFragment() {
             chatAdapter.notifyItemRemoved(thinkingIndex)
         }
     }
-
-
-//    // kinda just testing only - to change again when linked up with fres' model
-//    private fun getAIResponse(text:String) {
-//        // add a temporary "Thinking..." message
-//        val thinkingMessage = ChatMessage("Thinking...", false)
-//        messageList.add(thinkingMessage)
-//
-//        val thinkingIndex = messageList.size - 1
-//        chatAdapter.notifyItemInserted(thinkingIndex)
-//        binding.chatRecyclerView.scrollToPosition(thinkingIndex)
-//
-//        Handler(Looper.getMainLooper()).postDelayed({
-//            if (!isAdded || view == null) return@postDelayed
-//
-//            val currentIndex = messageList.indexOf(thinkingMessage)
-//            if (currentIndex != -1) {
-//                messageList.removeAt(currentIndex)
-//                chatAdapter.notifyItemRemoved(currentIndex)
-//            }
-//
-//            val response = generateSmartResponse(text)
-//            addAIMessage(response)
-//
-//        }, 1500)
-//    }
-//
-//    private fun generateSmartResponse(input: String): String {
-//        val state = sharedViewModel.userState.value
-//        val text = input.lowercase()
-//
-//        return when {
-//            text.contains("coin") || text.contains("rich") ->
-//                "You have ${state?.totalCoins} coins. ${if ((state?.totalCoins ?: 0) > 100) "You're doing great!" else "Keep completing tasks to earn more!"}"
-//
-//            text.contains("health") || text.contains("wither") -> {
-//                if (state?.isWithered == true)
-//                    "Your plant has withered! Quick, complete a task to revive it!"
-//                else
-//                    "Your plant health is at ${state?.plantHealthPercent}%. It's looking ${if ((state?.plantHealthPercent ?: 0) > 70) "vibrant" else "a bit thirsty"}!"
-//            }
-//
-//            text.contains("level") || text.contains("stage") ->
-//                "You are currently at the ${state?.levelName} stage. Keep it up!"
-//
-//            text.contains("hello") || text.contains("hi") ->
-//                "Hi ${state?.username}! I'm your plant assistant. How can I help you grow today?"
-//
-//            else -> "I'm not sure about that, but your ${state?.levelName} is looking good! Try asking about your 'coins' or 'health'."
-//        }
-//    }
-//    // end of test
-
-        // TODO, but for now
-//        binding.chatRecyclerView.postDelayed({
-//            // remove the "Thinking..." message
-//            messageList.removeAt(messageList.size - 1)
-//            chatAdapter.notifyItemRemoved(messageList.size)
-
-//            // add in the real response
-//            val response = sharedViewModel.generateAIResponse(userText)
-//            messageList.add(ChatMessage(response, false))
-//            chatAdapter.notifyItemInserted(messageList.size - 1)
-//            binding.chatRecyclerView.scrollToPosition(messageList.size - 1)
-//        }, 1500) // 1.5 second delay feels natural
 
     override fun onDestroyView() {
         super.onDestroyView()
