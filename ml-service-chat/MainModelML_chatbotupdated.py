@@ -433,14 +433,11 @@ class PockeTreeBot:
             return "Hello! This is PocketreeBot speaking. How are you today?"
         
         if words and words[0] in ["thanks", "thank", "thx", "thank you", "tx"]:
-            return "You're most welcome! Do you have any other questions about sustainability?"
+            return "You're most welcome! Do let me know if you need to know more about sustainability?"
         
-        if words and words[0] in ["ok", "oki", "okays", "yea", "yes"] and len(words) > 2:
-            return None
-        
-        casual_fillers = ["same old", "not much", "im good", "am good", "me too", "just chilling", "cool", "ok", "sure", "nice"]
+        casual_fillers = ["same old", "not much", "im good", "am good", "me too", "just chilling", "cool", "ok", "oki", "okays", "yea", "yes", "yas", "sure", "nice"]
         if text_clean in casual_fillers:
-            return "Great! Do you have any specific questions about green efforts in Singapore today?"
+            return "Great!"
         
         cool_reactions = ["sounds cool", "cool", "interesting", "wow", "awesome", "great"]
         if text_clean in cool_reactions:
