@@ -3,10 +3,7 @@ name: 3. Security Tests Report
 on:
   workflow_dispatch:
   schedule:
-    - cron: "6 16 * * *"
-    - cron: "6 22 * * *"
-    - cron: "6 4 * * *"
-    - cron: "6 10 * * *"
+    - cron: "20 19 * * *"
 permissions:
   contents: read
   actions: read
@@ -18,15 +15,17 @@ jobs:
     env:
       WORKFLOWS: |
         7-api-cd-azure.yml
-        9-ml-cd-gcp.yml
+        9x-ml-security-scans.yml
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
 
       - name: TruffleHog Scan (repo)
         run: |
           docker run --rm -v "$PWD":/repo trufflesecurity/trufflehog:latest \
-            git file:///repo --since-commit=$(git rev-parse HEAD~1) \
+            git file:///repo \
             --json > trufflehog.json
 
       - name: Upload TruffleHog Report
@@ -146,7 +145,7 @@ jobs:
               prev = parse_zap(prev_file) if prev_file else None
               return {"type": "zap", "current": cur, "previous": prev}
 
-          workflows = ["7-api-cd-azure.yml", "9-ml-cd-gcp.yml"]
+          workflows = ["7-api-cd-azure.yml", "9x-ml-security-scans.yml"]
           results = {wf: summarize(wf) for wf in workflows}
 
           report_dir = root / "out"
@@ -157,53 +156,11 @@ jobs:
             "identified_issues": [],
             "fixes_applied": [],
             "rescanning_results": [],
-            "author_sections": [],
             "notes": [
               "Detailed scan artifacts are available in the workflow run artifacts.",
               "Populate identified_issues, fixes_applied, and rescanning_results as part of the remediation workflow."
             ]
           }
-
-          # Build author sections (2nd most recent -> most recent)
-          try:
-            import subprocess
-            raw = subprocess.check_output(
-              ["git", "log", "-n", "2", "--pretty=format:%H|%an <%ae>%n%B---END---"],
-              text=True, encoding="utf-8"
-            ).strip()
-            recent_entries = [e.strip() for e in raw.split("---END---") if e.strip()]
-          except Exception:
-            recent_entries = []
-
-          for entry in reversed(recent_entries):
-            lines = entry.splitlines()
-            header = lines[0] if lines else ""
-            author = header.split("|", 1)[1] if "|" in header else "Unknown"
-            body_lines = lines[1:] if len(lines) > 1 else []
-            issues = []
-            fixes = []
-            rescans = []
-            for line in body_lines:
-              if line.startswith("SEC-ISSUES:"):
-                issues.append(line.split("SEC-ISSUES:", 1)[1].strip())
-              elif line.startswith("SEC-FIXES:"):
-                fixes.append(line.split("SEC-FIXES:", 1)[1].strip())
-              elif line.startswith("SEC-RESCAN:"):
-                rescans.append(line.split("SEC-RESCAN:", 1)[1].strip())
-
-            report_obj["author_sections"].append({
-              "author": author.strip(),
-              "identified_issues": [],
-              "fixes_applied": [],
-              "rescanning_results": []
-            })
-            # Attach parsed tag lines
-            if issues:
-              report_obj["author_sections"][-1]["identified_issues"] = issues[:3]
-            if fixes:
-              report_obj["author_sections"][-1]["fixes_applied"] = fixes[:3]
-            if rescans:
-              report_obj["author_sections"][-1]["rescanning_results"] = rescans[:3]
           (report_dir / "security-report.json").write_text(json.dumps(report_obj, indent=2), encoding="utf-8")
 
           lines = []
@@ -243,31 +200,6 @@ jobs:
           for note in report_obj["notes"]:
             lines.append(f"- {note}")
           lines.append("")
-          lines.append("Author Sections (2nd most recent -> most recent):")
-          if report_obj["author_sections"]:
-            for section in report_obj["author_sections"]:
-              lines.append(f"- {section['author']}")
-              lines.append("  Identified Issues:")
-              if section["identified_issues"]:
-                for item in section["identified_issues"]:
-                  lines.append(f"    - {item}")
-              else:
-                lines.append("    - (none)")
-              lines.append("  Fixes Applied:")
-              if section["fixes_applied"]:
-                for item in section["fixes_applied"]:
-                  lines.append(f"    - {item}")
-              else:
-                lines.append("    - (none)")
-              lines.append("  Re-scanning Results:")
-              if section["rescanning_results"]:
-                for item in section["rescanning_results"]:
-                  lines.append(f"    - {item}")
-              else:
-                lines.append("    - (none)")
-          else:
-            lines.append("- (no author data)")
-          lines.append("")
           lines.append("Identified Issues:")
           if report_obj["identified_issues"]:
             for item in report_obj["identified_issues"]:
@@ -290,7 +222,6 @@ jobs:
             lines.append("- (none)")
           (report_dir / "security-report.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
           PY
-          cat report/out/security-report.txt >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Security Report
         uses: actions/upload-artifact@v6.0.0

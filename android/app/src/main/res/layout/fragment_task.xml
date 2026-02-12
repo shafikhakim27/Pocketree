@@ -64,6 +64,30 @@
         android:padding="16dp"/>
 
     <TextView
+      android:id="@+id/progressText"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_gravity="center"
+      android:text="@string/progress_text"
+      android:textSize="16sp"
+      android:visibility="gone">
+    </TextView>
+
+    <ProgressBar
+      android:id="@+id/progressBar"
+      android:layout_width="match_parent"
+      android:layout_height="30dp"
+      style="?android:attr/progressBarStyleHorizontal"
+      android:layout_marginLeft="30dp"
+      android:layout_marginRight="30dp"
+      android:indeterminate="false"
+      android:visibility="visible"
+      android:progressDrawable="@drawable/custom_progress_bar_2"
+      android:indeterminateDrawable="@android:drawable/progress_indeterminate_horizontal"
+      android:indeterminateTint="@color/light_green">
+    </ProgressBar>
+
+    <TextView
         android:id="@+id/dailyStatusTv"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

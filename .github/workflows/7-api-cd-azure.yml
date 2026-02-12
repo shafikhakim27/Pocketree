@@ -2,13 +2,8 @@ name: 7. API CD (Deploy - Azure)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "27 16 * * *"
-    - cron: "27 22 * * *"
-    - cron: "27 4 * * *"
-    - cron: "27 10 * * *"
   push:
-    branches: ["main", "develop"]
+    branches: ["main"]
     paths:
       - 'api/**'
       - '.github/workflows/7-api-cd-azure.yml'
@@ -98,6 +93,14 @@ jobs:
           cmd_options: "-J zap_report.json -r zap_report.html -T 1200 -z \"-config connection.timeoutInSecs=120 -config spider.maxDuration=5\""
           fail_action: false
 
+      - name: Ensure Scan Report Files Exist
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -f trivy-report.json ] || echo '{"note":"trivy report missing"}' > trivy-report.json
+          [ -f zap_report.json ] || echo '{"site":[],"note":"zap report missing"}' > zap_report.json
+          [ -f zap_report.html ] || echo "<html><body>ZAP report missing</body></html>" > zap_report.html
+
       - name: Fail on High Confidence Alerts
         run: |
           python - <<'PY'
@@ -119,4 +122,15 @@ jobs:
           if high:
               raise SystemExit(1)
           PY
+
+      - name: Upload API Scan Reports
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: api-security-scan-reports
+          path: |
+            ${{ github.workspace }}/trivy-report.json
+            ${{ github.workspace }}/zap_report.json
+            ${{ github.workspace }}/zap_report.html
 

@@ -2,13 +2,23 @@ name: 9. ML CD (Deploy - GCP)
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "30 16 * * *"
-    - cron: "30 22 * * *"
-    - cron: "30 4 * * *"
-    - cron: "30 10 * * *"
+    inputs:
+      deploy_main_model:
+        description: "Deploy main model to Vertex AI"
+        required: true
+        type: boolean
+        default: true
+      deploy_chatbot:
+        description: "Deploy chatbot service to Cloud Run"
+        required: true
+        type: boolean
+        default: true
+      deploy_mlpic:
+        description: "Deploy ML pic/classify service to Azure"
+        required: true
+        type: boolean
+        default: true
   push:
-    branches: ["main", "develop"]
     paths:
       - 'ml-service/**'
       - 'ml-service-chat/**'
@@ -18,6 +28,10 @@ on:
     workflows: ["8. ML CI (Build, Test, Scan, SAST)"]
     types:
       - completed
+
+concurrency:
+  group: 9-ml-cd-gcp-global
+  cancel-in-progress: true
 
 env:
   GCP_PROJECT_ID: pocketree-ml-service
@@ -35,12 +49,11 @@ env:
 
 jobs:
   build-and-deploy-ml:
-    continue-on-error: true
     concurrency:
-      group: ml-cd-gcp-${{ github.ref }}
+      group: ml-cd-gcp-cloudrun-global
       cancel-in-progress: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_main_model == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -78,23 +91,6 @@ jobs:
           echo "image_uri=$IMAGE_URI" >> $GITHUB_OUTPUT
           docker build -f ml-service/Dockerfile -t "$IMAGE_URI" ml-service
           docker push "$IMAGE_URI"
-
-      - name: Free Disk Space
-        run: |
-          docker system prune -af
-          docker builder prune -af
-
-      - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ steps.build_image.outputs.image_uri }}
-          format: 'json'
-          output: 'trivy-report.json'
-          exit-code: '0'
-          scanners: 'vuln'
-          skip-version-check: true
-          severity: 'CRITICAL'
-          ignore-unfixed: true
 
       - name: Ensure Vertex AI Endpoint exists
         id: ensure_endpoint
@@ -135,44 +131,6 @@ jobs:
           echo "MODEL_ID=$MODEL_ID" >> "$GITHUB_ENV"
           echo "model_id=$MODEL_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Cleanup Failed Deployments
-        run: |
-          set -euo pipefail
-          unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
-          gcloud ai endpoints describe "$ENDPOINT_ID" \
-            --region "${{ env.GCP_REGION }}" \
-            --format="json" > endpoint.json || true
-          failed_ids=$(python - <<'PY'
-          import json
-          from pathlib import Path
-
-          p = Path("endpoint.json")
-          if not p.exists():
-            print("")
-            raise SystemExit(0)
-          text = p.read_text(encoding="utf-8", errors="ignore").strip()
-          if not text:
-            print("")
-            raise SystemExit(0)
-          data = json.loads(text)
-          ids = []
-          for dm in data.get("deployedModels", []):
-            if dm.get("status", "") == "FAILED":
-              ids.append(dm.get("id"))
-          print(" ".join(ids))
-          PY
-          )
-          if [ -n "$failed_ids" ]; then
-            for id in $failed_ids; do
-              echo "Undeploying failed deployment $id"
-              gcloud ai endpoints undeploy-model "$ENDPOINT_ID" \
-                --region "${{ env.GCP_REGION }}" \
-                --deployed-model-id "$id" || true
-            done
-          else
-            echo "No failed deployments to remove."
-          fi
-
       - name: Enforce Single Deployment (Undeploy Existing)
         run: |
           set -euo pipefail
@@ -208,52 +166,6 @@ jobs:
             echo "No existing deployments to remove."
           fi
 
-      - name: Compute Deployment Display Name
-        id: compute_display
-        run: |
-          set -euo pipefail
-          unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
-          gcloud ai endpoints describe "$ENDPOINT_ID" \
-            --region "${{ env.GCP_REGION }}" \
-            --format="json" > endpoint_names.json || true
-          names=$(python - <<'PY'
-          import json
-          from pathlib import Path
-
-          p = Path("endpoint_names.json")
-          if not p.exists():
-              print("")
-              raise SystemExit(0)
-          text = p.read_text(encoding="utf-8", errors="ignore").strip()
-          if not text:
-              print("")
-              raise SystemExit(0)
-          data = json.loads(text)
-          names = []
-          for dm in data.get("deployedModels", []):
-              name = dm.get("displayName", "")
-              if name.startswith("pocketree-ml-deploy "):
-                  names.append(name)
-          print("\n".join(names))
-          PY
-          )
-          max_n=0
-          if [ -n "$names" ]; then
-            max_n=$(python - <<'PY'
-          import sys, re
-          nums=[]
-          for line in sys.stdin.read().splitlines():
-            m=re.search(r"pocketree-ml-deploy\\s+(\\d+)$", line.strip())
-            if m:
-              nums.append(int(m.group(1)))
-          print(max(nums) if nums else 0)
-          PY
-            <<< "$names")
-          fi
-          next_n=$((max_n+1))
-          echo "DEPLOY_DISPLAY_NAME=pocketree-ml-deploy $next_n" >> "$GITHUB_ENV"
-          echo "deploy_display_name=pocketree-ml-deploy $next_n" >> "$GITHUB_OUTPUT"
-
       - name: Deploy Model to Vertex AI Endpoint
         run: |
           set -euo pipefail
@@ -261,77 +173,16 @@ jobs:
           gcloud ai endpoints deploy-model "$ENDPOINT_ID" \
             --region "${{ env.GCP_REGION }}" \
             --model "$MODEL_ID" \
-            --display-name "${{ env.DEPLOY_DISPLAY_NAME }}" \
+            --display-name "pocketree-ml-deploy" \
             --machine-type "${{ env.MACHINE_TYPE }}" \
             --accelerator "type=${{ env.ACCELERATOR_TYPE }},count=${{ env.ACCELERATOR_COUNT }}" \
             --min-replica-count "${{ env.MIN_REPLICA_COUNT }}" \
             --max-replica-count "${{ env.MAX_REPLICA_COUNT }}" \
             --traffic-split "0=100"
 
-      - name: Fetch Vertex Access Token
-        id: vertex_token
-        run: |
-          set -euo pipefail
-          TOKEN="$(gcloud auth application-default print-access-token)"
-          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
-
-      - name: ML DAST (Vertex Endpoint)
-        uses: zaproxy/action-baseline@v0.15.0
-        with:
-          target: https://asia-southeast1-aiplatform.googleapis.com/v1/projects/500550710563/locations/asia-southeast1/endpoints/7416515991628152832:predict
-          cmd_options: >-
-            -J zap_report_vertex.json -r zap_report_vertex.html
-            -z "-config replacer.rules(0).description=Auth -config replacer.rules(0).enabled=true -config replacer.rules(0).matchtype=REQ_HEADER -config replacer.rules(0).matchstr=Authorization -config replacer.rules(0).replacement=Bearer ${{ steps.vertex_token.outputs.token }}"
-          fail_action: false
-
-      - name: ML DAST (Cloud Run v2)
-        uses: zaproxy/action-baseline@v0.15.0
-        with:
-          target: https://pocketree-ml-500550710563.asia-southeast1.run.app
-          cmd_options: "-J zap_report_v2.json -r zap_report_v2.html"
-          fail_action: false
-
-      - name: ML DAST (Azure v3)
-        uses: zaproxy/action-baseline@v0.15.0
-        with:
-          target: https://pocketree-ml-service.azurewebsites.net
-          cmd_options: "-J zap_report_v3.json -r zap_report_v3.html"
-          fail_action: false
-
-      - name: Fail on High Confidence Alerts
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-
-          def load_alerts(path: Path):
-              if not path.exists():
-                  return []
-              data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
-              alerts = []
-              for site in data.get("site", []):
-                  alerts.extend(site.get("alerts", []))
-              return alerts
-
-          reports = [
-              Path("zap_report_vertex.json"),
-              Path("zap_report_v2.json"),
-              Path("zap_report_v3.json"),
-          ]
-          alerts = []
-          for report in reports:
-              alerts.extend(load_alerts(report))
-
-          high = [a for a in alerts if str(a.get("confidence", "")).lower() == "high"]
-          print(f"Total alerts: {len(alerts)} | High confidence: {len(high)}")
-          if high:
-              raise SystemExit(1)
-          PY
-
   deploy-ml-v2-cloud-run:
-    continue-on-error: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_chatbot == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     env:
       GCP_PROJECT_ID: pocketree-ml-service
       GCP_REGION: asia-southeast1
@@ -376,47 +227,46 @@ jobs:
           docker build -f ml-service-chat/Dockerfile -t "$IMAGE_URI" ml-service-chat
           docker push "$IMAGE_URI"
 
-      - name: Free Disk Space
-        run: |
-          docker system prune -af
-          docker builder prune -af
-
-      - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ steps.build_image_v2.outputs.image_uri }}
-          format: 'json'
-          output: 'trivy-report-v2.json'
-          exit-code: '0'
-          scanners: 'vuln'
-          skip-version-check: true
-          severity: 'CRITICAL'
-          ignore-unfixed: true
-
       - name: Deploy to Cloud Run (v2)
         run: |
           set -euo pipefail
-          gcloud run deploy "${{ env.SERVICE_NAME }}" \
-            --project "${{ env.GCP_PROJECT_ID }}" \
-            --region "${{ env.GCP_REGION }}" \
-            --platform managed \
-            --image "$IMAGE_URI" \
-            --port 8080 \
-            --cpu 4 \
-            --memory 12Gi \
-            --timeout 1200 \
-            --concurrency 2 \
-            --min-instances 1 \
-            --max-instances 3 \
-            --cpu-boost \
-            --ingress all \
-            --set-env-vars "GUNICORN_CMD_ARGS=--timeout 600 --preload --workers 1" \
-            --allow-unauthenticated
+          for i in 1 2 3; do
+            set +e
+            out=$(gcloud run deploy "${{ env.SERVICE_NAME }}" \
+              --project "${{ env.GCP_PROJECT_ID }}" \
+              --region "${{ env.GCP_REGION }}" \
+              --platform managed \
+              --image "$IMAGE_URI" \
+              --port 8080 \
+              --cpu 4 \
+              --memory 12Gi \
+              --timeout 1200 \
+              --concurrency 2 \
+              --min-instances 1 \
+              --max-instances 3 \
+              --cpu-boost \
+              --ingress all \
+              --set-env-vars "GUNICORN_CMD_ARGS=--timeout 600 --preload --workers 1" \
+              --allow-unauthenticated 2>&1)
+            code=$?
+            set -e
+            echo "$out"
+            if [ "$code" -eq 0 ]; then
+              exit 0
+            fi
+            if echo "$out" | grep -q "ABORTED: Conflict for resource"; then
+              echo "Cloud Run revision conflict detected, retrying ($i/3)..."
+              sleep 20
+            else
+              exit "$code"
+            fi
+          done
+          echo "Deployment failed after retries due to repeated conflicts."
+          exit 1
 
   deploy-ml-v3-azure:
-    continue-on-error: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_mlpic == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
     env:
       IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-ml-v3
       AZURE_WEBAPP_NAME: pocketree-ml-service
@@ -452,23 +302,6 @@ jobs:
           labels: ${{ steps.meta_v3.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-
-      - name: Free Disk Space
-        run: |
-          docker system prune -af
-          docker builder prune -af
-
-      - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: ${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
-          format: 'json'
-          output: 'trivy-report-v3.json'
-          exit-code: '0'
-          scanners: 'vuln'
-          skip-version-check: true
-          severity: 'CRITICAL'
-          ignore-unfixed: true
 
       - name: Azure Login
         uses: azure/login@v2.3.0

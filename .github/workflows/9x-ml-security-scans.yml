@@ -1,0 +1,179 @@
+name: 9x. ML Security (Scans + DAST)
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "30 19 * * *"
+  workflow_run:
+    workflows: ["9. ML CD (Deploy - GCP)"]
+    types:
+      - completed
+
+concurrency:
+  group: 9x-ml-security-global
+  cancel-in-progress: true
+
+env:
+  GCP_PROJECT_ID: pocketree-ml-service
+  GCP_REGION: asia-southeast1
+  AR_REPO: pocketree-ml
+  IMAGE_NAME_V1: pocketree-ml
+  IMAGE_NAME_V2: pocketree-ml-v2
+  IMAGE_NAME_V3: ${{ secrets.DOCKER_USER }}/pocketree-ml-v3
+
+jobs:
+  ml-security:
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    steps:
+      - name: Resolve target SHA
+        id: target_sha
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "sha=${{ github.event.workflow_run.head_sha }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=${{ github.sha }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3.0.0
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v3.0.0
+        with:
+          project_id: ${{ env.GCP_PROJECT_ID }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker "${{ env.GCP_REGION }}-docker.pkg.dev" --quiet
+
+      - name: Scan ML image (v1) with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME_V1 }}:sha-${{ steps.target_sha.outputs.sha }}
+          format: 'json'
+          output: 'trivy-report-v1.json'
+          exit-code: '0'
+          scanners: 'vuln'
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+
+      - name: Scan ML image (v2) with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME_V2 }}:sha-${{ steps.target_sha.outputs.sha }}
+          format: 'json'
+          output: 'trivy-report-v2.json'
+          exit-code: '0'
+          scanners: 'vuln'
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3.6.0
+        with:
+          username: ${{ secrets.DOCKER_USER }}
+          password: ${{ secrets.DOCKER_PASS }}
+
+      - name: Scan ML image (v3) with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_NAME_V3 }}:sha-${{ steps.target_sha.outputs.sha }}
+          format: 'json'
+          output: 'trivy-report-v3.json'
+          exit-code: '0'
+          scanners: 'vuln'
+          severity: 'CRITICAL'
+          ignore-unfixed: true
+
+      - name: Fetch Vertex Access Token
+        id: vertex_token
+        run: |
+          set -euo pipefail
+          TOKEN="$(gcloud auth application-default print-access-token)"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: ML DAST (Vertex Endpoint)
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: https://asia-southeast1-aiplatform.googleapis.com/v1/projects/500550710563/locations/asia-southeast1/endpoints/7416515991628152832:predict
+          cmd_options: >-
+            -J zap_report_vertex.json -r zap_report_vertex.html
+            -z "-config replacer.rules(0).description=Auth -config replacer.rules(0).enabled=true -config replacer.rules(0).matchtype=REQ_HEADER -config replacer.rules(0).matchstr=Authorization -config replacer.rules(0).replacement=Bearer ${{ steps.vertex_token.outputs.token }}"
+          fail_action: false
+
+      - name: ML DAST (Cloud Run v2)
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: https://pocketree-ml-500550710563.asia-southeast1.run.app
+          cmd_options: "-J zap_report_v2.json -r zap_report_v2.html"
+          fail_action: false
+
+      - name: ML DAST (Azure v3)
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: https://pocketree-ml-service.azurewebsites.net
+          cmd_options: "-J zap_report_v3.json -r zap_report_v3.html"
+          fail_action: false
+
+      - name: Ensure Scan Report Files Exist
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -f trivy-report-v1.json ] || echo '{"note":"trivy v1 report missing"}' > trivy-report-v1.json
+          [ -f trivy-report-v2.json ] || echo '{"note":"trivy v2 report missing"}' > trivy-report-v2.json
+          [ -f trivy-report-v3.json ] || echo '{"note":"trivy v3 report missing"}' > trivy-report-v3.json
+          [ -f zap_report_vertex.json ] || echo '{"site":[],"note":"zap vertex report missing"}' > zap_report_vertex.json
+          [ -f zap_report_v2.json ] || echo '{"site":[],"note":"zap v2 report missing"}' > zap_report_v2.json
+          [ -f zap_report_v3.json ] || echo '{"site":[],"note":"zap v3 report missing"}' > zap_report_v3.json
+          [ -f zap_report_vertex.html ] || echo "<html><body>ZAP Vertex report missing</body></html>" > zap_report_vertex.html
+          [ -f zap_report_v2.html ] || echo "<html><body>ZAP v2 report missing</body></html>" > zap_report_v2.html
+          [ -f zap_report_v3.html ] || echo "<html><body>ZAP v3 report missing</body></html>" > zap_report_v3.html
+
+      - name: Fail on High Confidence Alerts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          def load_alerts(path: Path):
+              if not path.exists():
+                  return []
+              data = json.loads(path.read_text(encoding="utf-8", errors="ignore"))
+              alerts = []
+              for site in data.get("site", []):
+                  alerts.extend(site.get("alerts", []))
+              return alerts
+
+          reports = [
+              Path("zap_report_vertex.json"),
+              Path("zap_report_v2.json"),
+              Path("zap_report_v3.json"),
+          ]
+          alerts = []
+          for report in reports:
+              alerts.extend(load_alerts(report))
+
+          high = [a for a in alerts if str(a.get("confidence", "")).lower() == "high"]
+          print(f"Total alerts: {len(alerts)} | High confidence: {len(high)}")
+          if high:
+              raise SystemExit(1)
+          PY
+
+      - name: Upload ML Security Scan Reports
+        if: always()
+        uses: actions/upload-artifact@v6.0.0
+        with:
+          if-no-files-found: warn
+          name: ml-security-scan-reports
+          path: |
+            ${{ github.workspace }}/trivy-report-v1.json
+            ${{ github.workspace }}/trivy-report-v2.json
+            ${{ github.workspace }}/trivy-report-v3.json
+            ${{ github.workspace }}/zap_report_vertex.json
+            ${{ github.workspace }}/zap_report_v2.json
+            ${{ github.workspace }}/zap_report_v3.json
+            ${{ github.workspace }}/zap_report_vertex.html
+            ${{ github.workspace }}/zap_report_v2.html
+            ${{ github.workspace }}/zap_report_v3.html

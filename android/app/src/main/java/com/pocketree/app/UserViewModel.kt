@@ -34,7 +34,7 @@ class UserViewModel: ViewModel() {
     val vouchers = MutableLiveData<List<Voucher>>()  // by Chenyu
 
     // UI state livedata
-    val tasks = MutableLiveData<List<Task>?>()
+    val tasks = MutableLiveData<List<Task>?>(null)
     val latestBadgeName = MutableLiveData<String?>()
     val earnedBadges = MutableLiveData<List<Badge>>()
     val statusMessage = MutableLiveData<String?>() // for status on image verification
@@ -43,7 +43,9 @@ class UserViewModel: ViewModel() {
     // event livedata
     val levelUpEvent = MutableLiveData<Triple<String,String,String>>()
     val isAiVerifying = MutableLiveData<Boolean>(false) // for loading progress bar (for ML image verification)
+    val isChatbotThinking = MutableLiveData<Boolean>(false) // for chatbot loading state
     val errorMessage = MutableLiveData<String?>()
+    val chatbotResponse = MutableLiveData<String?>() // for chatbot purpose
     val redeemSkinSuccessEvent = MutableLiveData<String?>()  // by Chenyu
     val equipSkinSuccessEvent = MutableLiveData<String?>() // by Chenyu
     val redeemVoucherSuccessEvent = MutableLiveData<String?>() // by Chenyu
@@ -202,6 +204,8 @@ class UserViewModel: ViewModel() {
     }
 
     fun fetchDailyTasks(){
+        tasks.value = null // to trigger loading bar in fragment
+
         val request = Request.Builder()
             .url("${taskBaseUrl}/GetDailyTasksApi")
             .get()
@@ -341,7 +345,7 @@ class UserViewModel: ViewModel() {
                     // FAILURE
                     isAiVerifying.postValue(false)
                     statusMessage.postValue(null)
-                    errorMessage.postValue("$keyword could not be found.\nPlease try again!")
+                    errorMessage.postValue("The specified object could not be found.")
                     submitTask(id, "Failed", imageBytes)
                 }
             }
@@ -546,7 +550,7 @@ class UserViewModel: ViewModel() {
                 val body = response.body?.string()
                 if (response.isSuccessful && !body.isNullOrEmpty()) {
                     try {
-                        val listType = object : TypeToken<List<Voucher>>() {}.type
+                        val listType = object: TypeToken<List<Voucher>>() {}.type
                         val fetchedList: List<Voucher> = gson.fromJson(body, listType)
                         vouchers.postValue(fetchedList)
                     } catch (e: Exception) {
@@ -581,6 +585,38 @@ class UserViewModel: ViewModel() {
             override fun onFailure(call: Call, e: IOException) {
                 e.printStackTrace()
                 errorMessage.postValue("Network error.")
+            }
+        })
+    }
+
+    fun sendChatMessage(userText:String) {
+        // set loading state
+        isChatbotThinking.postValue(true)
+
+        val username = userState.value?.username ?: "user"
+
+        // create request with actual username as user_id
+        val chatRequest = ChatReq(
+            user_id = username,
+            message = userText
+        )
+        RetrofitClient.chatService.chatWithBot(chatRequest).enqueue(object: retrofit2.Callback<ChatResponse> {
+            override fun onResponse(call: retrofit2.Call<ChatResponse>,
+                                    response: retrofit2.Response<ChatResponse>) {
+                // clear loading state
+                isChatbotThinking.postValue(false)
+
+                if (response.isSuccessful) {
+                    val botReply = response.body()?.response
+                        ?: "Sorry, I am unable to fetch a response, please try again"
+                    chatbotResponse.postValue(botReply)
+                } else {
+                    chatbotResponse.postValue("Server error, please try again")
+                }
+            }
+            override fun onFailure(call: retrofit2.Call<ChatResponse>, t: Throwable) {
+                isChatbotThinking.postValue(false)
+                chatbotResponse.postValue("Connection failed")
             }
         })
     }

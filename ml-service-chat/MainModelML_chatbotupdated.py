@@ -1,45 +1,21 @@
 import anyio
+import asyncio
 import httpx
 import io, torch, time, base64, json
 import numpy as np
 import os # for local
 import pickle # for local
-import asyncio
+import threading
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Form, UploadFile, File, HTTPException
 from io import BytesIO
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_community.document_loaders import PyPDFLoader
+from langchain_community.document_loaders import PyPDFLoader,PyMuPDFLoader
 from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 from typing import List, Optional
-from transformers import pipeline
-
-# --- GLOBALS & SETUP --- #
-DISABLE_WARMUP = os.getenv("DISABLE_WARMUP", "0") == "1"
-CHAT_TIMEOUT_SECONDS = float(os.getenv("CHAT_TIMEOUT_SECONDS", "55"))
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    # Start serving immediately; load bot in background
-    app.state.bot_ready = False
-
-    async def init_bot():
-        try:
-            brainBot = EmbeddingBrain()
-            await brainBot.cloud_warmup(SUSTAINABILITY_REPORTS)
-            models["sustain_bot"] = PockeTreeBot(brainBot)
-            app.state.bot_ready = True
-            print("PockeTreeBot is loaded!")
-        except Exception as e:
-            print("Bot init failed:", repr(e))
-
-    if not DISABLE_WARMUP:
-        asyncio.create_task(init_bot())
-
-    yield
-
-app = FastAPI(lifespan=lifespan)
+from transformers import pipeline, AutoModelForCausalLM, AutoTokenizer
 
 ### --- USE CASE 3: POCKETREE BOT --- ###
 
@@ -83,25 +59,32 @@ else:
     device = "cpu"  # Local fallback
 
 models = {"sustain_bot": None}
-chat_semaphore = anyio.Semaphore(1)
 
 # --- Prepare for Use Case 3 ---
 
 class EmbeddingBrain:
     def __init__(self):
-        self.encoder = SentenceTransformer('all-MiniLM-L6-v2', device=device)
+        self.encoder = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
         self.chunks = []
         self.vectors = None
+        self.ready = False
+        self._lock = threading.Lock()
 
     async def cloud_warmup(self, urls):
-        
-        cache_path = "/tmp/brain_cache.pkl"
-        if os.path.exists(cache_path):   # for local
+        with self._lock:
+            if self.ready:
+                return
+
+        if os.path.exists("brain_cache.pkl"):   
+            print("Loading brain from cache...")
             with open("brain_cache.pkl", "rb") as f:
                 data = pickle.load(f)
                 self.chunks = data["chunks"]
                 self.vectors = data["vectors"]
+            self.ready = True
             return
+        
+        print("No cache found. Starting PDF download and parsing...")
 
         fact_chunks = [f"FACT: {v}" for v in SG_EXPERT_FACTS.values()]
         all_docs = []
@@ -110,15 +93,20 @@ class EmbeddingBrain:
                     for url in urls:
                         try:
                             response = await client.get(url, headers={"User-Agent": "Mozilla/5.0"})
+                            response.raise_for_status()
+
                             with io.BytesIO(response.content) as f:
                                 import tempfile
                                 with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
                                     tmp.write(f.read())
                                     tmp_path = tmp.name
-                                loader = PyPDFLoader(tmp_path)
+
+                                # loader = PyPDFLoader(tmp_path)
+                                loader = PyMuPDFLoader(tmp_path)
                                 docs = await anyio.to_thread.run_sync(loader.load) # pyright: ignore[reportAttributeAccessIssue]
                                 all_docs.extend(docs)
                                 os.remove(tmp_path)
+
                         except Exception as e: print(f"Error loading {url}: {e}")
 
         splitter = RecursiveCharacterTextSplitter(chunk_size=600, chunk_overlap=100)
@@ -131,6 +119,8 @@ class EmbeddingBrain:
             )
             with open("brain_cache.pkl", "wb") as f:
                 pickle.dump({"chunks": self.chunks, "vectors": self.vectors}, f)
+        
+        self.ready = True
 
         # headers = {
         #     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -175,12 +165,11 @@ class EmbeddingBrain:
 class PockeTreeBot:
     def __init__(self, brain):
         self.brain = brain
-        pipeline_device = 0 if device == "cuda" else -1
+        model_id = "Qwen/Qwen2.5-1.5B-Instruct"
         self.generator = pipeline(
             "text-generation", 
-            model="Qwen/Qwen2.5-1.5B-Instruct", 
-            device=pipeline_device,
-            torch_dtype="auto" 
+            model=model_id,
+            torch_dtype=torch.bfloat16
         )
 
     def extract_name(self, text, user_id):
@@ -304,8 +293,6 @@ class PockeTreeBot:
         reply = self.handle_small_talk(user_text, user_id)
 
         if not reply:
-            small_talk = self.handle_small_talk(user_text, user_id)
-            if small_talk: return small_talk
 
             profile = user_profiles.get(user_id, {"name": "Friend", "history": []})
             name = profile.get("name") or "Friend"
@@ -324,20 +311,16 @@ class PockeTreeBot:
             prompt = f"<|im_start|>system\n{system_instr}\nContext:\n{context}\nHistory:\n{hist_str}<|im_end|>\n"
             prompt += f"<|im_start|>user\n{user_text}<|im_end|>\n<|im_start|>assistant\n"
 
-            try:
-                output = self.generator(
-                    prompt,
-                    max_new_tokens=80,
-                    stop_sequence="<|im_end|>"
-                )
-                raw_reply = output[0]['generated_text'].split("<|im_start|>assistant\n")[-1].strip()
-                reply = self._parse_to_two_sentences(raw_reply)
-            except Exception as e:
-                print("Generation failed:", repr(e))
-                reply = (
-                    "I hit a temporary delay while thinking about that question. "
-                    "Please try again in a moment."
-                )
+            # output = self.generator(prompt, max_new_tokens=80, stop_sequence="<|im_end|>")
+            output = self.generator(
+                prompt, 
+                max_new_tokens=80, 
+                do_sample=False,  # Greedy decoding is smarter/faster for small models
+                stop_sequence="<|im_end|>",
+                pad_token_id=self.generator.tokenizer.eos_token_id 
+            )
+            raw_reply = output[0]['generated_text'].split("<|im_start|>assistant\n")[-1].strip()
+            reply = self._parse_to_two_sentences(raw_reply)
 
         profile = user_profiles.get(user_id, {"name": None, "history": []})
         profile["history"].append({"u": user_text, "b": reply})
@@ -415,6 +398,16 @@ class PockeTreeBot:
 
 # --- WARM UP ---
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    brainBot = EmbeddingBrain()
+    await brainBot.cloud_warmup(SUSTAINABILITY_REPORTS)
+    models["sustain_bot"] = PockeTreeBot(brainBot)
+    print("PockeTreeBot is loaded!")
+    yield
+
+app = FastAPI(lifespan=lifespan)
+
 class ChatReq(BaseModel):
     user_id: str = "default_user"
     message: str
@@ -426,35 +419,21 @@ async def chat(req: ChatReq):
         raise HTTPException(status_code=503, detail="PockeTreeBot not ready")
     user_id = req.user_id 
     user_id = getattr(req, 'user_id', 'anon_user')
-    try:
-        async with chat_semaphore:
-            with anyio.fail_after(CHAT_TIMEOUT_SECONDS):
-                reply = await anyio.to_thread.run_sync(bot.get_response, req.message, user_id) # pyright: ignore[reportAttributeAccessIssue]
-    except TimeoutError:
-        reply = (
-            "That question needs more processing time than usual. "
-            "Please ask a shorter follow-up or try again."
-        )
-    except Exception as e:
-        print("Chat endpoint failed:", repr(e))
-        reply = (
-            "I ran into a temporary issue answering that. "
-            "Please try again shortly."
-        )
-    return {"bot": "PockeTree", "response": reply}
+    reply = await anyio.to_thread.run_sync(bot.get_response, req.message, user_id) # pyright: ignore[reportAttributeAccessIssue]
+    return {"response": reply}
 
 ### --- MISC --- ###
 
 @app.get("/health")
 def health():
-    return {"status": "ok", "bot_ready": getattr(app.state, "bot_ready", False)}
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
     import os
     try:
         port = int(os.environ.get("PORT", 8080))
-        uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
+        uvicorn.run(app, host="0.0.0.0", port=port, timeout_keep_alive=600, log_level="info")
         print(f"Starting server on port {port}")
     except KeyboardInterrupt:
         print("\nShutting down gracefully... Bye!")

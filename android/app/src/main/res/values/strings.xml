@@ -22,6 +22,7 @@
     <string name="skins">Skins</string>
     <string name="pass_task">Pass</string>
     <string name="vouchers">Vouchers</string>
+    <string name="voucher_text">Voucher List</string>
     <string name="item_to_redeem">Item to Redeem</string>
     <string name="price_to_redeem">100 coins</string>
     <string name="item_status">Status</string>
@@ -34,7 +35,8 @@
     <string name="tab_map">Map</string>
     <string name="tab_tasks">Tasks</string>
 
-    <!-- Task Completion -->
+    <!-- Tasks -->
+    <string name="progress_text">Loading tasks of the day...</string>
     <string name="complete_task">Complete Task</string>
     <string name="task_completed">Task Completed!</string>
 
@@ -48,4 +50,9 @@
     <!-- Settings -->
     <string name="notifications">Notifications</string>
     <string name="account">Account</string>
+
+    <!-- Chatbot -->
+    <string name="chatbot_name">PocketreeBot</string>
+    <string name="user_message">User Message</string>
+    <string name="ai_response">AI Response</string>
 </resources>

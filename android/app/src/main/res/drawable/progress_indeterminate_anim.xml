@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- to move progress bar for loading of tasks -->
+<animated-rotate xmlns:android="http://schemas.android.com/apk/res/android"
+  android:drawable="@drawable/custom_progress_bar_2"
+  android:pivotX="50%"
+  android:pivotY="50%"
+  android:fromDegrees="0"
+  android:toDegrees="360" />

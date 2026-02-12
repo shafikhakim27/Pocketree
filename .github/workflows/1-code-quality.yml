@@ -3,10 +3,7 @@ name: 1. Code Quality
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 16 * * *"
-    - cron: "0 22 * * *"
-    - cron: "0 4 * * *"
-    - cron: "0 10 * * *"
+    - cron: "0 19 * * *"
   push:
     branches: ["main", "develop"]
     paths:
@@ -44,41 +41,6 @@ jobs:
       - name: Run Android Lint
         run: ./gradlew lintDebug
 
-      - name: Quality Gate (Strict)
-        if: always()
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          report = Path(r"""${{ github.workspace }}/android/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt""")
-          data = {"summary": "Android Lint Summary"}
-          if report.exists():
-            text = report.read_text(encoding="utf-8", errors="ignore").lower()
-            data.update({
-              "critical": text.count("severity: fatal"),
-              "high": text.count("severity: error"),
-              "medium": text.count("severity: warning"),
-              "low": text.count("severity: information")
-            })
-          else:
-            data["error"] = "Lint report not found."
-          Path("summary.json").write_text(json.dumps(data, indent=2), encoding="utf-8")
-          lines = [
-            "Android Lint Summary",
-            f"Critical: {data.get('critical', 0)}",
-            f"High: {data.get('high', 0)}",
-            f"Medium: {data.get('medium', 0)}",
-            f"Low: {data.get('low', 0)}",
-          ]
-          if data.get("error"):
-            lines.append(f"Error: {data['error']}")
-          Path("summary.txt").write_text("\n".join(lines) + "\n", encoding="utf-8")
-          critical = int(data.get("critical", 0) or 0)
-          high = int(data.get("high", 0) or 0)
-          if critical or high:
-            raise SystemExit(1)
-          PY
-
       - name: Upload Lint Report
         if: always()
         uses: actions/upload-artifact@v6.0.0
@@ -86,107 +48,9 @@ jobs:
           if-no-files-found: warn
           name: android-lint-report
           path: |
-            ${{ github.workspace }}/summary.json
-            ${{ github.workspace }}/summary.txt
-
-      - name: Upload Summary
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
-        with:
-          if-no-files-found: warn
-          name: android-lint-summary
-          path: |
-            ${{ github.workspace }}/summary.json
-            ${{ github.workspace }}/summary.txt
-
-      - name: Suggested Improvements (Author)
-        if: always()
-        run: |
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          import subprocess
-
-          def get_author():
-            try:
-              return subprocess.check_output(
-                ["git", "log", "-1", "--pretty=format:%an"],
-                text=True
-              ).strip() or "Unknown"
-            except Exception:
-              return "Unknown"
-
-          suggestions = []
-          owners = {
-            "mobile": ["@shirleytjy", "CHEN HAOTING"],
-            "api": ["@shafikhakim27", "@gohwnyyhw"],
-            "ml": ["@wcyapplemist", "@fresfrida"]
-          }
-
-          # Android lint summary (code style)
-          summary = Path("summary.json")
-          if summary.exists():
-            data = json.loads(summary.read_text(encoding="utf-8", errors="ignore"))
-            critical = int(data.get("critical", 0))
-            high = int(data.get("high", 0))
-            medium = int(data.get("medium", 0))
-            if critical or high:
-              suggestions.append(("Fix Android lint critical/high issues (lintDebug) before merging.", "mobile"))
-            elif medium:
-              suggestions.append(("Address Android lint warnings to reduce noisy UI regressions.", "mobile"))
-
-          # Ruff (if present)
-          ruff = Path("ruff-report.json")
-          if ruff.exists():
-            try:
-              items = json.loads(ruff.read_text(encoding="utf-8", errors="ignore"))
-              if isinstance(items, list) and items:
-                suggestions.append(("Clean up Python style issues flagged by ruff.", "ml"))
-            except Exception:
-              pass
-
-          # Mypy (if present)
-          mypy = Path("mypy-report.txt")
-          if mypy.exists() and mypy.read_text(encoding="utf-8", errors="ignore").strip():
-            suggestions.append(("Resolve mypy type errors for safer ML/service changes.", "ml"))
-
-          # Fallback if no signals found
-          if not suggestions:
-            suggestions.append(("No code-style improvements detected in this run.", "api"))
-
-          # Limit to 3
-          suggestions = suggestions[:3]
-
-          author = get_author()
-          out = Path("suggested-improvements.md")
-          lines = [
-            "## Suggested Improvements",
-            f"Author: **{author}**",
-            "",
-            "| # | Suggestion | Owner(s) |",
-            "| --- | --- | --- |",
-          ]
-          for i, (s, team) in enumerate(suggestions, 1):
-            owner_list = owners.get(team, [])
-            owner_text = ", ".join(owner_list) if owner_list else "Unassigned"
-            lines.append(f"| {i} | {s} | {owner_text} |")
-          out.write_text("\n".join(lines) + "\n", encoding="utf-8")
-          PY
-          cat suggested-improvements.md >> $GITHUB_STEP_SUMMARY
-
-      - name: Upload Suggested Improvements
-        if: always()
-        uses: actions/upload-artifact@v6.0.0
-        with:
-          if-no-files-found: warn
-          name: code-quality-suggested-improvements
-          path: ${{ github.workspace }}/suggested-improvements.md
-
-      - name: Android Quality Summary
-        if: always()
-        run: |
-          echo "Android Code Quality: Completed" >> $GITHUB_STEP_SUMMARY
-          echo "API Code Quality: See 6. API CI (Build, Test, Scan, SAST) workflow." >> $GITHUB_STEP_SUMMARY
+            ${{ github.workspace }}/android/app/build/reports/lint-results-debug.html
+            ${{ github.workspace }}/android/app/build/reports/lint-results-debug.xml
+            ${{ github.workspace }}/android/app/build/intermediates/lint_intermediate_text_report/debug/lintReportDebug/lint-results-debug.txt
 
   codeql:
     name: CodeQL Analysis
@@ -247,14 +111,4 @@ jobs:
           name: codeql-sarif-${{ matrix.language }}
           path: ${{ github.workspace }}/codeql-results/**/*.sarif
 
-      - name: Code Scanning Links
-        if: always()
-        run: |
-          echo "Code Scanning UI: https://github.com/${{ github.repository }}/security/code-scanning" >> $GITHUB_STEP_SUMMARY
-          echo "Run Artifacts: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}?tab=artifacts" >> $GITHUB_STEP_SUMMARY
-
-      - name: Step Summary
-        if: always()
-        run: |
-          echo "CodeQL (${{ matrix.language }}): Completed" >> $GITHUB_STEP_SUMMARY
 
