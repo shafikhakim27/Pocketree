@@ -11,12 +11,15 @@ object RetrofitClient {
     private const val IS_LOCAL_TESTING = false
 
     // for image verification
-    private const val IMAGE_AI_URL = "https://pocketree-ml-r7owjdp2qa-as.a.run.app/"
+    private const val PROD_IMAGE_AI_URL = "https://pocketree-ml-service.azurewebsites.net/"
+    //https://pocketree-ml-r7owjdp2qa-as.a.run.app/
+    private const val LOCAL_IMAGE_AI_URL = "http://10.0.2.2:8080/"
 
     // for chatbot function
     private const val PROD_CHAT_AI_URL = "https://pocketree-ml-500550710563.asia-southeast1.run.app/"
     private const val LOCAL_CHAT_AI_URL = "http://10.0.2.2:8080/"
 
+    private val IMAGE_AI_URL = if (IS_LOCAL_TESTING) LOCAL_IMAGE_AI_URL else PROD_IMAGE_AI_URL
     private val CHAT_AI_URL = if (IS_LOCAL_TESTING) LOCAL_CHAT_AI_URL else PROD_CHAT_AI_URL
 
     private val aiHttpClient = OkHttpClient.Builder()

@@ -614,7 +614,7 @@ class UserViewModel: ViewModel() {
             }
             override fun onFailure(call: retrofit2.Call<ChatResponse>, t: Throwable) {
                 isChatbotThinking.postValue(false)
-                chatbotResponse.postValue("Conection failed")
+                chatbotResponse.postValue("Connection failed")
             }
         })
     }
