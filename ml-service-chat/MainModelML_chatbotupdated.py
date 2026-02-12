@@ -399,7 +399,7 @@ class PockeTreeBot:
 
         if any(word in text_lower for word in ["stats", "statistics", "coins", "level", "progress", "plant health"]):
             return ("I'm sorry, I don't have access to that information yet right now. "
-                    "But if you are referring to your personal stats at PocketreeBot, feel free to check your app or visit https://pocketree-api.azurewebsites.net/" )
+                    "But if you are referring to your personal stats at Pocketree, feel free to check your app or visit https://pocketree-api.azurewebsites.net/" )
         
         bot_compliments = ["smart", "genius", "amazing", "helpful", "good bot"]
         if any(comp in text_lower for comp in bot_compliments):
@@ -410,7 +410,7 @@ class PockeTreeBot:
         if any(q in text_clean for q in identity_queries):
             if "alive" in text_clean:
                 return "I am an AI eco-friend. I am very much 'alive' with passion for the planet!"
-            return "I am PockeTree, your friendly eco-buddy. I'm here to help you live more sustainably!"
+            return "I am PockeTreeBot, your friendly eco-buddy. I'm here to help you live more sustainably!"
 
         if "how are you" in text_lower:
             return "I'm good! Just busy thinking how to save the planet. You?"
@@ -426,7 +426,7 @@ class PockeTreeBot:
         user_greetings = ["hi", "hello", "yo", "what's up", "wassup", "whassup", "whatsup", "wzzup", "wazzup", "good day", "good morning", "good afternoon", "good evening", "heya", "mornin"]
         if words and words[0] in user_greetings and len(words) < 4:
             if not name:
-                return "Hello! PockeTree here. Before we begin, what is your name?"
+                return "Hello! PockeTreeBot here. Before we begin, what is your name?"
             return f"Hello {name}! PocketreeBot here. Ready to go green today?"
         
         if any(q in text_lower for q in ["who are you", "who you", "your name"]):
@@ -490,7 +490,7 @@ class PockeTreeBot:
                 context = self.brain.search(user_text, k=2)
 
                 system_instr = (
-                    f"You are PockeTree, a wise and friendly Singaporean eco-mentor talking to {name}. "
+                    f"You are PockeTreeBot, a wise and friendly Singaporean eco-mentor talking to {name}. "
                     "Give the answer in EXACTLY two short sentences. "
                     "Sentence 1: The facts. Sentence 2: Action."
                     "Refer to the Chat History if the user asks follow-up questions."
