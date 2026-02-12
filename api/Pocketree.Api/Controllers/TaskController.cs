@@ -2,6 +2,7 @@ using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using ADproject.Models.ViewModels;
 using ADproject.Services;
+using Pocketree.Api.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -9,8 +10,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration.UserSecrets;
+using Microsoft.Identity.Client;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics.Eventing.Reader;
+using System.Threading;
 using System.Threading.Tasks;
 using Task = ADproject.Models.Entities.Task;
 
@@ -23,12 +26,14 @@ namespace ADproject.Controllers
         private readonly MyDbContext db;
         private readonly IMlService mlService;
         private readonly MissionService missionService;
+        private readonly ITaskService taskService;
 
-        public TaskController(MyDbContext db, IMlService mlService, MissionService missionService)
+        public TaskController(MyDbContext db, IMlService mlService, MissionService missionService, ITaskService taskService)
         {
             this.db = db;
             this.mlService = mlService;
             this.missionService = missionService;
+            this.taskService = taskService;
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -39,7 +44,7 @@ namespace ADproject.Controllers
             if (user == null) return Unauthorized();
 
             // Perform cleanup of tasks assigned on the day before
-            await CleanupOldTasks(user);
+            await taskService.CleanupOldTasks(user);
 
             // Check if there are already existing tasks given
             var today = DateTime.UtcNow.Date; // = 00:00:00 (today midnight)
@@ -55,7 +60,7 @@ namespace ADproject.Controllers
                 {
                     var t = h.Task;
                     t.isCompleted = (h.Status == "Completed");
-                    t.isPassed = (h.Status == "Passed"); 
+                    t.isPassed = (h.Status == "Passed");
                     return t;
                 }).ToList();
 
@@ -63,91 +68,50 @@ namespace ADproject.Controllers
             }
 
             // First time receiving the tasks for the day
-            List<Task> dailyTasks = await FetchNewTasks(user); 
+            List<Task> dailyTasks = await taskService.FetchNewTasks(user);
 
-            // Create a record in the UserTaskHistory table for the tasks given for the day 
-            foreach(var t in dailyTasks)
+            if (dailyTasks != null || dailyTasks.Any())
             {
-                var alreadyAddedTasks = await db.UserTaskHistory.AnyAsync(h => h.UserID == user.UserID
-                    && h.CompletionDate >= today);
-
-                if (!alreadyAddedTasks)
+                // To save all new ML tasks to the Tasks table first so that TaskIDs needed for the UserTaskHistory records are generated
+                foreach (var t in dailyTasks.Where(t => t.SourceType == "ML"))
                 {
-                    db.UserTaskHistory.Add(new UserTaskHistory
+                    var exists = await db.Tasks.AnyAsync(task => task.Description == t.Description);
+                    if (!exists)
                     {
-                        UserID = user.UserID,
-                        TaskID = t.TaskID,
-                        Status = "Assigned",
-                        CompletionDate = DateTime.UtcNow
-                    });
+                        db.Tasks.Add(t);
+                    }
                 }
-            }
-
-            // Update the number of uncompleted tasks assigned
-            user.UncompletedTaskCount += 3;
-            await db.SaveChangesAsync();
-
-            return Ok(dailyTasks); // Sends JSON to Android
-        }
-
-        // Private helper function (do not make an API call to this)
-        private async System.Threading.Tasks.Task CleanupOldTasks(User user)
-        {
-            var today = DateTime.UtcNow.Date;
-
-            var previousDayTasks = await db.UserTaskHistory
-                    .Where(h => h.UserID == user.UserID &&
-                                h.Status == "Assigned" &&
-                                h.CompletionDate < today)
-                    .ToListAsync();
-
-            if (previousDayTasks.Any())
-            {
-                user.NotAttemptedTaskCount += previousDayTasks.Count;   // Update the historical task counter
-                user.UncompletedTaskCount -= previousDayTasks.Count;    // Update the daily active task counter
-
-                db.UserTaskHistory.RemoveRange(previousDayTasks);
                 await db.SaveChangesAsync();
+
+                // Create a record in the UserTaskHistory table for the tasks given for the day 
+                foreach (var t in dailyTasks)
+                {
+                    var alreadyAddedTasks = await db.UserTaskHistory.AnyAsync(h => h.UserID == user.UserID
+                        && h.CompletionDate >= today);
+
+                    if (!alreadyAddedTasks)
+                    {
+                        db.UserTaskHistory.Add(new UserTaskHistory
+                        {
+                            UserID = user.UserID,
+                            TaskID = t.TaskID,
+                            Status = "Assigned",
+                            CompletionDate = DateTime.UtcNow
+                        });
+                    }
+                }
+
+                // Update the number of uncompleted tasks assigned
+                user.UncompletedTaskCount += 3;
+                await db.SaveChangesAsync();
+
+                return Ok(dailyTasks); // Sends JSON to Android
             }
-        }
 
-        // Private helper function (do not make an API call to this)
-        private async Task<List<Task>> FetchNewTasks(User user)
-        {
-            // Check user settings to determine ML recommended tasks or random tasks to be assigned
-            var settings = await db.UserSettings
-                .FirstOrDefaultAsync(s => s.UserID == user.UserID);
-
-            List<Task> newTasks;
-
-            // Use ML recommended tasks
-            if (settings != null && settings.UseMlRecommendation)
-            {
-                newTasks = await mlService.GetRecommendedTasks(user.UserID);
-            }
-            // Else fetch 1 task from each difficulty level randomly
             else
             {
-                var easyTask = await db.Tasks
-                .Where(t => t.Difficulty == "Easy" && t.SourceType == "Default")
-                .OrderBy(t => EF.Functions.Random())
-                .FirstOrDefaultAsync();
-
-                var normalTask = await db.Tasks
-                    .Where(t => t.Difficulty == "Normal" && t.SourceType == "Default")
-                    .OrderBy(t => EF.Functions.Random())
-                    .FirstOrDefaultAsync();
-
-                var hardTask = await db.Tasks
-                    .Where(t => t.Difficulty == "Hard" && t.SourceType == "Default")
-                    .OrderBy(t => EF.Functions.Random())
-                    .FirstOrDefaultAsync();
-
-                // Combine into a list of Tasks to send to Android
-                newTasks = new List<Task> { easyTask, normalTask, hardTask };
+                return StatusCode(503, "Timed out. Please try again.");
             }
-
-            return newTasks;
         }
 
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
@@ -162,23 +126,6 @@ namespace ADproject.Controllers
             var task = await db.Tasks.FindAsync(taskId);
             if (user == null || task == null) return BadRequest("Invalid User or Task.");
 
-            // Treat task submission as an active user heartbeat for admin presence views.
-            user.IsOnline = true;
-            user.LastActivityDate = DateTime.UtcNow;
-/*
-            // Perform verification check only for "Hard" tasks
-            if (task.Difficulty == "Hard" && status =="Completed")
-            {
-                if (photo == null) return BadRequest("Photo evidence required for task.");
-                using var stream = photo.OpenReadStream();
-                if (!await mlService.ClassifyImageAsync(stream, task.Keyword)) // Reject submitted evidence after verification 
-                {
-                    user.FailedVerificationCount += 1;
-                    await db.SaveChangesAsync();
-                    return Ok(new { success = false, message = "Image verification failed" });
-                }
-            }
-*/
             if (status == "Failed")
             {
                 user.FailedVerificationCount += 1;
@@ -188,7 +135,7 @@ namespace ADproject.Controllers
 
             var result = await ProcessTaskCompletion(user, task, status); // Process task completion regardless of difficulty level
             return Ok(result);
-        } 
+        }
         
         // Private helper function (do not make an API call to this)
         private async Task<object> ProcessTaskCompletion(User user, Task task, string newStatus)
@@ -229,9 +176,9 @@ namespace ADproject.Controllers
                         await CheckAndAwardBadges(user);
                         await CheckAndAwardVouchers(user);
                     }
-                    
+
                     // Update tree status
-                    var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
+                    var activeTree = user.Trees?.OrderByDescending(t => t.TreeID).FirstOrDefault();
                     if (activeTree != null && activeTree.IsWithered)
                     {
                         activeTree.IsWithered = false; // Tree is revived after the task completion

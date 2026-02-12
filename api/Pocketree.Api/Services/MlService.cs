@@ -26,20 +26,32 @@ namespace ADproject.Services
     public class MlService : IMlService
     {
         private readonly MyDbContext db;
-        private readonly string _projectId = "500550710563";
-        private readonly string _location = "asia-southeast1";
-        private readonly string _endpointId = "7416515991628152832"; // Get this from Vertex AI Console
+        private readonly HttpClient _httpClient;
+        private readonly IConfiguration _configuration;
+        private readonly IHttpClientFactory _httpClientFactory;
+        // Google Cloud Fields Required
+        private readonly string _projectId;
+        private readonly string _location;
+        private readonly string _endpointId;
 
-        public MlService(MyDbContext db)
+        public MlService(MyDbContext db, HttpClient httpClient, IConfiguration configuration, IHttpClientFactory httpClientFactory)
         {
             this.db = db;
+            _httpClient = httpClient;
+            _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
+
+            // Initialize Google Cloud values from your JSON
+            _projectId = _configuration["GoogleCloud:ProjectId"];
+            _location = _configuration["GoogleCloud:Location"];
+            _endpointId = _configuration["GoogleCloud:EndpointId"];
         }
 
         // ML call - To get 3 recommended tasks based on past user's preferred task difficulty and category, total coins earned and recent top 10 tasks completed 
         public async Task<List<Task>> GetRecommendedTasks(int userId)
         {
-            // Get the authenticated client
-            var client = await GetClientAsync();
+            // Setup Configuration & Environment
+            var useLocal = _configuration.GetValue<bool>("MLSettings:UseLocalML");
 
             var tasksToReturn = new List<Task>();
 
@@ -67,81 +79,95 @@ namespace ADproject.Services
 
             try
             {
-                // 2. Initialize the Vertex AI Client
-                var clientBuilder = new PredictionServiceClientBuilder
+                if (useLocal)
                 {
-                    Endpoint = $"{_location}-aiplatform.googleapis.com"
-                };
-                client = await clientBuilder.BuildAsync();
+                    // --- LOCAL TESTING PATH ---
+                    var client = _httpClientFactory.CreateClient();
+                    var url = _configuration["MLSettings:LocalMLUrl"];
 
-                // Convert C# Anonymous Object to Protobuf Value
-                // Vertex AI requires an 'instances' list
-                Value instance = ToValue(payload);
-                var endpointName = EndpointName.FromProjectLocationEndpoint(_projectId, _location, _endpointId);
-                // Create a collection of instances
-                var instances = new List<Value> { instance };
+                    // MIMIC VERTEX AI: Wrap the payload in an 'instances' list
+                    var vertexMimic = new
+                    {
+                        instances = new[] { payload }
+                    };
 
-                // Create the Request Object
-                var request = new PredictRequest
+                    var httpResponse = await client.PostAsJsonAsync(url, vertexMimic);
+
+                    if (httpResponse.IsSuccessStatusCode)
+                    {
+                        // 1. Read the raw string first
+                        string rawJson = await httpResponse.Content.ReadAsStringAsync();
+
+                        // 2. Print it so you can finally see your hardcoded message
+                        Console.WriteLine($"DEBUG ML RESPONSE: {rawJson}");
+                        System.Diagnostics.Debug.WriteLine($"DEBUG ML RESPONSE: {rawJson}");
+
+                        // 3. Since we already have the string, use JsonSerializer instead of ReadFromJsonAsync
+                        var mlResponse = System.Text.Json.JsonSerializer.Deserialize<MlResponseDto>(rawJson, new System.Text.Json.JsonSerializerOptions
+                        {
+                            PropertyNameCaseInsensitive = true
+                        });
+
+                        //var mlResponse = await httpResponse.Content.ReadFromJsonAsync<MlResponseDto>();
+                        ProcessMlTasks(mlResponse, tasksToReturn);
+                    }
+                }
+                else
                 {
-                    EndpointAsEndpointName = endpointName,
-                    Instances = { ToValue(payload) } 
-                };
-                // Send the Request
-                PredictResponse response = await client.PredictAsync(request);
+                    // --- VERTEX AI PRODUCTION PATH ---
 
-                // DEBUG: See if there is anything in the metadata or raw response
-                Console.WriteLine($"Total Predictions: {response.Predictions.Count}");
-                if (response.Predictions.Count == 0)
-                {
-                    // This will help you see if the model sent an error message 
-                    // inside the response object instead of a result.
-                    Console.WriteLine("Raw Response: " + response.ToString());
+                    // Load the credential explicitly from your root folder
+                    var credentialPath = Path.Combine(Directory.GetCurrentDirectory(), "vertex-key.json");
+                    var credential = GoogleCredential.FromFile(credentialPath);
+
+                    // 2. Build the client using the credential object
+                    var clientBuilder = new PredictionServiceClientBuilder
+                    {
+                        Credential = credential
+                    };
+                    var client = await clientBuilder.BuildAsync();
+
+                    // 3. Build the Endpoint Name
+                    var endpointName = EndpointName.FromProjectLocationEndpoint(_projectId, _location, _endpointId);
+
+                    var request = new PredictRequest
+                    {
+                        EndpointAsEndpointName = endpointName,
+                        Instances = { ToValue(payload) }
+                    };
+
+                    // 4. Make the call
+                    PredictResponse response = await client.PredictAsync(request);
+
+                    foreach (var prediction in response.Predictions)
+                    {
+                        string jsonResponse = JsonFormatter.Default.Format(prediction);
+                        var mlResponse = JsonSerializer.Deserialize<MlResponseDto>(jsonResponse,
+                            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                        // Ensure this is awaited since we made ProcessMlTasks async earlier
+                        await ProcessMlTasks(mlResponse, tasksToReturn);
+                    }
                 }
 
-                // Parse the Response
-                // Predictions are returned as a list
-                foreach (var prediction in response.Predictions)
+                // Persist unique ML tasks to DB (Preserved from your original code)
+                if (tasksToReturn.Any(t => t.SourceType == "ML"))
                 {
-                    // Convert the Protobuf Value back to a JSON string, then to our DTO
-                    string jsonResponse = JsonFormatter.Default.Format(prediction);
-                    var mlResponse = JsonSerializer.Deserialize<MlResponseDto>(jsonResponse, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                    if (mlResponse?.Tasks != null)
+                    foreach (var mlTask in tasksToReturn.Where(t => t.SourceType == "ML"))
                     {
-                        Console.WriteLine($"Received {mlResponse.Tasks.Count} tasks from ML.");
-
-                        foreach (var taskDto in mlResponse.Tasks)
+                        var taskExist = await db.Tasks.FirstOrDefaultAsync(t => t.Description == mlTask.Description);
+                        if (taskExist == null)
                         {
-                            tasksToReturn.Add(new Task
-                            {
-                                Description = taskDto.Description,
-                                Difficulty = taskDto.Difficulty,
-                                CoinReward = taskDto.CoinReward,
-                                Category = taskDto.Category,
-                                SourceType = "ML"
-                            });
+                            db.Tasks.Add(mlTask);
+                            await db.SaveChangesAsync();
                         }
+                        else mlTask.TaskID = taskExist.TaskID;
                     }
-
-                    // Persist only unique ML-generated tasks to the database for monitoring purpose
-                    if (tasksToReturn != null && tasksToReturn.Any())
-                    {
-                        foreach (var mlTask in tasksToReturn)
-                        {
-                            bool taskExist = await db.Tasks.AnyAsync(t => t.Description == mlTask.Description);
-                            if (!taskExist) db.Tasks.Add(mlTask);
-                        }
-
-                        await db.SaveChangesAsync();
-                    }
-
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Vertex AI Error: {ex.Message}");
-                // Fallback logic here if needed
+                Console.WriteLine($"ML Recommendation Error: {ex.Message}");
             }
 
             // Handle any scenario when there are less than 3 tasks returned by the ML
@@ -162,72 +188,6 @@ namespace ADproject.Services
 
             return tasksToReturn.Take(3).ToList(); // return only 3 tasks as required
         }
-
-        /*
-
-                    // Receive responses from Python
-                    if (response.IsSuccessStatusCode)
-                        {
-                            // For debugging
-                            string rawJson = await response.Content.ReadAsStringAsync();
-                            Console.WriteLine($"RAW ML JSON: {rawJson}");
-
-                            // Use the options with PropertyNameCaseInsensitive = true
-                            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true, IncludeFields = true };
-
-                            // Deserialize into the wrapper instead of a List
-                            var mlResponse = JsonSerializer.Deserialize<MlResponseDto>(rawJson, options);
-
-                            if (mlResponse?.Tasks != null)
-                            {
-                                tasksToReturn = mlResponse.Tasks.Select(dto => new Task
-                                {
-                                    Description = dto.Description,
-                                    Difficulty = dto.Difficulty ?? "Easy",
-                                    CoinReward = dto.CoinReward,
-                                    Category = dto.Category ?? "General",
-                                    SourceType = "ML",
-                                }).ToList();
-
-                                // Persist only unique ML-generated tasks to the database for monitoring purpose
-                                if (tasksToReturn != null && tasksToReturn.Any())
-                                {
-                                    foreach (var mlTask in tasksToReturn)
-                                    {
-                                        bool taskExist = await db.Tasks.AnyAsync(t => t.Description == mlTask.Description);
-                                        if (!taskExist) db.Tasks.Add(mlTask);
-                                    }
-
-                                    await db.SaveChangesAsync();
-                                }
-                            }
-                        }
-                    }
-                    // Catch the error in case ML is down
-                    catch (Exception ex) 
-                    {
-                        Console.WriteLine($"ML Error: {ex.Message}");
-                    }
-
-                    // Handle any scenario when there are less than 3 tasks returned by the ML
-                    if (tasksToReturn.Count < 3)
-                    {
-                        int required = 3 - tasksToReturn.Count;
-
-                        var existingDescriptions = tasksToReturn.Select(t => t.Description).ToList();
-
-                        // Get random Default tasks from the repository to fill up the remaining shortage
-                        var fallbackTasks = await db.Tasks
-                                                .Where(t => t.SourceType == "Default" && !existingDescriptions.Contains(t.Description))
-                                                .OrderBy(t => EF.Functions.Random())
-                                                .Take(required)
-                                                .ToListAsync();
-                        tasksToReturn.AddRange(fallbackTasks);
-                    }
-
-                    return tasksToReturn.Take(3).ToList(); // return only 3 tasks as required
-        */
-
 
         // Helper function to obtain the user's preferred difficulty and category for tasks
         private async Task<UserPrefDto> GetUserPreferences(int userId)
@@ -261,36 +221,13 @@ namespace ADproject.Services
                 .Where(t => t.UserID == userId)
                 .Include(t => t.Task)
                 .OrderByDescending(t => t.CompletionDate)
-                .Take(10)
+                .Take(3)
                 .ToListAsync();
 
             return top10Tasks
                     .Select(t => t?.Task?.Description)
                     .OfType<string>() // Ensure no null values   
                     .ToList();
-        }
-
-        private async Task<PredictionServiceClient> GetClientAsync()
-        {
-            string jsonCredentials = Environment.GetEnvironmentVariable("GOOGLE_CONFIG_JSON");
-
-            if (!string.IsNullOrEmpty(jsonCredentials))
-            {
-                // Production: Using the Azure JSON String
-                var builder = new PredictionServiceClientBuilder
-                {
-                    Endpoint = "asia-southeast1-aiplatform.googleapis.com",
-                    ChannelCredentials = GoogleCredential.FromJson(jsonCredentials)
-                        .CreateScoped(PredictionServiceClient.DefaultScopes)
-                        .ToChannelCredentials() // Now works thanks to 'using Grpc.Auth'
-                };
-                return await builder.BuildAsync();
-            }
-            else
-            {
-                // Local: Using the vertex-key.json file path
-                return await PredictionServiceClient.CreateAsync();
-            }
         }
 
         // HELPER: Converts C# objects to Protobuf Value (Required for Vertex AI)
@@ -333,6 +270,39 @@ namespace ADproject.Services
                 if (val != null) objStruct.Fields[prop.Name] = ToValue(val);
             }
             return Value.ForStruct(objStruct);
+        }
+
+        // Helper method for the main method
+        private async System.Threading.Tasks.Task ProcessMlTasks(MlResponseDto mlResponse, List<Task> tasksToReturn)
+        {
+            // Check if the top-level 'predictions' list exists
+            if (mlResponse?.Predictions != null)
+            {
+                foreach (var prediction in mlResponse.Predictions)
+                {
+                    // Check if each prediction has a 'tasks' list
+                    if (prediction.Tasks != null)
+                    {
+                        foreach (var taskDto in prediction.Tasks)
+                        {
+                            var existingTask = await db.Tasks.FirstOrDefaultAsync(t => t.Description == taskDto.Description);
+                            if (existingTask == null)
+                            {
+                                tasksToReturn.Add(new Task
+                                {
+                                    Description = $"ML: {taskDto.Description}",
+                                    Difficulty = taskDto.Difficulty,
+                                    CoinReward = taskDto.CoinReward,
+                                    Category = taskDto.Category,
+                                    SourceType = "ML"
+                                });
+                            }
+                            else
+                                tasksToReturn.Add(existingTask);
+                        }
+                    }
+                }
+            }
         }
     }
 }

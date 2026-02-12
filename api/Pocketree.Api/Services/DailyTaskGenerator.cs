@@ -87,12 +87,19 @@ namespace Pocketree.Api.Services
                 
                 Console.WriteLine(">>> Background Task Generator: Completed...");
                 
-                // For initial logic testing and also to check that the service triggers (at 5 min interval)
-                //await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(300), stoppingToken);
+                // For initial logic testing and also to check that the service triggers (at 3 min interval)
+                // await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(180), stoppingToken);
 
                 // Calculate delay to next midnight Sg time
                 var currentSgTime = DateTime.UtcNow.AddHours(8);
-                var nextRunSgTime = currentSgTime.Date.AddDays(1);
+                var nextRunSgTime = currentSgTime.Date.AddHours(6);
+
+                // Handles the "Restart after 6am" safety check
+                if (currentSgTime >= nextRunSgTime)
+                {
+                    nextRunSgTime = nextRunSgTime.AddDays(1);
+                }
+
                 var delay = nextRunSgTime - currentSgTime;
                 await System.Threading.Tasks.Task.Delay(delay, stoppingToken);
             }

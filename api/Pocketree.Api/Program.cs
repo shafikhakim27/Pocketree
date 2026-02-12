@@ -66,25 +66,7 @@ builder.Services.AddHttpClient("ML_Consultant", client => {
         new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/json"));
 });
 
-var azureSignalRConnectionString =
-    builder.Configuration["Azure:SignalR:ConnectionString"] ??
-    builder.Configuration["AzureSignalR:ConnectionString"] ??
-    builder.Configuration.GetConnectionString("AzureSignalR");
-
-if (!string.IsNullOrWhiteSpace(azureSignalRConnectionString))
-{
-    builder.Services
-        .AddSignalR()
-        .AddAzureSignalR(options =>
-        {
-            options.ConnectionString = azureSignalRConnectionString;
-        });
-}
-else
-{
-    builder.Services.AddSignalR();
-    Console.WriteLine("Azure SignalR connection string not found. Using in-process SignalR.");
-}
+builder.Services.AddSignalR().AddAzureSignalR();
 
 // Add CORS policy for API access
 builder.Services.AddCors(options =>
@@ -125,9 +107,11 @@ builder.Services.AddDbContext<MyDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 builder.Services.AddHttpClient<IMlService, MlService>();
 builder.Services.AddScoped<IMlService, MlService>();
+builder.Services.AddScoped<ITaskService, TaskService>();
 builder.Services.AddScoped<MissionService>();
 builder.Services.AddSingleton<IUserIdProvider, CustomUser>();
 builder.Services.AddScoped<IBlobService, BlobService>();
+builder.Services.AddHostedService<DailyTaskGenerator>();
 
 // Add session services
 builder.Services.AddSession(options =>
@@ -136,6 +120,9 @@ builder.Services.AddSession(options =>
     options.Cookie.HttpOnly = true;
     options.Cookie.IsEssential = true;
 });
+
+// Add SignalR services
+builder.Services.AddSignalR();
 
 // Add the context accessor to use Session in Views
 builder.Services.AddHttpContextAccessor();

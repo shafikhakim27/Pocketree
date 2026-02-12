@@ -1,4 +1,4 @@
-﻿using ADproject.Models.DTOs;
+using ADproject.Models.DTOs;
 using ADproject.Models.Entities;
 using ADproject.Models.ViewModels;
 using Microsoft.AspNetCore.Authentication;
@@ -99,7 +99,7 @@ namespace ADproject.Controllers
                     return BadRequest("Admins must use the Web portal.");
                 }
 
-                var activeTree = user.Trees?.FirstOrDefault(t => !t.IsCompleted);
+                var activeTree = user.Trees?.OrderByDescending(t => t.TreeID).FirstOrDefault(); // Obtain latest tree
 
                 // Set tree status
                 await CheckWithering(activeTree, user.LastActivityDate);
@@ -179,7 +179,7 @@ namespace ADproject.Controllers
                         u.LastActivityDate,
                         LevelName = u.CurrentLevel.LevelName,
                         LevelImageURL = baseURL + u.CurrentLevel.LevelImageURL,
-                        ActiveTree = u.Trees.FirstOrDefault(t => !t.IsCompleted), // Get active tree
+                        ActiveTree = u.Trees.OrderByDescending(t => t.TreeID).FirstOrDefault(), // Get active tree
                     })
                     .FirstOrDefaultAsync();
 
@@ -191,48 +191,6 @@ namespace ADproject.Controllers
 
             return Ok(androidProfile);
         }
-
-            // // Equipping user's skin
-            // bool isWithered = userData.ActiveTree?.IsWithered ?? false;
-
-            // //dynamically concatenate image file names
-            // string stageName = userData.LevelName.Split(' ')[0];
-            // string skinSuffix = "";
-            // string statusSuffix = "";
-
-            // if (isWithered)
-            // {
-            //     finalPercent = 0;
-            //     statusSuffix = "_Withered";     // Withered trees don't have skin
-            // }
-            // else
-            // {
-            //     if (userData.CurrentLevelID > 1) // cannot equip skin at Lv1
-            //     {
-            //         var equippedSkin = userData.User.UserSkins.FirstOrDefault(us => us.IsEquipped);
-            //         if (equippedSkin != null)
-            //         {
-            //             skinSuffix = "_" + equippedSkin.Skin.SkinKey;
-            //         }
-            //     }
-            // }
-
-            // // get the whole file name, e.g. Tree_Sapling_Animals.png
-            // string fileName = $"Tree_{stageName}{skinSuffix}{statusSuffix}.png";
-            // string finalImageUrl = $"~/images/trees/{fileName}";
-            
-            // Prepare UserProfile data to send back to Android
-            // var androidProfile = new AndroidUserProfileViewModel
-            // {
-            //     Username = userData.Username,
-            //     TotalCoins = userData.TotalCoins,
-            //     LevelName = userData.LevelName ?? "Seedling",
-            //     LevelID = userData.CurrentLevelID,                    
-            //     LevelImageURL = userData.LevelImageURL ?? "~/images/levels/seedling.png",
-            //     ProfileImageURL = baseURL + (userData.ProfileImageURL ?? "~/images/default-user.jpg"),
-            //     IsWithered = userData.ActiveTree?.IsWithered ?? false,              
-            //     PlantHealthPercent = finalPercent
-            // };
 
         // Private function (not API) for backend use
         private AndroidUserProfileViewModel GetAndroidUserProfile (User user, Tree? activeTree, string levelName)
@@ -625,8 +583,8 @@ namespace ADproject.Controllers
             if (user != null)
             {
                 // Get active tree and update tree status
-                var activeTree = user.Trees.FirstOrDefault(t => !t.IsCompleted);
- 
+                var activeTree = user.Trees?.OrderByDescending(t => t.TreeID).FirstOrDefault();
+
                 // Get the history of tasks performed by user
                 var history = await db.UserTaskHistory
                     .Where(h => h.UserID == int.Parse(userId) && h.Status == "Completed")
@@ -882,7 +840,7 @@ namespace ADproject.Controllers
 
             // Get User and Tree Data
             var user = await db.Users.FindAsync(int.Parse(userId));
-            var activeTree = user.Trees?.FirstOrDefault(t => !t.IsCompleted);
+            var activeTree = user.Trees?.OrderByDescending(t => t.TreeID).FirstOrDefault();
 
 
             if (user != null)

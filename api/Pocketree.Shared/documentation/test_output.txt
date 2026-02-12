@@ -1,0 +1,43 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  Pocketree.Shared -> c:\Users\skido\Pocketree\api\Pocketree.Shared\bin\Debug\net9.0\Pocketree.Shared.dll
+  Pocketree.Api -> c:\Users\skido\Pocketree\api\Pocketree.Api\bin\Debug\net9.0\Pocketree.Api.dll
+  Pocketree.Api.Tests -> c:\Users\skido\Pocketree\api\Pocketree.Api.Tests\bin\Debug\net9.0\Pocketree.Api.Tests.dll
+Test run for c:\Users\skido\Pocketree\api\Pocketree.Api.Tests\bin\Debug\net9.0\Pocketree.Api.Tests.dll (.NETCoreApp,Version=v9.0)
+VSTest version 18.0.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+  Failed Pocketree.Api.Tests.Integration.UserApiIntegrationTests.Register_Should_CreateUserWithDefaultValues [1 ms]
+  Error Message:
+   System.InvalidOperationException : Services for database providers 'Pomelo.EntityFrameworkCore.MySql', 'Microsoft.EntityFrameworkCore.InMemory' have been registered in the service provider. Only a single database provider can be registered in a service provider. If possible, ensure that Entity Framework is managing its service provider by removing the call to 'UseInternalServiceProvider'. Otherwise, consider conditionally registering the database provider, or maintaining one service provider per database provider.
+  Stack Trace:
+     at Microsoft.EntityFrameworkCore.Internal.DbContextServices.Initialize(IServiceProvider scopedProvider, DbContextOptions contextOptions, DbContext context)
+   at Microsoft.EntityFrameworkCore.DbContext.get_ContextServices()
+   at Microsoft.EntityFrameworkCore.DbContext.get_Model()
+   at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityType()
+   at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.CheckState()
+   at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.get_EntityQueryable()
+   at Microsoft.EntityFrameworkCore.Internal.InternalDbSet`1.System.Linq.IQueryable.get_Provider()
+   at System.Linq.Queryable.Any[TSource](IQueryable`1 source)
+   at Program.<<Main>$>g__InitDB|0_4(IServiceProvider services) in c:\Users\skido\Pocketree\api\Pocketree.Api\Program.cs:line 126
+   at Program.<Main>$(String[] args) in c:\Users\skido\Pocketree\api\Pocketree.Api\Program.cs:line 96
+   at Program.<Main>(String[] args)
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+--- End of stack trace from previous location ---
+   at Microsoft.AspNetCore.Mvc.Testing.DeferredHostBuilder.DeferredHost.StartAsync(CancellationToken cancellationToken)
+   at Microsoft.Extensions.Hosting.HostingAbstractionsHostExtensions.Start(IHost host)
+   at Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory`1.CreateHost(IHostBuilder builder)
+   at Pocketree.Api.Tests.Helpers.TestWebApplicationFactory.CreateHost(IHostBuilder builder) in c:\Users\skido\Pocketree\api\Pocketree.Api.Tests\Helpers\TestWebApplicationFactory.cs:line 44
+   at Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory`1.ConfigureHostBuilder(IHostBuilder hostBuilder)
+   at Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory`1.EnsureServer()
+   at Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory`1.CreateDefaultClient(DelegatingHandler[] handlers)
+   at Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory`1.CreateDefaultClient(Uri baseAddress, DelegatingHandler[] handlers)
+   at Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory`1.CreateClient(WebApplicationFactoryClientOptions options)
+   at Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory`1.CreateClient()
+   at Pocketree.Api.Tests.Integration.UserApiIntegrationTests..ctor(TestWebApplicationFactory factory) in c:\Users\skido\Pocketree\api\Pocketree.Api.Tests\UserApiIntegrationTests.cs:line 11
+   at System.RuntimeMethodHandle.InvokeMethod(Object target, Void** arguments, Signature sig, Boolean isConstructor)
+   at System.Reflection.MethodBaseInvoker.InvokeDirectByRefWithFewArgs(Object obj, Span`1 copyOfArgs, BindingFlags invokeAttr)
+
+Failed!  - Failed:     1, Passed:     0, Skipped:     0, Total:     1, Duration: 1 ms - Pocketree.Api.Tests.dll (net9.0)
