@@ -323,23 +323,36 @@ class PockeTreeBot:
             # device_map="auto"
             device="mps" if torch.backends.mps.is_available() else "cpu"
         )
-
+    
     def extract_name(self, text, user_id):
         text_lower = text.lower().strip()
-        profile = user_profiles.get(user_id, {"name": None, "history": []})
-        
-        # Common patterns for names
-        patterns = ["my name is", "i am ", "call me ", "im "]
+        patterns = ["my name is ", "i am ", "call me ", "im "]
         
         for p in patterns:
             if p in text_lower:
-                # Grab the part after the pattern
-                name = text_lower.split(p)[-1].strip().split()[0].strip(".!?")
-                profile["name"] = name.capitalize()
-                user_profiles[user_id] = profile
-                return profile["name"]
+                # Just grab the next word and capitalize it. No more "forbidden" checks.
+                parts = text_lower.split(p)
+                if len(parts) > 1:
+                    name = parts[1].split()[0].strip(".!?")
+                    return name.capitalize()
+        return None
+
+    # def extract_name(self, text, user_id):
+    #     text_lower = text.lower().strip()
+    #     profile = user_profiles.get(user_id, {"name": None, "history": []})
+        
+    #     # Common patterns for names
+    #     patterns = ["my name is", "i am ", "call me ", "im "]
+        
+    #     for p in patterns:
+    #         if p in text_lower:
+    #             # Grab the part after the pattern
+    #             name = text_lower.split(p)[-1].strip().split()[0].strip(".!?")
+    #             profile["name"] = name.capitalize()
+    #             user_profiles[user_id] = profile
+    #             return profile["name"]
                 
-        return profile.get("name")
+    #     return profile.get("name")
 
     # def extract_and_greet(self, text, user_id):
     #     text_lower = text.lower()
@@ -357,10 +370,16 @@ class PockeTreeBot:
     #     return profile["name"]
     
     def handle_small_talk(self, text, user_id):
-        profile = user_profiles.get(user_id, {"name": None, "history": []})
-        name = self.extract_name(text, user_id)
-        text_lower = text.lower().strip()
+        noise_words = ["zzz", "tsk", "hmmm", "uhm", "err", "haiz", "tch"]
         text_clean = text.lower().strip().replace("?", "").replace("!", "").replace(".", "")
+
+        for word in noise_words:
+            text_clean = text_clean.replace(word, "").strip()
+        
+        text_lower = text_clean 
+
+        profile = user_profiles.get(user_id, {"name": None, "history": []})
+        name = self.extract_name(text_clean, user_id)
         words = text_clean.split()
         last_bot_msg = profile["history"][-1]["b"] if profile["history"] else ""
 
@@ -400,6 +419,10 @@ class PockeTreeBot:
             if name: return f"You are {name}. So good to know you!"
             return "I don't know your name yet.... What should I call you?"
         
+        meeting_phrases = ["nice to meet you", "good to know you", "pleasure"]
+        if any(p in text_clean for p in meeting_phrases):
+            return f"The pleasure is all mine! Ready to learn more about Singapore's green efforts?"
+        
         user_greetings = ["hi", "hello", "yo", "what's up", "wassup", "whassup", "whatsup", "wzzup", "wazzup", "good day", "good morning", "good afternoon", "good evening", "heya", "mornin"]
         if words and words[0] in user_greetings and len(words) < 4:
             if not name:
@@ -416,10 +439,15 @@ class PockeTreeBot:
             return None
         
         casual_fillers = ["same old", "not much", "im good", "am good", "me too", "just chilling", "cool", "ok", "sure", "nice"]
-        if any(f == text_clean for f in casual_fillers): 
+        if text_clean in casual_fillers:
             return "Great! Do you have any specific questions about green efforts in Singapore today?"
         
-        if len(words) > 4: return None 
+        cool_reactions = ["sounds cool", "cool", "interesting", "wow", "awesome", "great"]
+        if text_clean in cool_reactions:
+            return "Yea!"
+        
+        if text_clean in ["ok", "bye", "goodbye", "see ya", "cya"]:
+            return "Goodbye! Remember, every small green act counts. Come back if you have more questions!"
         
         if any(sad in text_lower for sad in ["lonely", "sad", "bored"]):
             return "I'm sorry to hear that, let's go walk at the park and see some greenery. It will make you feel better!"
@@ -429,12 +457,15 @@ class PockeTreeBot:
         
         if "do you" in text_lower or "is it" in text_lower:
             return None
+        
+        if len(words) > 4: return None 
 
         return None
 
     def _parse_to_two_sentences(self, text: str):
         import re
         # Cleanup labels and artifacts
+        text = re.sub(r'(?i)(The facts:|Action:|Sentence \d:|Assistant:)', '', text).strip()
         text = re.sub(r'(Sentence \d:|Assistant:|Note:|\*\*)', '', text, flags=re.IGNORECASE).strip()
         sentences = re.split(r'(?<=[.!?])\s+', text)
         sentences = [s for s in sentences if len(s) > 5]
@@ -467,8 +498,12 @@ class PockeTreeBot:
                     "tell them to check the app dashboard. Otherwise, use the context. "
                     "If you mention a report or plan, always provide the specific link: "
                     "For the Green Plan, use https://www.greenplan.gov.sg. "
-                    "For general SG sustainability, use https://www.mse.gov.sg/resources/sgp-2030/."
+                    "For general SG sustainability, use https://www.mse.gov.sg/resources/sgp-2030/." 
+                    "Do NOT use labels like 'The facts' or 'Action' in your response."
                 )
+
+                if not context or len(context.strip()) < 10:
+                    context = "Have you ever learned about the Singapore Green Plan 2030?"
 
                 prompt = f"<|im_start|>system\n{system_instr}\nContext:\n{context}\nHistory:\n{hist_str}<|im_end|>\n"
                 prompt += f"<|im_start|>user\n{user_text}<|im_end|>\n<|im_start|>assistant\n"
@@ -477,7 +512,7 @@ class PockeTreeBot:
                 output = self.generator(
                     prompt, 
                     max_new_tokens=120, 
-                    do_sample=False,  # Greedy decoding is smarter/faster for small models
+                    do_sample=False,  # Greedy decoding 
                     stop_sequence="<|im_end|>",
                     pad_token_id=self.generator.tokenizer.eos_token_id  # pyright: ignore[reportOptionalMemberAccess]
                 )
@@ -577,7 +612,7 @@ async def chat(req: ChatReq):
     if bot is None: # pyright: ignore[reportAttributeAccessIssue]
         raise HTTPException(status_code=503, detail="PockeTreeBot not ready")
     if not bot.brain.ready:
-        return {"response": "I'm still studying my sustainability reports! Please give some time to get smart?"}
+        return {"response": "I'm still studying my sustainability reports! Thank you for giving me some time to get smart!"}
     user_id = req.user_id 
     user_id = getattr(req, 'user_id', 'anon_user')
     reply = await anyio.to_thread.run_sync(bot.get_response, req.message, user_id) # pyright: ignore[reportAttributeAccessIssue]
