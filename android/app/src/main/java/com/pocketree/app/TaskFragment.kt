@@ -165,7 +165,7 @@ class TaskFragment: Fragment() {
     private fun showVoucherDialog(voucherName:String) {
         AlertDialog.Builder(requireContext())
             .setTitle("Voucher Obtained!")
-            .setMessage("You have earned $voucherName! Check the Redeeem tab.")
+            .setMessage("You have earned $voucherName! Check the Redeem tab.")
             .setPositiveButton("Awesome!") { dialog, _ ->
                 dialog.dismiss()
             }
