@@ -28,6 +28,4 @@ RUN python -c "import torch, transformers, accelerate, sentence_transformers"
 COPY . .
 
 # Cloud Run sets $PORT automatically
-CMD ["sh","-c","python -m uvicorn MainModelML_chatbot:app --host 0.0.0.0 --port ${PORT:-8080}"]
-
-
+CMD ["sh","-c","python -m uvicorn MainModelML_chatbot:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1"]

@@ -2,6 +2,7 @@
 set -euo pipefail
 
 MODE="${1:-menu}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 log() {
   local level="${1:-INFO}"
@@ -77,7 +78,7 @@ run_ml_service_sim() {
   python -m pip install --upgrade pip
   pip install -r ml-service/requirements.txt -r ml-service/requirements-dev.txt
 
-  PORT="$port" python ml-service/CLIPModelMobile_donotmerge.py &
+  PORT="$port" python ml-service/MainModelML.py &
   pid=$!
   trap 'kill $pid 2>/dev/null || true' EXIT
 
@@ -89,14 +90,39 @@ run_ml_service_sim() {
   log INFO "ML Service health check OK."
 }
 
+run_android_unit_tests() {
+  log INFO "==> [4] Android Unit Tests"
+  (
+    cd android
+    ./gradlew testDebugUnitTest
+  )
+}
+
+run_ml_pytests() {
+  log INFO "==> [5] ML Pytest Suite"
+  require_cmd python "Install Python 3.10+"
+  ensure_venv
+  python -m pip install --upgrade pip
+  pip install -r ml-service/requirements.txt -r ml-service/requirements-dev.txt
+  pytest ml-service/tests
+}
+
+run_deploy_menu() {
+  log INFO "==> [d] Deploy Menu"
+  bash "${SCRIPT_DIR}/Deploy.sh" menu
+}
+
 if [ "$MODE" = "menu" ]; then
   echo ""
-  log INFO "Select a demo step:"
+  log INFO "Select an option:"
   echo "  1) API Tests"
   echo "  2) Maestro Flows (smoke-seq)"
   echo "  2f) Maestro Flows (full-seq)"
   echo "  3) ML Service Sim (health check)"
-  echo "  all) Run 1, 2, 3 in order"
+  echo "  4) Android Unit Tests"
+  echo "  5) ML Pytest Suite"
+  echo "  d) Deploy Menu"
+  echo "  all) Run 1, 2, 3, 4, 5 in order"
   read -r -p "Enter choice: " choice
 else
   choice="$MODE"
@@ -108,13 +134,22 @@ case "$choice" in
   2) run_maestro "smoke"; results["Maestro Smoke"]="PASS" ;;
   2f) run_maestro "full"; results["Maestro Full"]="PASS" ;;
   3) run_ml_service_sim; results["ML Service Sim"]="PASS" ;;
-  all) run_api_tests; results["API Tests"]="PASS"; run_maestro "smoke"; results["Maestro Smoke"]="PASS"; run_ml_service_sim; results["ML Service Sim"]="PASS" ;;
+  4) run_android_unit_tests; results["Android Unit Tests"]="PASS" ;;
+  5) run_ml_pytests; results["ML Pytest"]="PASS" ;;
+  d) run_deploy_menu; results["Deploy Menu"]="PASS" ;;
+  all)
+    run_api_tests; results["API Tests"]="PASS"
+    run_maestro "smoke"; results["Maestro Smoke"]="PASS"
+    run_ml_service_sim; results["ML Service Sim"]="PASS"
+    run_android_unit_tests; results["Android Unit Tests"]="PASS"
+    run_ml_pytests; results["ML Pytest"]="PASS"
+    ;;
   *) echo "Unknown choice: $choice"; exit 1 ;;
 esac
 
 if [ "${#results[@]}" -gt 0 ]; then
   echo ""
-  log INFO "===== Demo Summary ====="
+  log INFO "===== Run Summary ====="
   for k in "${!results[@]}"; do
     if [ "${results[$k]}" = "PASS" ]; then
       log SUCCESS "$k: ${results[$k]}"
@@ -124,5 +159,5 @@ if [ "${#results[@]}" -gt 0 ]; then
       log WARN "$k: ${results[$k]}"
     fi
   done
-  log INFO "========================"
+  log INFO "======================="
 fi

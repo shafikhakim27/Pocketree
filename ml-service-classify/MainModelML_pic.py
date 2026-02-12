@@ -2,12 +2,12 @@ import io
 import json
 import threading
 from contextlib import asynccontextmanager
-from typing import Callable, List, Optional
+from typing import Callable, Dict, List, Optional, Tuple
 
 import open_clip
 import torch
-from fastapi import FastAPI, File, Form, Request, UploadFile
-from PIL import Image, ImageOps
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from PIL import Image, ImageOps, UnidentifiedImageError
 
 
 def detect_device() -> str:
@@ -24,7 +24,6 @@ def clean_keyword(value: Optional[str]) -> List[str]:
 
     text = value.strip()
 
-    # Normalize wrappers that can appear from different shells/tools.
     if text.startswith('@"'):
         text = text[2:]
     if text.endswith('"@'):
@@ -34,6 +33,7 @@ def clean_keyword(value: Optional[str]) -> List[str]:
     ):
         text = text[1:-1]
     text = text.replace('""', '"').strip()
+
     if text.startswith("["):
         try:
             parsed = json.loads(text)
@@ -62,8 +62,10 @@ class CLIPService:
         self.margin = 0.05
         self._load_lock = threading.Lock()
 
+        self._text_feat_cache: Dict[Tuple[str, ...], torch.Tensor] = {}
+        self._cache_lock = threading.Lock()
+
     def _resolve_tokenizer(self, model_name: str):
-        # Tokenizer API differs across open_clip variants.
         if hasattr(open_clip, "get_tokenizer"):
             return open_clip.get_tokenizer(model_name)
         if hasattr(open_clip, "tokenize"):
@@ -98,27 +100,56 @@ class CLIPService:
         if self.preprocess is None:
             raise RuntimeError("Preprocess pipeline is not loaded.")
 
-        img = Image.open(io.BytesIO(img_bytes))
+        try:
+            img = Image.open(io.BytesIO(img_bytes))
+        except UnidentifiedImageError as e:
+            raise ValueError("Uploaded file is not a valid image.") from e
+
         img = ImageOps.exif_transpose(img).convert("RGB")
         return self.preprocess(img).unsqueeze(0).to(self.device)
 
-    def _get_features(self, phrases: List[str]):
+    def _get_features(self, phrases: List[str]) -> torch.Tensor:
         if self.tokenizer is None or self.model is None:
             raise RuntimeError("Model/tokenizer not loaded. Did ensure_model() fail?")
 
+        key = tuple(phrases)
+        with self._cache_lock:
+            cached = self._text_feat_cache.get(key)
+        if cached is not None:
+            return cached
+
         tokens = self.tokenizer(phrases).to(self.device)
+
         with torch.inference_mode():
             feat = self.model.encode_text(tokens)
-            return feat / feat.norm(dim=-1, keepdim=True)
+            feat = feat / feat.norm(dim=-1, keepdim=True)
 
-    def classify_simple(self, image_feat, keyword: str) -> dict:
+        with self._cache_lock:
+            self._text_feat_cache[key] = feat
+
+        return feat
+
+    def encode_image(self, image_tensor: torch.Tensor) -> torch.Tensor:
+        if self.model is None:
+            raise RuntimeError("Model not loaded. Did ensure_model() fail?")
+
+        with torch.inference_mode():
+            image_feat = self.model.encode_image(image_tensor)
+            image_feat = image_feat / image_feat.norm(dim=-1, keepdim=True)
+            return image_feat
+
+    def classify_simple(self, image_feat: torch.Tensor, keyword: str) -> dict:
         text_feat = self._get_features([f"a photo of a {keyword}", "object"])
-        raw_sim = float(image_feat @ text_feat[0].T)
+
+        raw_sim = float((image_feat @ text_feat[0].unsqueeze(-1)).squeeze().item())
+
         probs = (100.0 * image_feat @ text_feat.T).softmax(dim=-1).cpu().numpy()[0]
         verified = bool(probs.argmax() == 0 and probs[0] >= 0.55 and raw_sim > 0.15)
         return {"verified": verified, "score": float(probs[0]), "method": "simple"}
 
-    def classify_advanced(self, image_feat, pos_list: List[str], neg_list: List[str]) -> dict:
+    def classify_advanced(
+        self, image_feat: torch.Tensor, pos_list: List[str], neg_list: List[str]
+    ) -> dict:
         pos_prompts = [f"a photo of {p}" for p in pos_list]
         neg_prompts = [f"a photo of {n}" for n in neg_list]
 
@@ -135,7 +166,7 @@ class CLIPService:
         verified = (best_pos > self.pos_threshold) and (best_pos > best_neg + self.margin)
         return {"verified": bool(verified), "score": best_pos, "method": "advanced"}
 
-    def classify_softmax(self, image_feat, keyword: str) -> dict:
+    def classify_softmax(self, image_feat: torch.Tensor, keyword: str) -> dict:
         labels = [f"a {keyword}", "a blurry background", "a random object"]
         text_feat = self._get_features(labels)
         logits = (image_feat @ text_feat.T) * 100
@@ -155,7 +186,8 @@ app = FastAPI(lifespan=lifespan)
 
 
 @app.post("/classify")
-def classify(
+
+async def classify(
     request: Request,
     keyword: str = Form(...),
     negative_keyword: Optional[str] = Form(None),
@@ -164,16 +196,24 @@ def classify(
     service: CLIPService = request.app.state.clip
     service.ensure_model()
 
-    content = file.file.read()
-    image_tensor = service._prepare_image(content)
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="Empty upload.")
 
-    with torch.inference_mode():
-        image_feat = service.model.encode_image(image_tensor)
-        image_feat /= image_feat.norm(dim=-1, keepdim=True)
+    try:
+        image_tensor = service._prepare_image(content)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+
+    image_feat = service.encode_image(image_tensor)
 
     pos_list = clean_keyword(keyword)
     neg_list = clean_keyword(negative_keyword)
-    primary_keyword = pos_list[0] if pos_list else keyword
+
+    if not pos_list:
+        raise HTTPException(status_code=400, detail="keyword must not be empty.")
+
+    primary_keyword = pos_list[0]
 
     res_simple = service.classify_simple(image_feat, primary_keyword)
     res_advanced = service.classify_advanced(image_feat, pos_list, neg_list)
@@ -220,7 +260,6 @@ def health(request: Request):
 
 if __name__ == "__main__":
     import os
-
     import uvicorn
 
     try:

@@ -10,8 +10,8 @@ permissions:
 
 jobs:
   build-security-report:
-    continue-on-error: true
     runs-on: ubuntu-latest
+    continue-on-error: true
     env:
       WORKFLOWS: |
         7-api-cd-azure.yml

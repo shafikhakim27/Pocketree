@@ -18,8 +18,11 @@ env:
   GCP_REGION: asia-southeast1
   AR_REPO: pocketree-ml
   IMAGE_NAME_V1: pocketree-ml
-  IMAGE_NAME_V2: pocketree-ml-v2
-  IMAGE_NAME_V3: ${{ secrets.DOCKER_USER }}/pocketree-ml-v3
+  IMAGE_TAG_V1: "20260212-2258"
+  IMAGE_NAME_V2: chatbot
+  IMAGE_DIGEST_V2: "sha256:45ec2b950f8c600fd8f60c5e7ef5a5c4e608f3be2600ae6ae3983c8106b5429b"
+  IMAGE_NAME_V3: pockettreeacr.azurecr.io/pocketree-ml
+  IMAGE_TAG_V3: "v11"
 
 jobs:
   ml-security:
@@ -51,7 +54,7 @@ jobs:
       - name: Scan ML image (v1) with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME_V1 }}:sha-${{ steps.target_sha.outputs.sha }}
+          image-ref: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME_V1 }}:${{ env.IMAGE_TAG_V1 }}
           format: 'json'
           output: 'trivy-report-v1.json'
           exit-code: '0'
@@ -62,7 +65,7 @@ jobs:
       - name: Scan ML image (v2) with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME_V2 }}:sha-${{ steps.target_sha.outputs.sha }}
+          image-ref: ${{ env.GCP_REGION }}-docker.pkg.dev/${{ env.GCP_PROJECT_ID }}/${{ env.AR_REPO }}/${{ env.IMAGE_NAME_V2 }}@${{ env.IMAGE_DIGEST_V2 }}
           format: 'json'
           output: 'trivy-report-v2.json'
           exit-code: '0'
@@ -76,10 +79,18 @@ jobs:
           username: ${{ secrets.DOCKER_USER }}
           password: ${{ secrets.DOCKER_PASS }}
 
+      - name: Azure Login
+        uses: azure/login@v2.3.0
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Log in to Azure Container Registry
+        run: az acr login -n pockettreeacr
+
       - name: Scan ML image (v3) with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: ${{ env.IMAGE_NAME_V3 }}:sha-${{ steps.target_sha.outputs.sha }}
+          image-ref: ${{ env.IMAGE_NAME_V3 }}:${{ env.IMAGE_TAG_V3 }}
           format: 'json'
           output: 'trivy-report-v3.json'
           exit-code: '0'

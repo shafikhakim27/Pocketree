@@ -19,8 +19,8 @@ permissions:
 
 jobs:
   android-quality:
-    continue-on-error: true
     runs-on: ubuntu-latest
+    continue-on-error: true
     defaults:
       run:
         working-directory: ./android
@@ -54,8 +54,8 @@ jobs:
 
   codeql:
     name: CodeQL Analysis
-    continue-on-error: true
     runs-on: ubuntu-latest
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:

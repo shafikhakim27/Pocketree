@@ -23,8 +23,8 @@ env:
 
 jobs:
   tests:
-    continue-on-error: true
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
@@ -49,7 +49,6 @@ jobs:
           ruff check ml-service-classify --exit-zero --output-format json --output-file ruff-report-classify.json
 
       - name: Type Check (mypy)
-        continue-on-error: true
         run: |
           pip install mypy
           mypy --config-file ml-service/mypy.ini ml-service
@@ -59,17 +58,14 @@ jobs:
       - name: Run ML Service Tests
         run: |
           pytest ml-service/tests --junitxml=ml-service-test-results.xml
-        continue-on-error: true
 
       - name: Run ML Service Chat Tests
         run: |
           pytest ml-service-chat/tests --junitxml=ml-service-chat-test-results.xml
-        continue-on-error: true
 
       - name: Run ML Service Classify Tests
         run: |
           pytest ml-service-classify/tests --junitxml=ml-service-classify-test-results.xml
-        continue-on-error: true
 
       - name: Snyk Python Scan (Predict)
         uses: snyk/actions/python@master

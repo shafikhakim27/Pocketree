@@ -1,9 +1,10 @@
 param(
-    [ValidateSet("1","2","3","all","menu")]
+    [ValidateSet("1", "2", "2f", "3", "4", "5", "d", "all", "menu")]
     [string]$Mode = "menu"
 )
 
 $ErrorActionPreference = "Stop"
+$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 
 function Write-Log {
     param([string]$Message, [string]$Level = "INFO")
@@ -50,13 +51,13 @@ function Wait-ForHealth {
 function Write-Summary {
     param([hashtable]$Results)
     Write-Host ""
-    Write-Host "===== Demo Summary =====" -ForegroundColor Cyan
+    Write-Host "===== Run Summary =====" -ForegroundColor Cyan
     foreach ($k in $Results.Keys) {
         $status = $Results[$k]
         $color = if ($status -eq "PASS") { "Green" } elseif ($status -eq "FAIL") { "Red" } else { "Yellow" }
         Write-Host ("{0}: {1}" -f $k, $status) -ForegroundColor $color
     }
-    Write-Host "========================" -ForegroundColor Cyan
+    Write-Host "=======================" -ForegroundColor Cyan
 }
 
 function Cleanup-Process {
@@ -73,7 +74,7 @@ function Run-ApiTests {
 }
 
 function Run-Maestro {
-    param([ValidateSet("smoke","full")] [string]$Suite = "smoke")
+    param([ValidateSet("smoke", "full")] [string]$Suite = "smoke")
     Write-Log "==> [2] Maestro Flows ($Suite)"
     Write-Log "Maestro will start in 5 seconds. Alt-tab to the emulator now..."
     Start-Sleep -Seconds 5
@@ -94,7 +95,7 @@ function Run-MlServiceSim {
     pip install -r ml-service\requirements.txt -r ml-service\requirements-dev.txt
 
     $env:PORT = "$Port"
-    $proc = Start-Process -FilePath python -ArgumentList "ml-service\CLIPModelMobile_donotmerge.py" -PassThru
+    $proc = Start-Process -FilePath python -ArgumentList "ml-service\MainModelML.py" -PassThru
     try {
         $ok = Wait-ForHealth -Url "http://localhost:$Port/health" -Attempts $Attempts -DelaySeconds $DelaySeconds
         if (-not $ok) {
@@ -106,14 +107,41 @@ function Run-MlServiceSim {
     }
 }
 
+function Run-AndroidUnitTests {
+    Write-Log "==> [4] Android Unit Tests"
+    Push-Location android
+    try {
+        ./gradlew testDebugUnitTest
+    } finally {
+        Pop-Location
+    }
+}
+
+function Run-MlPyTests {
+    Write-Log "==> [5] ML Pytest Suite"
+    Assert-Command python "Install Python 3.10+"
+    Ensure-Venv
+    python -m pip install --upgrade pip
+    pip install -r ml-service\requirements.txt -r ml-service\requirements-dev.txt
+    pytest ml-service\tests
+}
+
+function Run-DeployMenu {
+    Write-Log "==> [d] Deploy Menu"
+    & (Join-Path $scriptDir "Deploy.ps1") -Mode "menu"
+}
+
 if ($Mode -eq "menu") {
     Write-Host ""
-    Write-Host "Select a demo step:" -ForegroundColor Cyan
+    Write-Host "Select an option:" -ForegroundColor Cyan
     Write-Host "  1) API Tests"
     Write-Host "  2) Maestro Flows (smoke-seq)"
     Write-Host "  2f) Maestro Flows (full-seq)"
     Write-Host "  3) ML Service Sim (health check)"
-    Write-Host "  all) Run 1, 2, 3 in order"
+    Write-Host "  4) Android Unit Tests"
+    Write-Host "  5) ML Pytest Suite"
+    Write-Host "  d) Deploy Menu"
+    Write-Host "  all) Run 1, 2, 3, 4, 5 in order"
     $choice = Read-Host "Enter choice"
 } else {
     $choice = $Mode
@@ -125,10 +153,15 @@ switch ($choice) {
     "2" { Run-Maestro -Suite "smoke"; $results["Maestro Smoke"] = "PASS" }
     "2f" { Run-Maestro -Suite "full"; $results["Maestro Full"] = "PASS" }
     "3" { Run-MlServiceSim; $results["ML Service Sim"] = "PASS" }
+    "4" { Run-AndroidUnitTests; $results["Android Unit Tests"] = "PASS" }
+    "5" { Run-MlPyTests; $results["ML Pytest"] = "PASS" }
+    "d" { Run-DeployMenu; $results["Deploy Menu"] = "PASS" }
     "all" {
         Run-ApiTests; $results["API Tests"] = "PASS"
         Run-Maestro -Suite "smoke"; $results["Maestro Smoke"] = "PASS"
         Run-MlServiceSim; $results["ML Service Sim"] = "PASS"
+        Run-AndroidUnitTests; $results["Android Unit Tests"] = "PASS"
+        Run-MlPyTests; $results["ML Pytest"] = "PASS"
     }
     default { Write-Host "Unknown choice: $choice"; exit 1 }
 }

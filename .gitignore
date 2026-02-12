@@ -508,3 +508,6 @@ vertex-key.json
 # IDE workspace settings
 **/.settings/
 ml-service/github-key.json
+ml-service/models/*
+!ml-service/models/.gitkeep
+**/healthcheck.json

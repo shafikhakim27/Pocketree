@@ -17,8 +17,8 @@ env:
   COVERAGE_MIN: "70"
 jobs:
   api-code-coverage:
-    continue-on-error: true
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2

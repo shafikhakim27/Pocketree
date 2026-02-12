@@ -12,8 +12,8 @@ on:
 
 jobs:
   build-android:
-    continue-on-error: true
     runs-on: ubuntu-latest
+    continue-on-error: true
     defaults:
       run:
         working-directory: ./android
@@ -42,10 +42,10 @@ jobs:
         run: ./gradlew bundleRelease
 
   maestro-ui:
-    continue-on-error: true
     needs: build-android
     if: always()
     runs-on: ubuntu-latest
+    continue-on-error: true
     defaults:
       run:
         working-directory: ./android

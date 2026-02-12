@@ -852,6 +852,182 @@ class UserViewModelTest {
         }
     }
 
+    @Test
+    fun sendPasswordChangeRequest_success_setsPasswordUpdateSuccess() {
+        RuntimeEnvironment.getApplication()
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"ok":true}"""))
+        server.start()
+
+        val viewModel = UserViewModel()
+        setPrivateUrl(viewModel, "userBaseUrl", server.url("/api/User").toString())
+
+        val latch = CountDownLatch(1)
+        val observer = Observer<Boolean> { success ->
+            if (success == true) {
+                latch.countDown()
+            }
+        }
+        viewModel.passwordUpdateSuccess.observeForever(observer)
+
+        try {
+            viewModel.sendPasswordChangeRequest("old", "new", "new")
+            val completed = latch.await(2, TimeUnit.SECONDS)
+            assertTrue("Expected password update success", completed)
+        } finally {
+            viewModel.passwordUpdateSuccess.removeObserver(observer)
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun sendPasswordChangeRequest_400IncorrectPassword_postsInvalidPassword() {
+        RuntimeEnvironment.getApplication()
+        val server = MockWebServer()
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(400)
+                .setBody("Current password is incorrect")
+        )
+        server.start()
+
+        val viewModel = UserViewModel()
+        setPrivateUrl(viewModel, "userBaseUrl", server.url("/api/User").toString())
+
+        val latch = CountDownLatch(1)
+        val observer = Observer<String?> { msg ->
+            if (msg == "Invalid password") {
+                latch.countDown()
+            }
+        }
+        viewModel.errorMessage.observeForever(observer)
+
+        try {
+            viewModel.sendPasswordChangeRequest("old", "new", "new")
+            val completed = latch.await(2, TimeUnit.SECONDS)
+            assertTrue("Expected invalid password message", completed)
+        } finally {
+            viewModel.errorMessage.removeObserver(observer)
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun sendPasswordChangeRequest_401_postsSessionExpired() {
+        RuntimeEnvironment.getApplication()
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(401).setBody("Unauthorized"))
+        server.start()
+
+        val viewModel = UserViewModel()
+        setPrivateUrl(viewModel, "userBaseUrl", server.url("/api/User").toString())
+
+        val latch = CountDownLatch(1)
+        val observer = Observer<String?> { msg ->
+            if (msg == "Session expired") {
+                latch.countDown()
+            }
+        }
+        viewModel.errorMessage.observeForever(observer)
+
+        try {
+            viewModel.sendPasswordChangeRequest("old", "new", "new")
+            val completed = latch.await(2, TimeUnit.SECONDS)
+            assertTrue("Expected session expired message", completed)
+        } finally {
+            viewModel.errorMessage.removeObserver(observer)
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun sendPasswordChangeRequest_400Match_postsPasswordsDoNotMatch() {
+        RuntimeEnvironment.getApplication()
+        val server = MockWebServer()
+        server.enqueue(
+            MockResponse()
+                .setResponseCode(400)
+                .setBody("New passwords do not match")
+        )
+        server.start()
+
+        val viewModel = UserViewModel()
+        setPrivateUrl(viewModel, "userBaseUrl", server.url("/api/User").toString())
+
+        val latch = CountDownLatch(1)
+        val observer = Observer<String?> { msg ->
+            if (msg == "Passwords do not match") {
+                latch.countDown()
+            }
+        }
+        viewModel.errorMessage.observeForever(observer)
+
+        try {
+            viewModel.sendPasswordChangeRequest("old", "new1", "new2")
+            val completed = latch.await(2, TimeUnit.SECONDS)
+            assertTrue("Expected password mismatch message", completed)
+        } finally {
+            viewModel.errorMessage.removeObserver(observer)
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun sendPasswordChangeRequest_500_postsServerError() {
+        RuntimeEnvironment.getApplication()
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setResponseCode(500).setBody("Internal server error"))
+        server.start()
+
+        val viewModel = UserViewModel()
+        setPrivateUrl(viewModel, "userBaseUrl", server.url("/api/User").toString())
+
+        val latch = CountDownLatch(1)
+        val observer = Observer<String?> { msg ->
+            if (msg == "Server error") {
+                latch.countDown()
+            }
+        }
+        viewModel.errorMessage.observeForever(observer)
+
+        try {
+            viewModel.sendPasswordChangeRequest("old", "new", "new")
+            val completed = latch.await(2, TimeUnit.SECONDS)
+            assertTrue("Expected server error message", completed)
+        } finally {
+            viewModel.errorMessage.removeObserver(observer)
+            server.shutdown()
+        }
+    }
+
+    @Test
+    fun sendPasswordChangeRequest_networkFailure_postsNetworkFailure() {
+        RuntimeEnvironment.getApplication()
+        val server = MockWebServer()
+        server.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+        server.start()
+
+        val viewModel = UserViewModel()
+        setPrivateUrl(viewModel, "userBaseUrl", server.url("/api/User").toString())
+
+        val latch = CountDownLatch(1)
+        val observer = Observer<String?> { msg ->
+            if (msg == "Network failure") {
+                latch.countDown()
+            }
+        }
+        viewModel.errorMessage.observeForever(observer)
+
+        try {
+            viewModel.sendPasswordChangeRequest("old", "new", "new")
+            val completed = latch.await(2, TimeUnit.SECONDS)
+            assertTrue("Expected network failure message", completed)
+        } finally {
+            viewModel.errorMessage.removeObserver(observer)
+            server.shutdown()
+        }
+    }
+
     private fun setPrivateUrl(viewModel: UserViewModel, fieldName: String, value: String) {
         val field = viewModel.javaClass.getDeclaredField(fieldName)
         field.isAccessible = true

@@ -19,6 +19,7 @@ on:
         type: boolean
         default: true
   push:
+    branches: ["main"]
     paths:
       - 'ml-service/**'
       - 'ml-service-chat/**'
@@ -28,6 +29,7 @@ on:
     workflows: ["8. ML CI (Build, Test, Scan, SAST)"]
     types:
       - completed
+    branches: ["main"]
 
 concurrency:
   group: 9-ml-cd-gcp-global
@@ -39,6 +41,7 @@ env:
   AR_REPO: pocketree-ml
   IMAGE_NAME: pocketree-ml
   MODEL_DISPLAY_NAME: pocketree-ml
+  VERTEX_CONTAINER_ENV_VARS: "ENABLE_LLM_WARMUP=0,GPT4ALL_MODEL_PATH=/app/models/Phi-3-mini-4k-instruct.Q4_0.gguf"
   FALLBACK_MODEL_ID: "1886150624798572544"
   ENDPOINT_DISPLAY_NAME: pocketree-ml-endpoint
   MACHINE_TYPE: n1-standard-4
@@ -53,10 +56,21 @@ jobs:
       group: ml-cd-gcp-cloudrun-global
       cancel-in-progress: true
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_main_model == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_main_model == 'true') || github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
+
+      - name: Time lock deploy (until Feb 14 2026 6pm SGT)
+        run: |
+          set -euo pipefail
+          CUTOFF_UTC="2026-02-14T10:00:00Z"
+          NOW_EPOCH=$(date -u +%s)
+          CUTOFF_EPOCH=$(date -u -d "$CUTOFF_UTC" +%s)
+          if [ "$NOW_EPOCH" -lt "$CUTOFF_EPOCH" ]; then
+            echo "ML deploy locked until 2026-02-14 18:00 SGT (2026-02-14 10:00 UTC)."
+            exit 1
+          fi
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3.0.0
@@ -113,20 +127,23 @@ jobs:
           echo "ENDPOINT_ID=$ENDPOINT_ID" >> "$GITHUB_ENV"
           echo "endpoint_id=$ENDPOINT_ID" >> "$GITHUB_OUTPUT"
 
-      - name: Resolve MODEL_ID
-        id: resolve_model
+      - name: Upload Model to Vertex AI
+        id: upload_model
         run: |
           set -euo pipefail
           unset CLOUDSDK_API_ENDPOINT_OVERRIDES_AIPLATFORM
-          MODEL_ID="$(gcloud ai models list \
+          MODEL_ID="$(gcloud ai models upload \
             --region "${{ env.GCP_REGION }}" \
-            --filter="display_name=${{ env.MODEL_DISPLAY_NAME }}" \
-            --sort-by="~createTime" \
-            --limit=1 \
+            --display-name "${{ env.MODEL_DISPLAY_NAME }}" \
+            --container-image-uri "$IMAGE_URI" \
+            --container-predict-route "/predict" \
+            --container-health-route "/health" \
+            --container-ports 8080 \
+            --container-env-vars "${{ env.VERTEX_CONTAINER_ENV_VARS }}" \
             --format="value(name)" || true)"
           if [ -z "${MODEL_ID:-}" ]; then
+            echo "Model upload failed. Falling back to MODEL_ID=${{ env.FALLBACK_MODEL_ID }}"
             MODEL_ID="${{ env.FALLBACK_MODEL_ID }}"
-            echo "No latest model found for display name '${{ env.MODEL_DISPLAY_NAME }}'. Using fallback MODEL_ID=$MODEL_ID"
           fi
           echo "MODEL_ID=$MODEL_ID" >> "$GITHUB_ENV"
           echo "model_id=$MODEL_ID" >> "$GITHUB_OUTPUT"
@@ -182,7 +199,7 @@ jobs:
 
   deploy-ml-v2-cloud-run:
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_chatbot == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_chatbot == 'true') || github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     env:
       GCP_PROJECT_ID: pocketree-ml-service
       GCP_REGION: asia-southeast1
@@ -192,6 +209,17 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
+
+      - name: Time lock deploy (until Feb 14 2026 6pm SGT)
+        run: |
+          set -euo pipefail
+          CUTOFF_UTC="2026-02-14T10:00:00Z"
+          NOW_EPOCH=$(date -u +%s)
+          CUTOFF_EPOCH=$(date -u -d "$CUTOFF_UTC" +%s)
+          if [ "$NOW_EPOCH" -lt "$CUTOFF_EPOCH" ]; then
+            echo "ML deploy locked until 2026-02-14 18:00 SGT (2026-02-14 10:00 UTC)."
+            exit 1
+          fi
 
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v3.0.0
@@ -266,13 +294,24 @@ jobs:
 
   deploy-ml-v3-azure:
     runs-on: ubuntu-latest
-    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_mlpic == 'true') || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.deploy_mlpic == 'true') || github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     env:
       IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-ml-v3
       AZURE_WEBAPP_NAME: pocketree-ml-service
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
+
+      - name: Time lock deploy (until Feb 14 2026 6pm SGT)
+        run: |
+          set -euo pipefail
+          CUTOFF_UTC="2026-02-14T10:00:00Z"
+          NOW_EPOCH=$(date -u +%s)
+          CUTOFF_EPOCH=$(date -u -d "$CUTOFF_UTC" +%s)
+          if [ "$NOW_EPOCH" -lt "$CUTOFF_EPOCH" ]; then
+            echo "ML deploy locked until 2026-02-14 18:00 SGT (2026-02-14 10:00 UTC)."
+            exit 1
+          fi
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3.12.0

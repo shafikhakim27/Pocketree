@@ -11,6 +11,7 @@ on:
     workflows: ["6. API CI (Build, Test, Scan, SAST)"]
     types:
       - completed
+    branches: ["main"]
 
 env:
   IMAGE_NAME: ${{ secrets.DOCKER_USER }}/pocketree-api
@@ -18,9 +19,8 @@ env:
 
 jobs:
   build-and-deploy:
-    continue-on-error: true
     runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || github.event.workflow_run.conclusion == 'success' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event_name == 'push' || (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_branch == 'main') }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6.0.2
