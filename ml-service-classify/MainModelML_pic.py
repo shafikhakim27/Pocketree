@@ -1,97 +1,124 @@
-import io, torch, time, base64, json
-import numpy as np
-import open_clip
+import io
+import json
 import threading
-
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Form, UploadFile, File, HTTPException, Request
-from io import BytesIO
+from typing import Callable, List, Optional
+
+import open_clip
+import torch
+from fastapi import FastAPI, File, Form, Request, UploadFile
 from PIL import Image, ImageOps
-from pydantic import BaseModel, Field
-from typing import List, Optional
-from transformers import pipeline
 
-### --- USE CASE 1: IMAGE VERIFICATION (CLIP) --- ###
 
-# Global placeholders
-preprocess, tokenizer = None, None
+def detect_device() -> str:
+    if torch.cuda.is_available():
+        return "cuda"
+    if torch.backends.mps.is_available():
+        return "mps"
+    return "cpu"
 
-# Best available engine
-if torch.cuda.is_available():
-    device = "cuda" # Google Cloud GPU
-elif torch.backends.mps.is_available():
-    device = "mps"  # Mac M1/M2/M3 GPU acceleration
-else:
-    device = "cpu"  # Local fallback
 
-models = {"clip": None}
+def clean_keyword(value: Optional[str]) -> List[str]:
+    if not value:
+        return []
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    app.state.clip = CLIPService()
-    # optional eager load:
-    app.state.clip.ensure_model()
-    yield
+    text = value.strip()
 
-app = FastAPI(lifespan=lifespan)
+    # Normalize wrappers that can appear from different shells/tools.
+    if text.startswith('@"'):
+        text = text[2:]
+    if text.endswith('"@'):
+        text = text[:-2]
+    if (text.startswith('"') and text.endswith('"')) or (
+        text.startswith("'") and text.endswith("'")
+    ):
+        text = text[1:-1]
+    text = text.replace('""', '"').strip()
+    if text.startswith("["):
+        try:
+            parsed = json.loads(text)
+            if isinstance(parsed, list):
+                return [str(item).strip() for item in parsed if str(item).strip()]
+        except json.JSONDecodeError:
+            items = text.strip("[]").split(",")
+            return [item.strip().strip('"') for item in items if item.strip()]
+
+    return [text]
+
+
+def normalize_similarity(sim: float, low: float, high: float) -> float:
+    if high <= low:
+        return 0.0
+    return float(max(0.0, min(1.0, (sim - low) / (high - low))))
+
 
 class CLIPService:
-    def __init__(self):
-        self.device = device
-        self.model, self.preprocess, self.tokenizer = None, None, None
-        self.text_cache = {}
+    def __init__(self) -> None:
+        self.device = detect_device()
+        self.model = None
+        self.preprocess = None
+        self.tokenizer: Optional[Callable[[List[str]], torch.Tensor]] = None
         self.pos_threshold = 0.150
         self.margin = 0.05
         self._load_lock = threading.Lock()
 
-def ensure_model(self):
-    if self.model is not None:
-        return
-    with self._load_lock:
+    def _resolve_tokenizer(self, model_name: str):
+        # Tokenizer API differs across open_clip variants.
+        if hasattr(open_clip, "get_tokenizer"):
+            return open_clip.get_tokenizer(model_name)
+        if hasattr(open_clip, "tokenize"):
+            return open_clip.tokenize
+
+        tok_mod = getattr(open_clip, "tokenizer", None)
+        if tok_mod and hasattr(tok_mod, "tokenize"):
+            return tok_mod.tokenize
+
+        raise RuntimeError("Tokenizer API not found in open_clip module.")
+
+    def ensure_model(self) -> None:
         if self.model is not None:
             return
 
-        model_name = "ViT-B-32"
-        pretrained = "openai"
+        with self._load_lock:
+            if self.model is not None:
+                return
 
-        m, _, p = open_clip.create_model_and_transforms(model_name, pretrained=pretrained)
-
-        self.model = m.to(self.device).eval()
-        self.preprocess = p
-        self.tokenizer = open_clip.get_tokenizer(model_name)
-
-        print(f"CLIP Loaded: {model_name}:{pretrained}")
+            model_name = "ViT-B-32"
+            pretrained = "openai"
+            model, _, preprocess = open_clip.create_model_and_transforms(
+                model_name, pretrained=pretrained
+            )
+            self.model = model.to(self.device).eval()
+            self.preprocess = preprocess
+            self.tokenizer = self._resolve_tokenizer(model_name)
+            print(f"CLIP loaded: {model_name}:{pretrained} on {self.device}")
+            print(f"open_clip module: {getattr(open_clip, '__file__', 'unknown')}")
 
     def _prepare_image(self, img_bytes: bytes):
-        img = Image.open(io.BytesIO(img_bytes))
-        img = ImageOps.exif_transpose(img).convert("RGB") # pyright: ignore[reportOptionalMemberAccess]
-        img.thumbnail((224, 224))
-        return self.preprocess(img).unsqueeze(0).to(self.device) # pyright: ignore[reportAttributeAccessIssue, reportCallIssue, reportOptionalCall]
+        if self.preprocess is None:
+            raise RuntimeError("Preprocess pipeline is not loaded.")
 
-    def _get_features(self, phrases):
+        img = Image.open(io.BytesIO(img_bytes))
+        img = ImageOps.exif_transpose(img).convert("RGB")
+        return self.preprocess(img).unsqueeze(0).to(self.device)
+
+    def _get_features(self, phrases: List[str]):
         if self.tokenizer is None or self.model is None:
             raise RuntimeError("Model/tokenizer not loaded. Did ensure_model() fail?")
 
-    tokens = self.tokenizer(phrases).to(self.device)
-    with torch.inference_mode():
-        feat = self.model.encode_text(tokens)
-        return feat / feat.norm(dim=-1, keepdim=True)
+        tokens = self.tokenizer(phrases).to(self.device)
+        with torch.inference_mode():
+            feat = self.model.encode_text(tokens)
+            return feat / feat.norm(dim=-1, keepdim=True)
 
-
-    # --- MODEL 1: Simple ViT-B-32 ---
-    def classify_simple(self, image_feat, keyword: str):
-
+    def classify_simple(self, image_feat, keyword: str) -> dict:
         text_feat = self._get_features([f"a photo of a {keyword}", "object"])
-            
         raw_sim = float(image_feat @ text_feat[0].T)
         probs = (100.0 * image_feat @ text_feat.T).softmax(dim=-1).cpu().numpy()[0]
-
         verified = bool(probs.argmax() == 0 and probs[0] >= 0.55 and raw_sim > 0.15)
         return {"verified": verified, "score": float(probs[0]), "method": "simple"}
 
-    # --- MODEL 2: With Pos/Neg Keywords ---
-    def classify_advanced(self, image_feat, pos_list: list, neg_list: list):
-        # Create prompts
+    def classify_advanced(self, image_feat, pos_list: List[str], neg_list: List[str]) -> dict:
         pos_prompts = [f"a photo of {p}" for p in pos_list]
         neg_prompts = [f"a photo of {n}" for n in neg_list]
 
@@ -104,130 +131,101 @@ def ensure_model(self):
             neg_feat = self._get_features(neg_prompts)
             neg_sims = (image_feat @ neg_feat.T).squeeze(0)
             best_neg = float(neg_sims.max().item())
-        
+
         verified = (best_pos > self.pos_threshold) and (best_pos > best_neg + self.margin)
         return {"verified": bool(verified), "score": best_pos, "method": "advanced"}
 
-    # --- MODEL 3: Softmax Comparison (Normal CLIP) ---
-    def classify_softmax(self, image_feat, keyword: str):
+    def classify_softmax(self, image_feat, keyword: str) -> dict:
         labels = [f"a {keyword}", "a blurry background", "a random object"]
-
         text_feat = self._get_features(labels)
-        
         logits = (image_feat @ text_feat.T) * 100
         probs = logits.softmax(dim=-1).cpu().numpy()[0]
-            
         verified = bool(probs.argmax() == 0 and probs[0] >= 0.70)
         return {"verified": verified, "score": float(probs[0]), "method": "softmax"}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.clip = CLIPService()
+    app.state.clip.ensure_model()
+    yield
+
+
+app = FastAPI(lifespan=lifespan)
+
 
 @app.post("/classify")
 def classify(
     request: Request,
-    keyword: str = Form(...), 
-    negative_keyword: Optional[str] = Form(None), 
-    file: UploadFile = File(...)):
-
+    keyword: str = Form(...),
+    negative_keyword: Optional[str] = Form(None),
+    file: UploadFile = File(...),
+):
     service: CLIPService = request.app.state.clip
     service.ensure_model()
-    
-    # 1. Image & Keyword Prep
-    content =  file.file.read()
+
+    content = file.file.read()
     image_tensor = service._prepare_image(content)
 
     with torch.inference_mode():
-        image_feat = service.model.encode_image(image_tensor) # pyright: ignore[reportOptionalMemberAccess, reportCallIssue]
+        image_feat = service.model.encode_image(image_tensor)
         image_feat /= image_feat.norm(dim=-1, keepdim=True)
-
-    def clean_keyword(k):
-        if not k: 
-            return []
-        
-        # 1. Handle the @"[""item""]" format
-        if k.startswith('@"'):
-            k = k.replace('@"', '').strip('"').replace('""', '"')
-        
-        # 2. Standardize whitespace
-        k = k.strip()
-        
-        # 3. Parse if it looks like a JSON list
-        if k.startswith("["):
-            try:
-                parsed_k = json.loads(k)
-                print(f"DEBUG: Parsed {len(parsed_k)} keywords: {parsed_k}")
-                return parsed_k
-            except json.JSONDecodeError:
-                # Fallback: manual strip for malformed strings
-                items = k.strip("[]").split(",")
-                return [i.strip().strip('"') for i in items]
-                
-        # 4. Return as single-item list if it's just a string
-        return [k]
-    
-    def norm_sim(sim: float, low: float, high: float) -> float:
-        return float(max(0.0, min(1.0, (sim - low) / (high - low))))
 
     pos_list = clean_keyword(keyword)
     neg_list = clean_keyword(negative_keyword)
     primary_keyword = pos_list[0] if pos_list else keyword
 
-    # Run All 3 
-    res1 = service.classify_simple(image_feat, primary_keyword)
-    res2 = service.classify_advanced(image_feat, pos_list, neg_list)
-    res3 = service.classify_softmax(image_feat, primary_keyword)
+    res_simple = service.classify_simple(image_feat, primary_keyword)
+    res_advanced = service.classify_advanced(image_feat, pos_list, neg_list)
+    res_softmax = service.classify_softmax(image_feat, primary_keyword)
 
-    s1 = float(res1["score"])
-    s3 = float(res3["score"])
-    s2 = norm_sim(float(res2["score"]), low=service.pos_threshold, high=service.pos_threshold + 0.10)
+    s1 = float(res_simple["score"])
+    s2 = normalize_similarity(
+        float(res_advanced["score"]),
+        low=service.pos_threshold,
+        high=service.pos_threshold + 0.10,
+    )
+    s3 = float(res_softmax["score"])
 
-    # Feature weighting
-    all_results = [res1, res2, res3]
-    avg_score = 0.25*s1 + 0.50*s2 + 0.25*s3
-
-    # # Hybrid Consensus: 
-    # # Verify if 2/3 agree AND the average confidence is decent.
-    # verified_count = sum(1 for r in all_results if r["verified"])
-    # final_verified = verified_count >= 2 and avg_score > 0.18
-
-    # # Ensemble "The Best" 
-    # best_score = max(r["score"] for r in all_results)
-    
-    # # Majority Voting: If 2 out of 3 say verified, we verify.
-    # verified_count = sum(1 for r in all_results if r["verified"])
-    # final_verified = verified_count >= 2
-
-    # return {
-    #     "verified": final_verified,
-    #     "best_score": best_score,
-    #     "details": {
-    #         "simple": res1,
-    #         "advanced": res2,
-    #         "softmax": res3
-    #     },
-    #     "consensus": f"{verified_count}/3 models verified"
-    # }
-
-    verified_count = sum(1 for r in all_results if r["verified"])
+    all_results = [res_simple, res_advanced, res_softmax]
+    avg_score = (0.25 * s1) + (0.50 * s2) + (0.25 * s3)
+    verified_count = sum(1 for result in all_results if result["verified"])
     majority_agreed = verified_count >= 2
     final_verified = bool(majority_agreed or avg_score > 0.65)
 
-    return {
-        "verified": final_verified,
-        "confidence": float(avg_score)
-    }
+    return {"verified": final_verified, "confidence": float(avg_score)}
 
-### --- MISC --- ###
+
+@app.get("/")
+def root():
+    return {"status": "ok"}
+
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "healthy"}
+
+
+@app.get("/readyz")
+def readyz(request: Request):
+    service: CLIPService = request.app.state.clip
+    return {"status": "ready", "model_loaded": service.model is not None}
+
 
 @app.get("/health")
 def health(request: Request):
     service: CLIPService = request.app.state.clip
     return {"status": "ok", "model_loaded": service.model is not None}
 
+
 if __name__ == "__main__":
-    import uvicorn
     import os
+
+    import uvicorn
+
     try:
         port = int(os.environ.get("PORT", 8080))
-        uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
         print(f"Starting server on port {port}")
+        uvicorn.run(app, host="0.0.0.0", port=port, log_level="info")
     except KeyboardInterrupt:
         print("\nShutting down PockeTree gracefully... Bye!")
