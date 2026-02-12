@@ -53,27 +53,16 @@ class RedeemFragment: Fragment() {
 
     private fun observeViewModel(){
         sharedViewModel.skins.observe(viewLifecycleOwner) { skinList ->
-//            binding.recyclerViewSkin.adapter = RedeemAdapter(skinList) { item ->
-//                if (item is Skin) {
-//                    if (item.isRedeemed) {
-//                        handleRedeemedSkinClick(item) // handle equip/level check here
-//                    }
-//                    else {
-//                        showSkinConfirmDialog(item)
-//                    }
-//                }
-//            }
             skinAdapter.updateData(skinList)
         }
 
         sharedViewModel.vouchers.observe(viewLifecycleOwner) { voucherList ->
-//            binding.recyclerViewVoucher.adapter = RedeemAdapter(voucherList) { item ->
-//                if (item is Voucher) {
-//                    if (!item.isRedeemed) {
-//                        showVoucherConfirmDialog(item)
-//                    }
-//                }
-//            }
+            if (voucherList.isEmpty()){
+                binding.voucherText.visibility = View.VISIBLE
+                binding.voucherText.text = "You do not have any vouchers yet."
+            } else {
+                binding.voucherText.visibility = View.GONE
+            }
             voucherAdapter.updateData(voucherList)
         }
 

@@ -34,7 +34,7 @@ class UserViewModel: ViewModel() {
     val vouchers = MutableLiveData<List<Voucher>>()  // by Chenyu
 
     // UI state livedata
-    val tasks = MutableLiveData<List<Task>?>()
+    val tasks = MutableLiveData<List<Task>?>(null)
     val latestBadgeName = MutableLiveData<String?>()
     val earnedBadges = MutableLiveData<List<Badge>>()
     val statusMessage = MutableLiveData<String?>() // for status on image verification
@@ -204,6 +204,8 @@ class UserViewModel: ViewModel() {
     }
 
     fun fetchDailyTasks(){
+        tasks.value = null // to trigger loading bar in fragment
+
         val request = Request.Builder()
             .url("${taskBaseUrl}/GetDailyTasksApi")
             .get()

@@ -65,15 +65,34 @@ class TaskFragment: Fragment() {
 
         // observe tasks list
         sharedViewModel.tasks.observe(viewLifecycleOwner) { tasks ->
-            if (tasks == null || _binding == null) return@observe
+            // if (tasks == null || _binding == null) return@observe
+            if (_binding == null) return@observe
 
-            taskAdapter.updateTasks(tasks)
+            if (tasks == null) {
+                // fetching data
+                binding.progressBar.visibility = View.VISIBLE
+                binding.progressText.visibility = View.VISIBLE
+                binding.progressText.text = "Fetching daily tasks..."
 
-            if (tasks.isNotEmpty() && tasks.all { it.isCompleted || it.isPassed }) {
-                binding.dailyStatusTv.text = "Come back tomorrow for new tasks!"
-                binding.dailyStatusTv.visibility = View.VISIBLE
-            } else {
+                binding.progressBar.isIndeterminate = true
+
+                // hide empty list/status while in loading state
+                binding.recyclerViewTasks.visibility = View.GONE
                 binding.dailyStatusTv.visibility = View.GONE
+            } else {
+                // data for tasks has arrived
+                binding.progressBar.isIndeterminate = false
+                binding.progressBar.visibility = View.GONE
+                binding.progressText.visibility = View.GONE
+
+                binding.recyclerViewTasks.visibility = View.VISIBLE
+                taskAdapter.updateTasks(tasks)
+
+                // when all tasks finished
+                if (tasks.isNotEmpty() && tasks.all { it.isCompleted || it.isPassed }) {
+                    binding.dailyStatusTv.text = "Come back tomorrow for new tasks!"
+                    binding.dailyStatusTv.visibility = View.VISIBLE
+                }
             }
         }
 
