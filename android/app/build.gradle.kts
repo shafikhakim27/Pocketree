@@ -57,7 +57,7 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
-    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("com.google.code.gson:gson:2.13.2")
 
     implementation("com.microsoft.signalr:signalr:7.0.0")
     implementation("io.reactivex.rxjava3:rxjava:3.1.5")
