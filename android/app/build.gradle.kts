@@ -60,7 +60,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     implementation("com.microsoft.signalr:signalr:7.0.0")
-    implementation("io.reactivex.rxjava3:rxjava:3.1.5")
+    implementation("io.reactivex.rxjava3:rxjava:3.1.12")
     implementation("io.reactivex.rxjava3:rxandroid:3.0.0")
 
     implementation("com.github.bumptech.glide:glide:4.16.0")
