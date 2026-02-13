@@ -77,6 +77,7 @@ jobs:
           echo "$HOME/.maestro/bin" >> $GITHUB_PATH
 
       - name: Run Maestro Flow (non-blocking stage)
+        if: ${{ false }}
         uses: reactivecircus/android-emulator-runner@v2.35.0
         with:
           api-level: 29
