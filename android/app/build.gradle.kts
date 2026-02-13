@@ -72,7 +72,7 @@ dependencies {
 
     testImplementation("org.mockito:mockito-core:5.12.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
-    testImplementation("org.robolectric:robolectric:4.12.2")
+    testImplementation("org.robolectric:robolectric:4.16.1")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
     testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
 
