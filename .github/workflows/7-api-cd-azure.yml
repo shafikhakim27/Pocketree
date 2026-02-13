@@ -81,7 +81,7 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Deploy to Azure Web App
-        uses: azure/webapps-deploy@v2.2.17
+        uses: azure/webapps-deploy@v3.0.6
         with:
           app-name: ${{ env.AZURE_WEBAPP_NAME }}
           images: '${{ env.IMAGE_NAME }}:sha-${{ github.sha }}'
