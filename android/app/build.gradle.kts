@@ -70,13 +70,13 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:5.3.2")
     implementation("com.squareup.okhttp3:logging-interceptor:5.3.2")
 
-    testImplementation("org.mockito:mockito-core:5.12.0")
+    testImplementation("org.mockito:mockito-core:5.21.0")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
     testImplementation("org.robolectric:robolectric:4.12.2")
     testImplementation("androidx.arch.core:core-testing:2.2.0")
     testImplementation("com.squareup.okhttp3:mockwebserver:5.3.2")
 
-    androidTestImplementation("org.mockito:mockito-android:5.12.0")
+    androidTestImplementation("org.mockito:mockito-android:5.21.0")
     androidTestImplementation("org.mockito.kotlin:mockito-kotlin:5.4.0")
 }
 
