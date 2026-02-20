@@ -51,7 +51,7 @@
     
     <!-- Entity Framework for Testing -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="9.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.13" />
     
     <!-- ❌ REMOVED: MSTest packages -->
     <!-- ❌ REMOVED: NUnit packages -->
