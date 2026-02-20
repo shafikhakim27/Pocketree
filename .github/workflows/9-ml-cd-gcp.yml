@@ -333,7 +333,7 @@ jobs:
             type=sha,format=long
 
       - name: Build and push Docker image (v3)
-        uses: docker/build-push-action@v6.18.0
+        uses: docker/build-push-action@v6.19.2
         with:
           context: ml-service-classify
           file: ml-service-classify/Dockerfile
