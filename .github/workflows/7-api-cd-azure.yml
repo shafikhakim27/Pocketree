@@ -126,7 +126,7 @@ jobs:
 
       - name: Upload API Scan Reports
         if: always()
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v7.0.0
         with:
           if-no-files-found: warn
           name: api-security-scan-reports
