@@ -60,7 +60,7 @@ jobs:
         run: dotnet publish api/Pocketree.Api.Tests/Pocketree.Api.Tests.csproj --configuration Release --output ./test-artifacts
       
       - name: Upload Test Artifacts
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v7.0.0
         with:
           if-no-files-found: warn
           name: test-artifacts
@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload API CI Scan Reports
         if: always()
-        uses: actions/upload-artifact@v6.0.0
+        uses: actions/upload-artifact@v7.0.0
         with:
           if-no-files-found: warn
           name: api-ci-scan-reports
